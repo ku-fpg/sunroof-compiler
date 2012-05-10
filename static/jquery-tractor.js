@@ -18,5 +18,4 @@ function tractor_connect(prefix) {
               type: "POST",
               data: "",
               dataType: "script"}); 
-     }
 }
