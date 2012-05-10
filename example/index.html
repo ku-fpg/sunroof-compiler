@@ -1,0 +1,55 @@
+<html>
+    <head>
+        <title>Blank Canvas</title>
+        <script type="text/javascript" src="jquery.js"></script>
+        <script type="text/javascript" src="jquery-json.js"></script>
+        <script type="text/javascript" src="jquery-tractor.js"></script>
+    </head>
+    <body>
+         <button>Hello</button>
+         <div>Hello, World</div>
+         <div>Hello, World again</div>
+        <script type="text/javascript">
+/*
+            var session = 0; // global session number
+            function getContext() {
+                    var canvas = document.getElementById("canvas");
+                    if (canvas.getContext) {
+                        return canvas.getContext("2d");
+                    }
+                    alert("no canvas");
+            }
+            function register(name,mysession) {
+                $(document).bind(name,function (e){
+                        $.ajax({ url: "/event/" + mysession,
+                         type: "POST",
+                         data: $.toJSON([name,e.which,e.pageX, e.pageY]),
+                         contentType: "application/json; charset=utf-8",
+                         dataType: "json"});
+                });
+            }  
+*/             
+        function tractor_redraw(count) {
+//                alert("tractor_redraw : " + "/example/act/" + tractor_session + "/" + count);
+                $.ajax({ url: "/example/act/" + tractor_session + "/" + count,
+                         type: "GET",
+                         dataType: "script",
+                         success: function success() {
+                                 tractor_redraw(count + 1);
+                         }
+                         // TODO: Add failure
+                         }); 
+             }
+
+            $(document).ready(function() {
+                 // start the server-side via tractor
+                $.ajax({ url: "/example",
+                         type: "POST",
+                         data: "",
+                         dataType: "script"}); 
+            });
+
+        </script>
+
+    </body>
+</html>

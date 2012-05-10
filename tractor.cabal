@@ -29,10 +29,12 @@ Extra-source-files:
 
 Library
   Exposed-modules:     Web.Tractor
+  other-modules:       Paths_tractor
   default-language:    Haskell2010
   build-depends:       aeson            >= 0.5,
                        base             >= 4.3.1 && < 5,
                        containers       == 0.4.*,
+                       data-default     == 0.3.*,
                        language-javascript,
                        scotty           >= 0.4.2 && < 0.5,
                        stm              == 2.2.*,
