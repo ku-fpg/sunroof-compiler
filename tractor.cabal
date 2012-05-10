@@ -13,7 +13,10 @@ Stability:           experimental
 Build-type:          Simple
 Cabal-version:       >= 1.10
 Description:
-  A transport level remove JavaScript RESTful push mechanism.
+  A transport level remote JavaScript RESTful push mechanism.
+
+data-files:
+    static/jquery-tractor.js
 
 Extra-source-files:
     README
@@ -29,9 +32,14 @@ Library
   default-language:    Haskell2010
   build-depends:       aeson            >= 0.5,
                        base             >= 4.3.1 && < 5,
+                       containers       == 0.4.*,
                        language-javascript,
-                       scotty           == 0.4.*,
-                       stm              == 2.2.*
+                       scotty           >= 0.4.2 && < 0.5,
+                       stm              == 2.2.*,
+                       transformers     == 0.2.*,
+                       text             == 0.11.*
+
+-- text is needed just for scotty's literal
 
   GHC-options: -Wall -fno-warn-orphans
 
