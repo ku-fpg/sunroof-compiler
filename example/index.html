@@ -14,10 +14,11 @@
         // This is how we tell this page to 'connect' to path /example
             $(document).ready(function() {
                 tractor_connect("/example");
-                tractor_event("click",function(event,widget,msg) {
-                        msg.pageX = event.pageX;
-                        msg.pageY = event.pageY;
-                        msg.id    =  $(widget).attr("id");
+                tractor_event("click",function(event,widget) {
+                        return { pageX : event.pageX
+                               , pageY : event.pageY
+                               , id: $(widget).attr("id") 
+                               };
                 });
             });
         </script>

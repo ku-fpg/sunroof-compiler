@@ -24,11 +24,11 @@ function tractor_connect(prefix) {
 
 function tractor_event(eventname, fn) {
      $("." + eventname).on(eventname, function (event) {
-	var o = new Object();
-	fn(event,this,o);
+//	var o = new Object();
+//	fn(event,this,o);
 	$.ajax({ url: the_prefix + "/event/" + tractor_session + "/" + eventname,
                  type: "POST",
-                 data: $.toJSON(o),
+                 data: $.toJSON(fn(event,this)),
                  contentType: "application/json; charset=utf-8",
                  dataType: "json"});
      });
