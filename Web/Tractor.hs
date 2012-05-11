@@ -74,10 +74,10 @@ connect opt callback = do
 
             let tryPushAction :: TMVar T.Text -> ActionM ()
                 tryPushAction var = do
-                    -- The PUSH archtecture means that we wait upto a second if there
+                    -- The PUSH archtecture means that we wait upto 3 seconds if there
                     -- is not javascript to push yet. This stops a busy-waiting
-                    -- (or technically restricts it to once a second)
-                    ping <- liftIO $ registerDelay (1000 * 1000)
+                    -- (or technically restricts it to once every 3 second busy)
+                    ping <- liftIO $ registerDelay (3 * 1000 * 1000)
                     res <- liftIO $ atomically $ do
                             b <- readTVar ping
                             if b then return Nothing else do

@@ -30,7 +30,6 @@ main = do
 opts :: T.Options
 opts = def { prefix = "/example", verbose = 2 }
 
-
 -- This is run each time the page is first accessed
 web_app :: Document -> IO ()
 web_app doc = do
