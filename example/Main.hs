@@ -39,18 +39,22 @@ opts = def { prefix = "/example", verbose = 2 }
 web_app :: Document -> IO ()
 web_app doc = do
         print "web_app"
-        send doc "tractor_return({result:99});";
 
-        res <- query doc (Text.pack "return { x : $('#fib-in').attr('value') };")
-        print res
+        click <- listen doc "click"
+        register doc "click" $ Text.pack $ concat
+                [ " return { pageX : event.pageX"
+                , "        , pageY : event.pageY"
+                , "        , id: $(widget).attr('id')"
+                , "        };"
+                ]
 
-{-
-        results <- listen doc "result"
 
         forkIO $ forever $ do
-                val <- atomically $ readTChan results
-                print val
--}
+                val <- atomically $ readTChan click
+                print ("click",val)
+                res <- query doc (Text.pack "return { x : $('#fib-in').attr('value') };")
+                print ("res",res)
+
         return ()
 
 -- $("#fib-in").attr("value")

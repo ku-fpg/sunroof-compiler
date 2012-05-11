@@ -22,7 +22,7 @@ function tractor_connect(prefix) {
               dataType: "script"}); 
 }
 
-function tractor_event(eventname, fn) {
+function tractor_register(eventname, fn) {
      $("." + eventname).on(eventname, function (event) {
 //	var o = new Object();
 //	fn(event,this,o);
@@ -37,8 +37,8 @@ function tractor_event(eventname, fn) {
 
 // There is a requirement that obj be an object or array.
 // See RFC 4627 for details.
-function tractor_return(obj) {
-	$.ajax({ url: the_prefix + "/event/" + tractor_session + "/return",
+function tractor_reply(obj) {
+	$.ajax({ url: the_prefix + "/event/" + tractor_session + "/reply",
                  type: "POST",
                  data: $.toJSON(obj),
                  contentType: "application/json; charset=utf-8",

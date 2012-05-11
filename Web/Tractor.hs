@@ -63,14 +63,13 @@ connect opt callback = do
 
    liftIO $ print $ prefix opt ++ "/act/:id/:act"
    get (capture $ prefix opt ++ "/act/:id/:act") $ do
-            liftIO $ print "H!"
             header "Cache-Control" "max-age=0, no-cache, private, no-store, must-revalidate"
             -- do something and return a new list of commands to the client
             num <- param "id"
 
             when (verbose opt >= 2) $ liftIO $ putStrLn $
                 "tractor: get .../act/" ++ show num
-            liftIO $ print (num :: Int)
+--            liftIO $ print (num :: Int)
 
             let tryPushAction :: TMVar T.Text -> ActionM ()
                 tryPushAction var = do
@@ -101,24 +100,21 @@ connect opt callback = do
            header "Cache-Control" "max-age=0, no-cache, private, no-store, must-revalidate"
            num <- param "id"
            event <- param "event"
-           liftIO $ print (num :: Int, event :: String)
+--           liftIO $ print (num :: Int, event :: String)
            val <- jsonData
-           liftIO $ print (val :: Value)
-{-
-            NamedEvent nm event <- jsonData
-            db <- liftIO $ readMVar contextDB
-            case Map.lookup num db of
-               Nothing -> json ()
-               Just (Context _ _ callbacks _) -> do
-                   db' <- liftIO $ readMVar callbacks
---                   liftIO $ print (nm,event)
-                   case Map.lookup nm db' of
-                       Nothing -> json ()
-                       Just var -> do liftIO $ writeEventQueue var event
-                                      json ()
--}
-           text (T.pack "")
-
+--           liftIO $ print (val :: Value)
+           db <- liftIO $ atomically $ readTVar contextDB
+           case Map.lookup num db of
+               Nothing  -> do
+                   liftIO $ print ("ignoring event",event,val :: Value)
+                   text (T.pack $ "alert('Ignore event for session #" ++ show num ++ "');")
+               Just doc -> do
+                   liftIO $ do
+                         ch <- listen doc event
+                         print ("sending",event,val)
+                         atomically $ writeTChan ch val
+                         print ("sent",event,val)
+                   text $ T.pack ""
 
 
    return ()
@@ -149,10 +145,11 @@ listen doc eventName = atomically $ do
              writeTVar (listening doc) $ Map.insert eventName ch db
              return ch
 
+-- The Text argument returns an object, which is what the event sends to Haskell.
 register :: Document -> EventName -> T.Text -> IO ()
 register doc eventName eventBuilder =
         send doc $ T.pack $ concat
-                        [ "tractor_event(" ++ show eventName ++ ",function(event,widget,msg) {"
+                        [ "tractor_register(" ++ show eventName ++ ",function(event,widget) {"
                         , T.unpack eventBuilder
                         , "});"
                         ]
@@ -161,13 +158,16 @@ register doc eventName eventBuilder =
 -- The test ends with a return for the value you want to see.
 query :: Document -> T.Text -> IO Value
 query doc qText = do
-        ch <- listen doc "result"       -- should we do a new chanel for each?
+        ch <- listen doc "reply"       -- should we do a new chanel for each?
         send doc $ T.pack $ concat
-                [ "tractor_return(function(){"
+                [ "tractor_reply(function(){"
                 , T.unpack qText
                 , "}());"
                 ]
-        atomically $ readTChan ch
+        print "waiting for query result"
+        r <- atomically $ readTChan ch
+        print ("got result",r)
+        return r
 
 
 
