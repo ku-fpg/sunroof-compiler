@@ -6,15 +6,19 @@
         <script type="text/javascript" src="jquery-tractor.js"></script>
     </head>
     <body>
-         fib (<input width="2"></text>) 
-         <button>Compute</button>
-         <div>Hello, World</div>
+         fib <input class="fib-in" width="2"></text>
+         <button id="button1" class="click">Compute</button>
          <div>Hello, World again</div>
 
         <script type="text/javascript">
         // This is how we tell this page to 'connect' to path /example
             $(document).ready(function() {
                 tractor_connect("/example");
+                tractor_event("click",function(event,widget,msg) {
+                        msg.pageX = event.pageX;
+                        msg.pageY = event.pageY;
+                        msg.id    =  $(widget).attr("id");
+                });
             });
         </script>
     </body>

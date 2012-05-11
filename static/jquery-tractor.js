@@ -1,8 +1,9 @@
 // This is our main loop; get a command from the Haskell server,
 // execute it, go back and ask for more.
+var the_prefix = "";
 function tractor_redraw(count) {
 //                alert("tractor_redraw : " + "/example/act/" + tractor_session + "/" + count);
-   $.ajax({ url: "/example/act/" + tractor_session + "/" + count,
+   $.ajax({ url: the_prefix + "/act/" + tractor_session + "/" + count,
             type: "GET",
             dataType: "script",
             success: function success() {
@@ -14,8 +15,21 @@ function tractor_redraw(count) {
 
 function tractor_connect(prefix) {
      // start the server-side via tractor
-     $.ajax({ url: prefix,
+     the_prefix = prefix;
+     $.ajax({ url: the_prefix,
               type: "POST",
               data: "",
               dataType: "script"}); 
+}
+
+function tractor_event(eventname, fn) {
+     $("." + eventname).on(eventname, function (event) {
+	var o = new Object();
+	fn(event,this,o);
+	$.ajax({ url: the_prefix + "/event/" + tractor_session + "/" + eventname,
+                 type: "POST",
+                 data: $.toJSON(o),
+                 contentType: "application/json; charset=utf-8",
+                 dataType: "json"});
+     });
 }

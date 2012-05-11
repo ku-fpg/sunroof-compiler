@@ -34,7 +34,7 @@ opts = def { prefix = "/example", verbose = 2 }
 web_app :: Document -> IO ()
 web_app doc = do
         print "web_app"
-        send doc "alert('Bla');"
+--        send doc "alert('Bla');"
 
         return ()
 

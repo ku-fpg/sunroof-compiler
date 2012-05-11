@@ -20,7 +20,7 @@ import qualified Data.Text.Lazy as T
 
 -- >  POST http://.../foobar/                     <- bootstrap the interaction
 -- >  GET  http://.../foobar/act/<id#>/<act#>     <- get a specific action
--- >  POST http://.../foobar/event/<event-name>   <- send an event as a JSON object
+-- >  POST http://.../foobar/event/<id#>/<event-name>   <- send an event as a JSON object
 
 connect :: Options             -- ^ URL path prefix for this page
         -> (Document -> IO ()) -- ^ called for access of the page
@@ -57,7 +57,7 @@ connect opt callback = do
    post (capture $ prefix opt ++ "/") $ do
             liftIO $ print "got root"
             uq  <- liftIO $ newContext
-            text (T.pack $ "tractor_session = " ++ show uq ++ ";alert('HelXlo');tractor_redraw(0);")
+            text (T.pack $ "tractor_session = " ++ show uq ++ ";tractor_redraw(0);")
 
    -- GET the updates to the documents (should this be an (empty) POST?)
 
@@ -95,6 +95,30 @@ connect opt callback = do
             case Map.lookup num db of
                Nothing  -> text (T.pack $ "alert('Can not find act #" ++ show num ++ "');")
                Just doc -> tryPushAction (sending doc)
+
+
+   post (capture $ prefix opt ++ "/event/:id/:event") $ do
+           header "Cache-Control" "max-age=0, no-cache, private, no-store, must-revalidate"
+           num <- param "id"
+           event <- param "event"
+           liftIO $ print (num :: Int, event :: String)
+           val <- jsonData
+           liftIO $ print (val :: Value)
+{-
+            NamedEvent nm event <- jsonData
+            db <- liftIO $ readMVar contextDB
+            case Map.lookup num db of
+               Nothing -> json ()
+               Just (Context _ _ callbacks _) -> do
+                   db' <- liftIO $ readMVar callbacks
+--                   liftIO $ print (nm,event)
+                   case Map.lookup nm db' of
+                       Nothing -> json ()
+                       Just var -> do liftIO $ writeEventQueue var event
+                                      json ()
+-}
+           text (T.pack "")
+
 
 
    return ()
