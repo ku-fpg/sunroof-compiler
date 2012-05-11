@@ -33,3 +33,14 @@ function tractor_event(eventname, fn) {
                  dataType: "json"});
      });
 }
+
+
+// There is a requirement that obj be an object or array.
+// See RFC 4627 for details.
+function tractor_return(obj) {
+	$.ajax({ url: the_prefix + "/event/" + tractor_session + "/return",
+                 type: "POST",
+                 data: $.toJSON(obj),
+                 contentType: "application/json; charset=utf-8",
+                 dataType: "json"});
+}

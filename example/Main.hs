@@ -8,7 +8,12 @@ module Main where
 import Web.Scotty
 import Web.Tractor as T
 import Data.Default
+import Control.Monad
+import Control.Concurrent
+import Control.Concurrent.STM
 import Control.Monad.IO.Class
+
+import qualified Data.Text.Lazy as Text
 
 
 main = do
@@ -34,7 +39,18 @@ opts = def { prefix = "/example", verbose = 2 }
 web_app :: Document -> IO ()
 web_app doc = do
         print "web_app"
---        send doc "alert('Bla');"
+        send doc "tractor_return({result:99});";
 
+        res <- query doc (Text.pack "return { x : $('#fib-in').attr('value') };")
+        print res
+
+{-
+        results <- listen doc "result"
+
+        forkIO $ forever $ do
+                val <- atomically $ readTChan results
+                print val
+-}
         return ()
 
+-- $("#fib-in").attr("value")

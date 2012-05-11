@@ -43,7 +43,7 @@ connect opt callback = do
        newContext = do
             uq <- getUniq
             picture <- atomically $ newEmptyTMVar
-            callbacks <- atomically $ newTMVar $ Map.empty
+            callbacks <- atomically $ newTVar $ Map.empty
             let cxt = Document picture callbacks uq
             liftIO $ atomically $ do
                     db <- readTVar contextDB
@@ -138,15 +138,46 @@ send doc js = atomically $ putTMVar (sending doc) js
 
 -- | listen sets up a RESTful listener and a new Channel that listens
 -- to this listener. It is important to realize that if you call listen twice,
--- you get a duplicate channel.
-listen :: (FromJSON a) => Document -> EventName -> IO (TChan a)
-listen doc eventName = return (error "listen")
+-- you get the *same* channel.
+listen :: Document -> EventName -> IO (TChan Value)
+listen doc eventName = atomically $ do
+        db <- readTVar (listening doc)
+        case Map.lookup eventName db of
+          Just ch -> return ch
+          Nothing -> do
+             ch <- newTChan
+             writeTVar (listening doc) $ Map.insert eventName ch db
+             return ch
+
+register :: Document -> EventName -> T.Text -> IO ()
+register doc eventName eventBuilder =
+        send doc $ T.pack $ concat
+                        [ "tractor_event(" ++ show eventName ++ ",function(event,widget,msg) {"
+                        , T.unpack eventBuilder
+                        , "});"
+                        ]
+
+-- TODO: make thread safe
+-- The test ends with a return for the value you want to see.
+query :: Document -> T.Text -> IO Value
+query doc qText = do
+        ch <- listen doc "result"       -- should we do a new chanel for each?
+        send doc $ T.pack $ concat
+                [ "tractor_return(function(){"
+                , T.unpack qText
+                , "}());"
+                ]
+        atomically $ readTChan ch
+
+
 
 type EventName = String
 
 data Document = Document
         { sending   :: TMVar T.Text             -- ^ Code to be sent to the browser
-        , listening :: TMVar (Map.Map EventName (TChan Value))
+                                                -- This is a TMVar to stop the generation
+                                                -- getting ahead of the rendering engine
+        , listening :: TVar (Map.Map EventName (TChan Value))
         , secret    :: Int                      -- ^ the number of this document
         }
 
