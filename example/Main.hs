@@ -1,14 +1,16 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
 -- Example of using tractor
 
 module Main where
 
-
+import Data.Aeson as A
+import Data.Aeson.Types as AP
 import Web.Scotty
 import Web.Tractor as T
 import Data.Default
 import Control.Monad
+import Control.Applicative
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Monad.IO.Class
@@ -40,21 +42,28 @@ web_app :: Document -> IO ()
 web_app doc = do
         print "web_app"
 
-        click <- listen doc "click"
         register doc "click" $ Text.pack $ concat
                 [ " return { pageX : event.pageX"
                 , "        , pageY : event.pageY"
-                , "        , id: $(widget).attr('id')"
+                , "        , id    : $(widget).attr('id')"
                 , "        };"
                 ]
 
-
         forkIO $ forever $ do
-                val <- atomically $ readTChan click
-                print ("click",val)
-                res <- query doc (Text.pack "return { x : $('#fib-in').attr('value') };")
-                print ("res",res)
-
+                res <- waitFor doc "click"
+                res <- query doc (Text.pack "return { wrapped : $('#fib-in').attr('value') };")
+                let Success (Wrapped a) :: Result (Wrapped String) = parse parseJSON res
+                print a
+--                let Success b :: Result String = parse parseJSON a
+--                print b
+                print res
         return ()
 
--- $("#fib-in").attr("value")
+data Wrapped a = Wrapped a
+        deriving Show
+
+instance FromJSON a => FromJSON (Wrapped a) where
+   parseJSON (Object v) = Wrapped    <$>
+                          (v .: "wrapped")
+   parseJSON _          = mzero
+

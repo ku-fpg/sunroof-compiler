@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Web.Tractor where
 
 import Web.Scotty
@@ -96,26 +96,24 @@ connect opt callback = do
                Just doc -> tryPushAction (sending doc)
 
 
-   post (capture $ prefix opt ++ "/event/:id/:event") $ do
+   post (capture $ prefix opt ++ "/reply/:id/:uq") $ do
            header "Cache-Control" "max-age=0, no-cache, private, no-store, must-revalidate"
            num <- param "id"
-           event <- param "event"
+           uq :: Int <- param "uq"
 --           liftIO $ print (num :: Int, event :: String)
-           val <- jsonData
+           val :: Value <- jsonData
 --           liftIO $ print (val :: Value)
            db <- liftIO $ atomically $ readTVar contextDB
            case Map.lookup num db of
                Nothing  -> do
-                   liftIO $ print ("ignoring event",event,val :: Value)
-                   text (T.pack $ "alert('Ignore event for session #" ++ show num ++ "');")
+                   liftIO $ print ("ignoring reply",uq,val)
+                   text (T.pack $ "alert('Ignore reply for session #" ++ show num ++ "');")
                Just doc -> do
                    liftIO $ do
-                         ch <- listen doc event
-                         print ("sending",event,val)
-                         atomically $ writeTChan ch val
-                         print ("sent",event,val)
+                         atomically $ do
+                           m <- readTVar (listening doc)
+                           writeTVar (listening doc) $ Map.insert uq val m
                    text $ T.pack ""
-
 
    return ()
 
@@ -127,11 +125,12 @@ jTractorStatic = do
         return $ dataDir ++ "/static/jquery-tractor.js"
 
 -- 'send' sends a javascript fragement to a document.
--- 'send' suspends the thread until the javascript has been dispatched
+-- 'send' suspends the thread if the last javascript has not been *dispatched*
 -- the the browser.
 send :: Document -> T.Text -> IO ()
 send doc js = atomically $ putTMVar (sending doc) js
 
+{-
 -- | listen sets up a RESTful listener and a new Channel that listens
 -- to this listener. It is important to realize that if you call listen twice,
 -- you get the *same* channel.
@@ -144,8 +143,9 @@ listen doc eventName = atomically $ do
              ch <- newTChan
              writeTVar (listening doc) $ Map.insert eventName ch db
              return ch
+-}
 
--- The Text argument returns an object, which is what the event sends to Haskell.
+-- The Text argument returns an object, which is what part of the event get sent to Haskell.
 register :: Document -> EventName -> T.Text -> IO ()
 register doc eventName eventBuilder =
         send doc $ T.pack $ concat
@@ -154,21 +154,35 @@ register doc eventName eventBuilder =
                         , "});"
                         ]
 
+waitFor :: Document -> EventName -> IO Value
+waitFor doc eventName = do
+        let uq = 1023949 :: Int -- later, have this random generated
+        send doc $ T.pack $ concat
+                [ "tractor_waitFor(" ++ show eventName ++ ",function(e) { tractor_reply(" ++ show uq ++ ",e);});" ]
+        getReply doc uq
+
+-- internal function, waits for a numbered reply
+getReply :: Document -> Int -> IO Value
+getReply doc num = do
+        atomically $ do
+           db <- readTVar (listening doc)
+           case Map.lookup num db of
+              Nothing -> retry
+              Just r -> do
+                      writeTVar (listening doc) $ Map.delete num db
+                      return r
+
 -- TODO: make thread safe
 -- The test ends with a return for the value you want to see.
 query :: Document -> T.Text -> IO Value
 query doc qText = do
-        ch <- listen doc "reply"       -- should we do a new chanel for each?
+        let uq = 37845 :: Int -- should be uniq
         send doc $ T.pack $ concat
-                [ "tractor_reply(function(){"
+                [ "tractor_reply(" ++ show uq ++ ",function(){"
                 , T.unpack qText
                 , "}());"
                 ]
-        print "waiting for query result"
-        r <- atomically $ readTChan ch
-        print ("got result",r)
-        return r
-
+        getReply doc uq
 
 
 type EventName = String
@@ -177,7 +191,7 @@ data Document = Document
         { sending   :: TMVar T.Text             -- ^ Code to be sent to the browser
                                                 -- This is a TMVar to stop the generation
                                                 -- getting ahead of the rendering engine
-        , listening :: TVar (Map.Map EventName (TChan Value))
+        , listening :: TVar (Map.Map Int Value) -- ^ This is numbered replies.
         , secret    :: Int                      -- ^ the number of this document
         }
 
