@@ -35,7 +35,8 @@ function tractor_register(eventname, fn) {
 	var e = fn(event,this);
 	e.eventname = eventname;
 	if (eventCallbacks[eventname] == undefined) {
-		alert('pushing, no one is waiting (TO BE DONE)');
+//		alert('pushing, no one is waiting (TO BE DONE)');
+	// These are effectively ignored (TODO: fix)
 		eventQueues[eventname].push(e);
 	} else {
 		eventCallbacks[eventname](e);
