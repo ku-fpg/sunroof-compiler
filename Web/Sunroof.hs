@@ -2,6 +2,7 @@
 
 module Web.Sunroof where
 
+import GHC.Exts
 --data JSM a = JSM a      -- ...
 
 data U where
@@ -40,6 +41,9 @@ instance Show (JSV a) where
 instance Num (JSV Int) where
         fromInteger i = JS_Int (fromInteger i)
 
+instance IsString (JSV String) where
+    fromString = JS_String
+
 ---------------------------------------------------------------
 
 -- TODO: split into Show => Value => Sunroof
@@ -52,6 +56,10 @@ class Show a => Sunroof a where
 instance Sunroof (JSV Int) where
         mkVar u = JS_Var u
         directCompile i = (show i,Number,Direct)
+
+instance Sunroof (JSV String) where
+        mkVar u = JS_Var u
+        directCompile i = (show i,Number,Direct)        -- TODO: fix
 
 instance Sunroof U where
         mkVar i = U (mkVar i :: JSV Int)        -- HACK
@@ -206,6 +214,18 @@ test3 = do
         JS_Call "foo3" [JSA (3 :: JSV Int), JSA n] Number :: JSM ()
 
 run_test3 = runCompM (compile test3) 0
+
+alert :: JSV String -> JSM ()
+alert msg = JS_Call "alert" [JSA msg] Unit :: JSM ()
+
+
+-- This works in the browser
+test4 :: JSM ()
+test4 = do
+        alert("A")
+        alert("B")
+
+run_test4 = runCompM (compile test4) 0
 
 {-
 -- :: C[[JSM a]] => k -> ()
