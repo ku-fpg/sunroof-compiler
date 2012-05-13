@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances #-}
 
 module Web.Sunroof where
 
@@ -6,6 +6,9 @@ module Web.Sunroof where
 
 data U where
   U :: (Sunroof a) => a -> U    -- universal
+
+instance Show U where
+  show (U a) = show a
 
 --data JSM a where
 --        JS_Double :: Double -> JSM Double
@@ -15,18 +18,40 @@ data JSM a where
         JS_Int    :: Int    -> JSM Int
 --        JS_Call   :: String  -> [JSM U] -> JSM a        -- direct return
 --        JS_Cont   :: String  -> [JSM U] -> JSM a        -- returns a continuation
-        JS_Action :: JS_Call -> JSM ()       -- direct call; no returned value.
+        JS_Action :: (Sunroof a) => JS_Call -> JSM a       -- direct call; no returned value.
 
         JS_Bind   :: JSM a -> (a -> JSM b) -> JSM b     -- Haskell monad bind
         JS_Return :: a -> JSM a                         -- Haskell monad return
---        JS_Val    :: String             -> JSM a        -- named value
+--        JS_Var    :: String             -> JSM a        -- named value
 
+data JSV a where
+        JS_Var :: Int                   -> JSV a        -- named value
 
-class Value a where
+instance Show (JSV a) where
+        show (JS_Var n) = "v" ++ show n
+
+class Show a => Sunroof a where
         mkVar :: Int -> a
+        directCompile :: a -> (String,Type,Style)
 
-instance Value () where
+instance Sunroof (JSV Int) where
+        mkVar u = JS_Var u
+        directCompile i = (show i,Number,Direct)
+
+
+instance Sunroof Int where
+        mkVar _ = error "opps Sunroof Int"
+        directCompile i = (show i,Number,Direct)
+
+instance Sunroof U where
+--        mkVar i = U (mkVar i)
+        directCompile (U a) = directCompile a
+
+instance Sunroof () where
         mkVar _ = ()
+        directCompile i = ("{}",Unit,Direct)
+
+
 
 instance Monad JSM where
         return = JS_Return
@@ -46,17 +71,22 @@ data Type
         | Object
         deriving Show
 
-newtype CompM a = CompM { runCompM :: a }
-        deriving Show
-instance Monad CompM where
-        return a = CompM a
-        (CompM m) >>= k = k m
+newtype CompM a = CompM { runCompM :: Int -> (a,Int) }
 
-class Sunroof a where
-        directCompile :: a -> (String,Type,Style)
+instance Monad CompM where
+        return a = CompM $ \ u -> (a,u)
+        (CompM m) >>= k = CompM $ \ u0->
+                        let (a,u1) = m u0
+                        in runCompM (k a) u1
+
+uniqM :: CompM Int
+uniqM = CompM $ \ u -> (u,succ u)
+
+
+
 
 compile :: (Sunroof a) => JSM a -> CompM (String,Type,Style)
-compile (JS_Int i)    = return (show i,Number,Direct)
+compile (JS_Int i)    = return $ directCompile (i :: Int)
 compile (JS_Return a) = return $ directCompile a
 compile (JS_Action call) = compileCall call
 compile (JS_Bind m1 m2) =
@@ -65,16 +95,38 @@ compile (JS_Bind m1 m2) =
         JS_Bind m11 m12 -> compile (JS_Bind m11 (\ a -> JS_Bind (m12 a) m2))
         JS_Action call  -> bind (JS_Action call) m2
 
-bind :: (Sunroof a, Sunroof b, Value b) => JSM b -> (b -> JSM a) -> CompM (String,Type,Style)
+
+-- a version of compile that always returns CPS
+
+compileC :: (Sunroof a) => JSM a -> CompM (String,Type)
+compileC a = do
+        (txt,ty,style) <- compile a
+        case style of
+           Direct -> return ("(function(k){k(" ++ txt ++ ")})",ty)
+           Continue -> return (txt,ty)
+
+
+-- This is the magic bit, where the argument passed to the second argument
+-- is constructed out of think air.
+
+bind :: (Sunroof a, Sunroof b) => JSM b -> (b -> JSM a) -> CompM (String,Type,Style)
 bind m1 m2 = do
-        -- you know that the argument is ()
-        (txt1,ty1,style1) <- compile m1
-        (txt2,ty2,style2) <- compile (m2 (mkVar 0))
-        case (style1,style2) of
-          (Direct,Direct) ->
-                  return ("(function(){" ++ txt1 ++ ";" ++ txt2 ++ ";})()",ty2,Direct)
+        uq <- uniqM
+        let a = mkVar uq
+        (txt1,ty1) <- compileC m1
+        (txt2,ty2) <- compileC (m2 a)
+        let lab = case ty1 of
+                    Unit -> ""  -- no name captured
+                    _ -> show a
+        return ("function(k){(" ++ txt1 ++ ")(function(" ++ lab ++ "){" ++ txt2 ++ "(k)})}",ty2,Continue)
 
+{-
+directToContinue :: String -> String
+directToContinue dir = ""
 
+continueToDirect :: String -> String
+continueToDirect cont = "(function(){" ++ contnm ++ "(" ++ commas args ++ ");" ++ post ++ "})()"
+-}
 {-
 compile (JS_Bind (JS_Bind m1 m2) m3) =
 
@@ -93,48 +145,51 @@ compileCall (JS_Call nm args ty) = do
         res <- mapM compile args
         -- if they are all direct, we can
         -- Assumption for now
-        (pre,args,style) <- compileArgs res
+        (pre,args,post) <- compileArgs res
+        let inside = nm ++ "(" ++ commas args ++ ")"
+        if null pre && null post
+                then return (inside,ty,Direct)
+                        -- add return if the value is not Unit
+                else return ("(function(){" ++ pre ++ inside ++ ";" ++ post ++ "})()",ty,Direct)
 
-        return (pre ++ nm ++ "(" ++ commas args ++ ")",ty,style)
 
 commas [] = ""
 commas [x] = x
 commas (x:xs) = x ++ "," ++ commas xs
 
-compileArgs :: [(String,Type,Style)] -> CompM (String,[String],Style)
-compileArgs [] = return ("",[],Direct)
-compileArgs ((arg_txt,arg_ty,arg_style):rest) = do
-        (pre,args,style) <- compileArgs rest
+compileArgs :: [(String,Type,Style)] -> CompM (String,[String],String)
+compileArgs [] = return ("",[],"")
+compileArgs ((arg_txt,arg_ty,style):rest) = do
+        (pre,args,post) <- compileArgs rest
+        let n = length rest
+            v = "v" ++ show n
+        case style of
+           Direct -> return(pre,arg_txt : args,post)
+           Continue -> return("(" ++ arg_txt ++ ")(function(" ++ v ++ "){" ++ pre,v : args,post ++ "})")
+{-
         case arg_style of
           Direct   -> return (pre,arg_txt : args,style)
+          Continue -> return (...,...,Continue)
 --          Continue ->
+-}
 
 test1 :: JSM Int
 test1 = JS_Int 1
 
-run_test1 = runCompM (compile test1)
+run_test1 = runCompM (compile test1) 0
 
 test2 :: JSM ()
 test2 = JS_Action (JS_Call "foo" [return (U (1 :: Int))] Number)
 
-run_test2 = runCompM (compile test2)
+run_test2 = runCompM (compile test2) 0
 
 test3 :: JSM ()
 test3 = do
-        JS_Action (JS_Call "foo1" [return (U (1 :: Int))] Number)
-        JS_Action (JS_Call "foo2" [return (U (2 :: Int))] Number)
-        JS_Action (JS_Call "foo3" [return (U (3 :: Int)), return (U (4::Int))] Number)
+        JS_Action (JS_Call "foo1" [return (U (1 :: Int))] Unit) :: JSM ()
+        (n :: JSV Int) <- JS_Action (JS_Call "foo2" [return (U (2 :: Int))] Number)
+        JS_Action (JS_Call "foo3" [return (U (3 :: Int)), return (U n)] Number) :: JSM ()
 
-run_test3 = runCompM (compile test3)
-
-instance Sunroof Int where
-        directCompile i = (show i,Number,Direct)
-
-instance Sunroof U where
-        directCompile (U a) = directCompile a
-
-instance Sunroof () where
-        directCompile i = ("{}",Unit,Direct)
+run_test3 = runCompM (compile test3) 0
 
 {-
 -- :: C[[JSM a]] => k -> ()
