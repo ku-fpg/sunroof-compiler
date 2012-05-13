@@ -10,25 +10,33 @@ data U where
 instance Show U where
   show (U a) = show a
 
---data JSM a where
---        JS_Double :: Double -> JSM Double
---        JS_Int    :: Int    -> JSM Int
-
 data JSM a where
-        JS_Int    :: Int    -> JSM Int
---        JS_Call   :: String  -> [JSM U] -> JSM a        -- direct return
---        JS_Cont   :: String  -> [JSM U] -> JSM a        -- returns a continuation
         JS_Action :: (Sunroof a) => JS_Call -> JSM a       -- direct call; no returned value.
 
         JS_Bind   :: JSM a -> (a -> JSM b) -> JSM b     -- Haskell monad bind
         JS_Return :: a -> JSM a                         -- Haskell monad return
---        JS_Var    :: String             -> JSM a        -- named value
+
+instance Monad JSM where
+        return = JS_Return
+        (>>=) = JS_Bind
 
 data JSV a where
         JS_Var :: Int                   -> JSV a        -- named value
+        JS_Int :: Int                   -> JSV Int
+        JS_String :: String             -> JSV String
 
 instance Show (JSV a) where
         show (JS_Var n) = "v" ++ show n
+        show (JS_Int i) = show i
+        show (JS_String s) = show s
+
+instance Num (JSV Int) where
+        fromInteger i = JS_Int (fromInteger i)
+
+
+---------------------------------------------------------------
+
+
 
 class Show a => Sunroof a where
         mkVar :: Int -> a
@@ -36,11 +44,6 @@ class Show a => Sunroof a where
 
 instance Sunroof (JSV Int) where
         mkVar u = JS_Var u
-        directCompile i = (show i,Number,Direct)
-
-
-instance Sunroof Int where
-        mkVar _ = error "opps Sunroof Int"
         directCompile i = (show i,Number,Direct)
 
 instance Sunroof U where
@@ -52,10 +55,6 @@ instance Sunroof () where
         directCompile i = ("{}",Unit,Direct)
 
 
-
-instance Monad JSM where
-        return = JS_Return
-        (>>=) = JS_Bind
 
 
 data JS_Call = JS_Call String [JSM U] Type
@@ -86,7 +85,6 @@ uniqM = CompM $ \ u -> (u,succ u)
 
 
 compile :: (Sunroof a) => JSM a -> CompM (String,Type,Style)
-compile (JS_Int i)    = return $ directCompile (i :: Int)
 compile (JS_Return a) = return $ directCompile a
 compile (JS_Action call) = compileCall call
 compile (JS_Bind m1 m2) =
@@ -149,7 +147,8 @@ compileCall (JS_Call nm args ty) = do
         let inside = nm ++ "(" ++ commas args ++ ")"
         if null pre && null post
                 then return (inside,ty,Direct)
-                        -- add return if the value is not Unit
+                        -- TODO: add return if the value is not Unit
+                        -- I think this will make it a Continue
                 else return ("(function(){" ++ pre ++ inside ++ ";" ++ post ++ "})()",ty,Direct)
 
 
@@ -173,21 +172,16 @@ compileArgs ((arg_txt,arg_ty,style):rest) = do
 --          Continue ->
 -}
 
-test1 :: JSM Int
-test1 = JS_Int 1
-
-run_test1 = runCompM (compile test1) 0
-
 test2 :: JSM ()
-test2 = JS_Action (JS_Call "foo" [return (U (1 :: Int))] Number)
+test2 = JS_Action (JS_Call "foo" [return (U (1 :: JSV Int))] Number)
 
 run_test2 = runCompM (compile test2) 0
 
 test3 :: JSM ()
 test3 = do
-        JS_Action (JS_Call "foo1" [return (U (1 :: Int))] Unit) :: JSM ()
-        (n :: JSV Int) <- JS_Action (JS_Call "foo2" [return (U (2 :: Int))] Number)
-        JS_Action (JS_Call "foo3" [return (U (3 :: Int)), return (U n)] Number) :: JSM ()
+        JS_Action (JS_Call "foo1" [return (U (1 :: JSV Int))] Unit) :: JSM ()
+        (n :: JSV Int) <- JS_Action (JS_Call "foo2" [return (U (2 :: JSV Int))] Number)
+        JS_Action (JS_Call "foo3" [return (U (3 :: JSV Int)), return (U n)] Number) :: JSM ()
 
 run_test3 = runCompM (compile test3) 0
 
