@@ -3,6 +3,8 @@
 module Web.Sunroof where
 
 import GHC.Exts
+import Data.Char
+import Data.Monoid
 --data JSM a = JSM a      -- ...
 
 data U where
@@ -12,14 +14,15 @@ instance Show U where
   show (U a) = show a
 
 data JSM a where
-        JS_Call   :: (Sunroof a) => String -> [JSA] -> Type -> JSM a
+        JS_Call   :: (Sunroof a)
+                  => String -> [JSA] -> Type -> Style -> JSM a
                                                         -- direct call
         JS_Bind   :: JSM a -> (a -> JSM b) -> JSM b     -- Haskell monad bind
         JS_Return :: a -> JSM a                         -- Haskell monad return
 
 
 data JSA where
-    JSA :: JSV a -> JSA
+    JSA :: (Sunroof a) => a -> JSA
 
 instance Show JSA where
     show (JSA a) = show a
@@ -27,6 +30,59 @@ instance Show JSA where
 instance Monad JSM where
         return = JS_Return
         (>>=) = JS_Bind
+
+---------------------------------------------------------------
+
+type Uniq = Int         -- used as a unique label
+
+---------------------------------------------------------------
+-- Trivial expression language
+data Expr a
+        = Lit a
+        | Var Uniq
+        | Op String [Expr a]
+
+instance Show a => Show (Expr a) where
+        show (Lit a)  = show a
+        show (Var uq) = "v" ++ show uq
+        show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")+(" ++ show b ++ ")"
+
+---------------------------------------------------------------
+
+data JSInt = JSInt (Expr Int)
+
+instance Show JSInt where
+        show (JSInt v) = show v
+
+instance Sunroof JSInt where
+        mkVar = JSInt . Var
+        directCompile i = (show i,Value,Direct)
+
+instance Num JSInt where
+        (JSInt e1) + (JSInt e2) = JSInt $ Op "+" [e1,e2]
+        (JSInt e1) * (JSInt e2) = JSInt $ Op "*" [e1,e2]
+        abs (JSInt e1) = JSInt $ Op "Math.abs" [e1]
+        signum (JSInt e1) = JSInt $ Op "" [e1]
+        fromInteger = JSInt . Lit . fromInteger
+
+data JSString = JSString (Expr String)
+
+instance Show JSString where
+        show (JSString v) = show v
+
+instance Sunroof JSString where
+        mkVar = JSString . Var
+        directCompile i = (show i,Value,Direct)
+
+instance Monoid JSString where
+        mempty = fromString ""
+        mappend (JSString e1) (JSString e2) = JSString $ Op "+" [e1,e2]
+
+instance IsString JSString where
+    fromString = JSString . Lit
+
+---------------------------------------------------------------
+
 
 data JSV a where
         JS_Var :: Int                   -> JSV a        -- named value
@@ -67,7 +123,7 @@ instance Sunroof U where
 
 instance Sunroof () where
         mkVar _ = ()
-        directCompile i = ("{}",Unit,Direct)
+        directCompile i = ("undefined",Unit,Direct)
 
 
 -- data JS_Call = JS_Call String [JSM U] Type
@@ -79,6 +135,7 @@ data Style
 
 data Type
         = Unit
+        | Value
         | Number
         | Object
         deriving Show
@@ -99,9 +156,9 @@ uniqM = CompM $ \ u -> (u,succ u)
 
 compile :: (Sunroof a) => JSM a -> CompM (String,Type,Style)
 compile (JS_Return a) = return $ directCompile a
-compile (JS_Call nm args ty) = do
+compile (JS_Call nm args ty style) = do
         let inside = nm ++ "(" ++ commas (map show args) ++ ")"
-        return (inside,ty,Direct)
+        return (inside,ty,style)
 
 {-
         res <- mapM compile args
@@ -122,7 +179,7 @@ compile (JS_Bind m1 m2) =
         JS_Call {}      -> bind m1 m2
 
 
--- a version of compile that always returns CPS
+-- a version of compile that always returns CPS form.
 
 compileC :: (Sunroof a) => JSM a -> CompM (String,Type)
 compileC a = do
@@ -203,20 +260,20 @@ compileArgs ((arg_txt,arg_ty,style):rest) = do
 -}
 
 test2 :: JSM ()
-test2 = JS_Call "foo" [JSA (1 :: JSV Int)] Number
+test2 = JS_Call "foo" [JSA (1 :: JSV Int)] Number Direct
 
 run_test2 = runCompM (compile test2) 0
 
 test3 :: JSM ()
 test3 = do
-        JS_Call "foo1" [JSA (1 :: JSV Int)] Unit :: JSM ()
-        (n :: JSV Int) <- JS_Call "foo2" [JSA (2 :: JSV Int)] Number
-        JS_Call "foo3" [JSA (3 :: JSV Int), JSA n] Number :: JSM ()
+        JS_Call "foo1" [JSA (1 :: JSV Int)] Unit Direct :: JSM ()
+        (n :: JSV Int) <- JS_Call "foo2" [JSA (2 :: JSV Int)] Number Direct
+        JS_Call "foo3" [JSA (3 :: JSV Int), JSA n] Number Direct :: JSM ()
 
 run_test3 = runCompM (compile test3) 0
 
-alert :: JSV String -> JSM ()
-alert msg = JS_Call "alert" [JSA msg] Unit :: JSM ()
+alert :: JSString -> JSM ()
+alert msg = JS_Call "alert" [JSA msg] Unit Direct :: JSM ()
 
 
 -- This works in the browser
@@ -226,11 +283,4 @@ test4 = do
         alert("B")
 
 run_test4 = runCompM (compile test4) 0
-
-{-
--- :: C[[JSM a]] => k -> ()
-bind :: JSM a -> (a -> JSM b) -> JSM b
-bind (
--}
-
 
