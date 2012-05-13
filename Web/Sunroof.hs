@@ -15,7 +15,7 @@ instance Show U where
 
 data JSM a where
         JS_Call   :: (Sunroof a)
-                  => String -> [JSA] -> Type -> Style -> JSM a
+                  => String -> [JSValue] -> Type -> Style -> JSM a
                                                         -- direct call
         JS_Bind   :: JSM a -> (a -> JSM b) -> JSM b     -- Haskell monad bind
         JS_Return :: a -> JSM a                         -- Haskell monad return
@@ -49,6 +49,35 @@ instance Show a => Show (Expr a) where
 
 ---------------------------------------------------------------
 
+data JSValue where
+  JSValueLit :: (Sunroof a) => a -> JSValue
+  JSValueVar :: Uniq -> JSValue
+
+instance Show JSValue where
+        show (JSValueLit v)  = show v
+        show (JSValueVar uq) = "v" ++ show uq
+
+instance Sunroof JSValue where
+        mkVar = JSValueVar -- yes, because there is no type encoded here
+        directCompile i = (show i,Value,Direct)
+
+to :: (Sunroof a) => a -> JSValue
+to = JSValueLit
+
+-- can fail *AT RUN TIME*.
+-- (check to see if we actually need it)
+fromJSValue :: (Sunroof a) => JSValue -> a
+fromJSValue (JSValueLit i) = error "fromJSValue"
+fromJSValue (JSValueVar uq) = mkVar uq
+
+{-
+instance Show JSInt where
+        show (JSValue v) = show v
+
+instance Sunroof JSInt where
+        mkVar = JSValue . Var
+        directCompile i = (show i,Value,Direct)
+-}
 data JSInt = JSInt (Expr Int)
 
 instance Show JSInt where
@@ -82,8 +111,7 @@ instance IsString JSString where
     fromString = JSString . Lit
 
 ---------------------------------------------------------------
-
-
+{-
 data JSV a where
         JS_Var :: Int                   -> JSV a        -- named value
         JS_Int :: Int                   -> JSV Int
@@ -99,7 +127,7 @@ instance Num (JSV Int) where
 
 instance IsString (JSV String) where
     fromString = JS_String
-
+-}
 ---------------------------------------------------------------
 
 -- TODO: split into Show => Value => Sunroof
@@ -108,19 +136,20 @@ instance IsString (JSV String) where
 class Show a => Sunroof a where
         mkVar :: Int -> a
         directCompile :: a -> (String,Type,Style)
+{-
 
 instance Sunroof (JSV Int) where
         mkVar u = JS_Var u
-        directCompile i = (show i,Number,Direct)
+        directCompile i = (show i,Value,Direct)
 
 instance Sunroof (JSV String) where
         mkVar u = JS_Var u
-        directCompile i = (show i,Number,Direct)        -- TODO: fix
+        directCompile i = (show i,Value,Direct)        -- TODO: fix
 
 instance Sunroof U where
         mkVar i = U (mkVar i :: JSV Int)        -- HACK
         directCompile (U a) = directCompile a
-
+-}
 instance Sunroof () where
         mkVar _ = ()
         directCompile i = ("undefined",Unit,Direct)
@@ -136,7 +165,6 @@ data Style
 data Type
         = Unit
         | Value
-        | Number
         | Object
         deriving Show
 
@@ -159,21 +187,7 @@ compile (JS_Return a) = return $ directCompile a
 compile (JS_Call nm args ty style) = do
         let inside = nm ++ "(" ++ commas (map show args) ++ ")"
         return (inside,ty,style)
-
-{-
-        res <- mapM compile args
-        -- if they are all direct, we can
-        -- Assumption for now
-        (pre,args,post) <- compileArgs res
-        let inside = nm ++ "(" ++ commas args ++ ")"
-        if null pre && null post
-                then return (inside,ty,Direct)
-                        -- TODO: add return if the value is not Unit
-                        -- I think this will make it a Continue
-                else return ("(function(){" ++ pre ++ inside ++ ";" ++ post ++ "})()",ty,Direct)
--}
-compile (JS_Bind m1 m2) =
-    case m1 of
+compile (JS_Bind m1 m2) = case m1 of
         JS_Return a     -> compile (m2 a)
         JS_Bind m11 m12 -> compile (JS_Bind m11 (\ a -> JS_Bind (m12 a) m2))
         JS_Call {}      -> bind m1 m2
@@ -188,7 +202,6 @@ compileC a = do
            Direct -> return ("(function(k){k(" ++ txt ++ ")})",ty)
            Continue -> return (txt,ty)
 
-
 -- This is the magic bit, where the argument passed to the second argument
 -- is constructed out of think air.
 
@@ -199,9 +212,61 @@ bind m1 m2 = do
         (txt1,ty1) <- compileC m1
         (txt2,ty2) <- compileC (m2 a)
         let lab = case ty1 of
-                    Unit -> ""  -- no name captured
-                    _ -> show a
+                    Unit  -> ""  -- no name captured
+                    _     -> show a
         return ("function(k){(" ++ txt1 ++ ")(function(" ++ lab ++ "){" ++ txt2 ++ "(k)})}",ty2,Continue)
+
+
+
+commas [] = ""
+commas [x] = x
+commas (x:xs) = x ++ "," ++ commas xs
+
+
+----------------------------------------------------------
+
+test2 :: JSM ()
+test2 = JS_Call "foo" [to (1 :: JSInt)] Value Direct
+
+run_test2 = runCompM (compile test2) 0
+
+test3 :: JSM ()
+test3 = do
+        JS_Call "foo1" [to (1 :: JSInt)] Unit Direct :: JSM ()
+        (n :: JSInt) <- JS_Call "foo2" [to (2 :: JSInt)] Value Direct
+        JS_Call "foo3" [to (3 :: JSInt), to n] Value Direct :: JSM ()
+
+run_test3 = runCompM (compile test3) 0
+
+alert :: JSString -> JSM ()
+alert msg = JS_Call "alert" [to msg] Unit Direct :: JSM ()
+
+
+-- This works in the browser
+test4 :: JSM ()
+test4 = do
+        alert("A")
+        alert("B")
+
+run_test4 = runCompM (compile test4) 0
+
+----------------------------------------------------------
+-- Old stuff
+compileArgs :: [(String,Type,Style)] -> CompM (String,[String],String)
+compileArgs [] = return ("",[],"")
+compileArgs ((arg_txt,arg_ty,style):rest) = do
+        (pre,args,post) <- compileArgs rest
+        let n = length rest
+            v = "v" ++ show n
+        case style of
+           Direct -> return(pre,arg_txt : args,post)
+           Continue -> return("(" ++ arg_txt ++ ")(function(" ++ v ++ "){" ++ pre,v : args,post ++ "})")
+{-
+        case arg_style of
+          Direct   -> return (pre,arg_txt : args,style)
+          Continue -> return (...,...,Continue)
+--          Continue ->
+-}
 
 {-
 directToContinue :: String -> String
@@ -238,49 +303,3 @@ compileCall (JS_Call nm args ty) = do
                 else return ("(function(){" ++ pre ++ inside ++ ";" ++ post ++ "})()",ty,Direct)
 
 -}
-
-commas [] = ""
-commas [x] = x
-commas (x:xs) = x ++ "," ++ commas xs
-
-compileArgs :: [(String,Type,Style)] -> CompM (String,[String],String)
-compileArgs [] = return ("",[],"")
-compileArgs ((arg_txt,arg_ty,style):rest) = do
-        (pre,args,post) <- compileArgs rest
-        let n = length rest
-            v = "v" ++ show n
-        case style of
-           Direct -> return(pre,arg_txt : args,post)
-           Continue -> return("(" ++ arg_txt ++ ")(function(" ++ v ++ "){" ++ pre,v : args,post ++ "})")
-{-
-        case arg_style of
-          Direct   -> return (pre,arg_txt : args,style)
-          Continue -> return (...,...,Continue)
---          Continue ->
--}
-
-test2 :: JSM ()
-test2 = JS_Call "foo" [JSA (1 :: JSV Int)] Number Direct
-
-run_test2 = runCompM (compile test2) 0
-
-test3 :: JSM ()
-test3 = do
-        JS_Call "foo1" [JSA (1 :: JSV Int)] Unit Direct :: JSM ()
-        (n :: JSV Int) <- JS_Call "foo2" [JSA (2 :: JSV Int)] Number Direct
-        JS_Call "foo3" [JSA (3 :: JSV Int), JSA n] Number Direct :: JSM ()
-
-run_test3 = runCompM (compile test3) 0
-
-alert :: JSString -> JSM ()
-alert msg = JS_Call "alert" [JSA msg] Unit Direct :: JSM ()
-
-
--- This works in the browser
-test4 :: JSM ()
-test4 = do
-        alert("A")
-        alert("B")
-
-run_test4 = runCompM (compile test4) 0
-
