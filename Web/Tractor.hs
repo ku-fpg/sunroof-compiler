@@ -18,9 +18,9 @@ import qualified Data.Text.Lazy as T
 
 -- | connect "/foobar" (...) gives
 
--- >  POST http://.../foobar/                     <- bootstrap the interaction
--- >  GET  http://.../foobar/act/<id#>/<act#>     <- get a specific action
--- >  POST http://.../foobar/event/<id#>/<event-name>   <- send an event as a JSON object
+-- >  POST http://.../foobar/                       <- bootstrap the interaction
+-- >  GET  http://.../foobar/act/<id#>/<act#>       <- get a specific action
+-- >  POST http://.../foobar/reply/<id#>/<reply#>   <- send a reply as a JSON object
 
 connect :: Options             -- ^ URL path prefix for this page
         -> (Document -> IO ()) -- ^ called for access of the page
