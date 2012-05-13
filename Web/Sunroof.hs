@@ -11,8 +11,8 @@ instance Show U where
   show (U a) = show a
 
 data JSM a where
-        JS_Action :: (Sunroof a) => JS_Call -> JSM a       -- direct call; no returned value.
-
+        JS_Call   :: (Sunroof a) => String -> [JSM U] -> Type -> JSM a
+                                                        -- direct call
         JS_Bind   :: JSM a -> (a -> JSM b) -> JSM b     -- Haskell monad bind
         JS_Return :: a -> JSM a                         -- Haskell monad return
 
@@ -33,11 +33,11 @@ instance Show (JSV a) where
 instance Num (JSV Int) where
         fromInteger i = JS_Int (fromInteger i)
 
-
 ---------------------------------------------------------------
 
-
-
+-- TODO: split into Show => Value => Sunroof
+-- and move mkVar into the Value class.
+-- This will remove the class below
 class Show a => Sunroof a where
         mkVar :: Int -> a
         directCompile :: a -> (String,Type,Style)
@@ -47,7 +47,7 @@ instance Sunroof (JSV Int) where
         directCompile i = (show i,Number,Direct)
 
 instance Sunroof U where
---        mkVar i = U (mkVar i)
+        mkVar i = U (mkVar i :: JSV Int)        -- HACK
         directCompile (U a) = directCompile a
 
 instance Sunroof () where
@@ -55,9 +55,7 @@ instance Sunroof () where
         directCompile i = ("{}",Unit,Direct)
 
 
-
-
-data JS_Call = JS_Call String [JSM U] Type
+-- data JS_Call = JS_Call String [JSM U] Type
 
 data Style
         = Direct                -- just the answer
@@ -86,12 +84,22 @@ uniqM = CompM $ \ u -> (u,succ u)
 
 compile :: (Sunroof a) => JSM a -> CompM (String,Type,Style)
 compile (JS_Return a) = return $ directCompile a
-compile (JS_Action call) = compileCall call
+compile (JS_Call nm args ty) = do
+        res <- mapM compile args
+        -- if they are all direct, we can
+        -- Assumption for now
+        (pre,args,post) <- compileArgs res
+        let inside = nm ++ "(" ++ commas args ++ ")"
+        if null pre && null post
+                then return (inside,ty,Direct)
+                        -- TODO: add return if the value is not Unit
+                        -- I think this will make it a Continue
+                else return ("(function(){" ++ pre ++ inside ++ ";" ++ post ++ "})()",ty,Direct)
 compile (JS_Bind m1 m2) =
     case m1 of
         JS_Return a     -> compile (m2 a)
         JS_Bind m11 m12 -> compile (JS_Bind m11 (\ a -> JS_Bind (m12 a) m2))
-        JS_Action call  -> bind (JS_Action call) m2
+        JS_Call {}      -> bind m1 m2
 
 
 -- a version of compile that always returns CPS
@@ -139,6 +147,7 @@ hack (JS_Action call) = JS_Action call
 
 -}
 
+{-
 compileCall (JS_Call nm args ty) = do
         res <- mapM compile args
         -- if they are all direct, we can
@@ -151,6 +160,7 @@ compileCall (JS_Call nm args ty) = do
                         -- I think this will make it a Continue
                 else return ("(function(){" ++ pre ++ inside ++ ";" ++ post ++ "})()",ty,Direct)
 
+-}
 
 commas [] = ""
 commas [x] = x
@@ -173,15 +183,15 @@ compileArgs ((arg_txt,arg_ty,style):rest) = do
 -}
 
 test2 :: JSM ()
-test2 = JS_Action (JS_Call "foo" [return (U (1 :: JSV Int))] Number)
+test2 = JS_Call "foo" [return (U (1 :: JSV Int))] Number
 
 run_test2 = runCompM (compile test2) 0
 
 test3 :: JSM ()
 test3 = do
-        JS_Action (JS_Call "foo1" [return (U (1 :: JSV Int))] Unit) :: JSM ()
-        (n :: JSV Int) <- JS_Action (JS_Call "foo2" [return (U (2 :: JSV Int))] Number)
-        JS_Action (JS_Call "foo3" [return (U (3 :: JSV Int)), return (U n)] Number) :: JSM ()
+        JS_Call "foo1" [return (U (1 :: JSV Int))] Unit :: JSM ()
+        (n :: JSV Int) <- JS_Call "foo2" [return (U (2 :: JSV Int))] Number
+        JS_Call "foo3" [return (U (3 :: JSV Int)), return (U n)] Number :: JSM ()
 
 run_test3 = runCompM (compile test3) 0
 
