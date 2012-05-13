@@ -11,10 +11,17 @@ instance Show U where
   show (U a) = show a
 
 data JSM a where
-        JS_Call   :: (Sunroof a) => String -> [JSM U] -> Type -> JSM a
+        JS_Call   :: (Sunroof a) => String -> [JSA] -> Type -> JSM a
                                                         -- direct call
         JS_Bind   :: JSM a -> (a -> JSM b) -> JSM b     -- Haskell monad bind
         JS_Return :: a -> JSM a                         -- Haskell monad return
+
+
+data JSA where
+    JSA :: JSV a -> JSA
+
+instance Show JSA where
+    show (JSA a) = show a
 
 instance Monad JSM where
         return = JS_Return
@@ -85,6 +92,10 @@ uniqM = CompM $ \ u -> (u,succ u)
 compile :: (Sunroof a) => JSM a -> CompM (String,Type,Style)
 compile (JS_Return a) = return $ directCompile a
 compile (JS_Call nm args ty) = do
+        let inside = nm ++ "(" ++ commas (map show args) ++ ")"
+        return (inside,ty,Direct)
+
+{-
         res <- mapM compile args
         -- if they are all direct, we can
         -- Assumption for now
@@ -95,6 +106,7 @@ compile (JS_Call nm args ty) = do
                         -- TODO: add return if the value is not Unit
                         -- I think this will make it a Continue
                 else return ("(function(){" ++ pre ++ inside ++ ";" ++ post ++ "})()",ty,Direct)
+-}
 compile (JS_Bind m1 m2) =
     case m1 of
         JS_Return a     -> compile (m2 a)
@@ -183,15 +195,15 @@ compileArgs ((arg_txt,arg_ty,style):rest) = do
 -}
 
 test2 :: JSM ()
-test2 = JS_Call "foo" [return (U (1 :: JSV Int))] Number
+test2 = JS_Call "foo" [JSA (1 :: JSV Int)] Number
 
 run_test2 = runCompM (compile test2) 0
 
 test3 :: JSM ()
 test3 = do
-        JS_Call "foo1" [return (U (1 :: JSV Int))] Unit :: JSM ()
-        (n :: JSV Int) <- JS_Call "foo2" [return (U (2 :: JSV Int))] Number
-        JS_Call "foo3" [return (U (3 :: JSV Int)), return (U n)] Number :: JSM ()
+        JS_Call "foo1" [JSA (1 :: JSV Int)] Unit :: JSM ()
+        (n :: JSV Int) <- JS_Call "foo2" [JSA (2 :: JSV Int)] Number
+        JS_Call "foo3" [JSA (3 :: JSV Int), JSA n] Number :: JSM ()
 
 run_test3 = runCompM (compile test3) 0
 
