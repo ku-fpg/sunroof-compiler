@@ -9,6 +9,7 @@ import Data.Aeson.Types as AP
 import Web.Scotty
 import Web.Tractor as T
 import Data.Default
+import Data.Monoid
 import Control.Monad
 import qualified Control.Applicative as App
 import Control.Concurrent
@@ -102,14 +103,23 @@ sunroof_app doc = do
         send doc "alert('x');"
         sendS doc $ do
                 alert "ABC"
-                alert "CDE"
-{-
-                moveTo(50,50)
-                lineTo(200,100)
-                lineWidth 10
-                strokeStyle "red"
-                stroke()
--}
+                c <- getContext "my-canvas"
+                alert ("CDE:" <> showJ c)
+
+                c <$> moveTo(50,50)
+
+                alert("4:")
+
+                c <$> lineTo(200,100)
+                c <$> lineWidth 10
+                c <$> strokeStyle "red"
+                c <$> stroke()
+
+                alert("9:")
+
+showJ :: (Sunroof a) => a -> JSString
+showJ = from . to
+
 sendS :: (Sunroof a) => Document -> JSM a -> IO ()
 sendS doc jsm = do
         let ((txt,ty),_) = runCompM (compileC jsm) 0
@@ -120,4 +130,100 @@ sendS doc jsm = do
 
 -------------------------------------------------------------
 
---moveTo ::
+getContext :: JSString -> JSM JSObject
+getContext nm = JS_Select $ JSS_Call "getContext" [to nm] Value Direct
+
+{-
+
+arc :: (JSFloat,JSFloat,JSFloat,JSFloat,JSFloat,Bool) -> JSS ()
+arc = Command . Arc
+
+beginPath :: () -> JSS ()
+beginPath () = Command BeginPath
+
+bezierCurveTo :: (JSFloat,JSFloat,JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+bezierCurveTo = Command . BezierCurveTo
+
+clearRect :: (JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+clearRect = Command . ClearRect
+
+closePath :: () -> JSS ()
+closePath () = Command ClosePath
+
+fill :: () -> JSS ()
+fill () = Command Fill
+
+fillRect :: (JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+fillRect = Command . FillRect
+
+fillStyle :: String -> JSS ()
+fillStyle = Command . FillStyle
+
+fillText :: (String,JSFloat,JSFloat) -> JSS ()
+fillText = Command . FillText
+
+font :: String -> JSS ()
+font = Command . Font
+
+globalAlpha :: JSFloat -> JSS ()
+globalAlpha = Command . GlobalAlpha
+
+lineCap :: String -> JSS ()
+lineCap = Command . LineCap
+
+lineJoin :: String -> JSS ()
+lineJoin = Command . LineJoin
+-}
+lineTo :: (JSFloat,JSFloat) -> JSS ()
+lineTo (a1,a2) = JSS_Call "lineTo" [to a1,to a2] Unit Direct :: JSS ()
+
+lineWidth :: JSFloat -> JSS ()
+lineWidth a1 = JSS_Assign "lineWidth" (to a1) :: JSS ()
+{-
+miterLimit :: JSFloat -> JSS ()
+miterLimit = Command . MiterLimit
+-}
+moveTo :: (JSFloat,JSFloat) -> JSS ()
+moveTo (a1,a2) = JSS_Call "moveTo" [to a1,to a2] Unit Direct :: JSS ()
+{-
+foo :: JSInt -> JSS ()
+
+Command . MoveTo
+
+restore :: () -> JSS ()
+restore () = Command Restore
+
+rotate :: JSFloat -> JSS ()
+rotate = Command . Rotate
+
+scale :: (JSFloat,JSFloat) -> JSS ()
+scale = Command . Scale
+
+save :: () -> JSS ()
+save () = Command Save
+-}
+stroke :: () -> JSS ()
+stroke () = JSS_Call "stroke" [] Unit Direct :: JSS ()
+{-
+strokeRect :: (JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+strokeRect = Command . StrokeRect
+
+strokeText :: (String,JSFloat,JSFloat) -> JSS ()
+strokeText = Command . StrokeText
+-}
+strokeStyle :: JSString -> JSS ()
+strokeStyle a1 = JSS_Assign "strokeStyle" (to a1) :: JSS ()
+{-
+textAlign :: String -> JSS ()
+textAlign = Command . TextAlign
+
+textBaseline :: String -> JSS ()
+textBaseline = Command . TextBaseline
+
+transform :: (JSFloat,JSFloat,JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+transform = Command . Transform
+
+translate :: (JSFloat,JSFloat) -> JSS ()
+translate = Command . Translate
+
+-}
