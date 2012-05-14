@@ -170,7 +170,7 @@ data Style
 data Type
         = Unit
         | Value
-        | Object
+--        | Object
         deriving Show
 
 newtype CompM a = CompM { runCompM :: Int -> (a,Int) }
@@ -211,9 +211,10 @@ compileJSS (JSS_Select nm ty) = do
 compileC :: (Sunroof a) => JSM a -> CompM (String,Type)
 compileC a = do
         (txt,ty,style) <- compile a
-        case style of
-           Direct -> return ("(function(k){k(" ++ txt ++ ")})",ty)
-           Continue -> return (txt,ty)
+        case (style,ty) of
+           (Direct,Unit)  -> return ("(function(k){" ++ txt ++ ";k();})",ty)
+           (Direct,Value) -> return ("(function(k){k(" ++ txt ++ ")})",ty)
+           _ -> return (txt,ty)
 
 -- This is the magic bit, where the argument passed to the second argument
 -- is constructed out of think air.
