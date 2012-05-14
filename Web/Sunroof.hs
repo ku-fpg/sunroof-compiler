@@ -113,6 +113,8 @@ instance Sunroof JSBool where
         type Internal JSBool = Bool
         box = JSBool
 
+-- data JSFunction = JSFunction (Expr (JSValue -> JSM JSValue))
+
 data JSInt = JSInt (Expr Int)
 
 instance Show JSInt where
