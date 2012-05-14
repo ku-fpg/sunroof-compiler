@@ -22,7 +22,7 @@ data JSM a where
                   => JSS a -> JSM a
 --                  String -> [JSValue] -> Type -> Style
                                                            -- direct call
-        JS_Assign :: JSObject -> String -> JSValue -> JSM () -- obj . x = <exp>;
+--        JS_Assign :: JSObject -> String -> JSValue -> JSM () -- obj . x = <exp>;
 
         JS_Dot    :: (Sunroof a)
                   => JSObject -> JSS a -> JSM a            -- obj . <selector>
@@ -39,9 +39,11 @@ infixl 4 <$>
 (!) :: forall a . (Sunroof a) => JSArray -> JSInt -> a
 (!) arr idx = from $ JSValue (Op "[]" [to arr,to idx] :: Expr a)
 
+
 data JSS a where
         JSS_Call   :: String -> [JSValue] -> Type -> Style -> JSS a
         JSS_Select :: String ->              Type ->          JSS a
+        JSS_Assign :: String -> JSValue   ->                  JSS ()
 
 instance Monad JSM where
         return = JS_Return
@@ -85,10 +87,6 @@ instance Sunroof JSValue where
 to :: (Sunroof a) => a -> JSValue
 to = JSValue . Lit
 
-a = 99 :: JSInt
-b = to a :: JSValue
-c = from b :: JSInt
-
 -- can fail *AT RUN TIME*.
 from :: (Sunroof a) => JSValue -> a
 from v = box (Cast v)
@@ -112,6 +110,29 @@ instance Num JSInt where
         signum e1 = JSInt $ Op "" [to e1]
         fromInteger = JSInt . Lit . fromInteger
 
+data JSFloat = JSFloat (Expr Float)
+
+instance Show JSFloat where
+        show (JSFloat v) = show v
+
+instance Sunroof JSFloat where
+        mkVar = JSFloat . Var
+        directCompile i = (show i,Value,Direct)
+        type Internal JSFloat = Float
+        box = JSFloat
+
+instance Num JSFloat where
+        e1 + e2 = JSFloat $ Op "+" [to e1,to e2]
+        e1 - e2 = JSFloat $ Op "-" [to e1,to e2]
+        e1 * e2 = JSFloat $ Op "*" [to e1,to e2]
+        abs e1 = JSFloat $ Op "Math.abs" [to e1]
+        signum e1 = JSFloat $ Op "" [to e1]
+        fromInteger = JSFloat . Lit . fromInteger
+
+instance Fractional JSFloat where
+        e1 / e2 = JSFloat $ Op "/" [to e1,to e2]
+        fromRational = JSFloat . Lit . fromRational
+
 data JSString = JSString (Expr String)
 
 instance Show JSString where
@@ -120,6 +141,8 @@ instance Show JSString where
 instance Sunroof JSString where
         mkVar = JSString . Var
         directCompile i = (show i,Value,Direct)
+        type Internal JSString = String
+        box = JSString
 
 instance Monoid JSString where
         mempty = fromString ""
@@ -197,14 +220,17 @@ compile (JS_Bind m1 m2) = case m1 of
         JS_Bind m11 m12 -> compile (JS_Bind m11 (\ a -> JS_Bind (m12 a) m2))
         JS_Select {}    -> bind m1 m2
         JS_Dot    {}    -> bind m1 m2
-        JS_Assign {}    -> bind m1 m2
+--        JS_Assign {}    -> bind m1 m2
 
 compileJSS :: (Sunroof a) => JSS a -> CompM (String,Type,Style)
 compileJSS (JSS_Call nm args ty style) = do
+        -- This show is doing the compile
         let inside = nm ++ "(" ++ commas (map show args) ++ ")"
         return (inside,ty,style)
 compileJSS (JSS_Select nm ty) = do
         return (nm,ty,Direct)
+compileJSS (JSS_Assign nm arg) = do
+        return (nm ++ " = (" ++ show arg ++ ")",Unit,Direct)
 
 
 -- a version of compile that always returns CPS form.
