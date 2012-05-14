@@ -25,18 +25,18 @@ data JSM a where
         JS_Dot    :: (Sunroof a)
                   => JSObject -> JSS a -> JSM a            -- obj . <selector>
         JS_Assign :: JSObject -> String -> JSValue -> JSM () -- obj . x = <exp>;
-{-
+
 infixl 4 <*>
 infixl 4 <$>
 
-(<*>) :: JSM JSObject -> JSS a -> JSM a
+(<*>) :: (Sunroof a) => JSM JSObject -> JSS a -> JSM a
 (<*>) m s = m >>= \ o -> o <$> s
 
-(<$>) :: JSObject -> JSS a -> JSM a
+(<$>) :: (Sunroof a) => JSObject -> JSS a -> JSM a
 (<$>) o s = o `JS_Dot` s
--}
-data JSA a where
-        JSA_Select :: String -> Type -> JSA a
+
+(!) :: (Sunroof a) => JSInt -> JSArray -> a
+(!) = undefined
 
 data JSS a where
         JSS_Call   :: String -> [JSValue] -> Type -> Style -> JSS a
@@ -120,6 +120,8 @@ instance IsString JSString where
 ----------------------------------------------------
 
 data JSObject = JSObject (Expr (Map.Map String JSValue))
+
+data JSArray = JSArray (Expr (Map.Map Int JSValue))
 
 ----------------------------------------------------
 
