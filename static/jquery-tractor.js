@@ -69,3 +69,38 @@ function tractor_reply(uq,obj) {
                  contentType: "application/json; charset=utf-8",
                  dataType: "json"});
 }
+
+/// Extra stuff
+
+function getContext(can) {
+	alert("got to get context ");
+	alert("arg = " + can);
+        var canvas = document.getElementById(can);
+        if (canvas.getContext) {
+                        return canvas.getContext("2d");
+        }
+        alert("no canvas");
+}
+
+function ugg() {
+	var v1 = getContext("my-canvas");
+	(v1).moveTo(50,50);
+	(v1).lineTo(150,150);
+	(v1).lineWidth = (10);
+	(v1).strokeStyle = ("red");
+	(v1).stroke();
+/*
+	(function(k){((function(k){alert("ABC");k();}))
+	(function(){(function(k){((function(k){k(getContext("my-canvas"))}))
+	(function(v1){(function(k){((function(k){alert(("CDE:")+(v1));k();}))
+	(function(){(function(k){((function(k){(v1).moveTo(99,99);k();}))
+	(function(){(function(k){((function(k){alert("4:");k();}))
+	(function(){(function(k){((function(k){(v1).lineTo(99,99);k();}))
+	(function(){(function(k){((function(k){(v1).lineWidth = (99);k();}))
+	(function(){(function(k){((function(k){(v1).strokeStyle = ("red");k();}))
+	(function(){(function(k){((function(k){(v1).stroke();k();}))
+	(function(){((function(k){alert("9:");
+	
+	k();}))(k)})})(k)})})(k)})})(k)})})(k)})})(k)})})(k)})})(k)})})(k)})})(function(k){})
+*/
+}
