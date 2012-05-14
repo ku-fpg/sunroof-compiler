@@ -25,6 +25,13 @@ data JSM a where
         JS_Dot    :: (Sunroof a)
                   => JSObject -> JSS a -> JSM a            -- obj . <selector>
 
+        -- You can build functions, and pass them round
+        JS_Function :: (Sunroof a, Sunroof b)
+                    => (a -> JSM b)
+                    -> JSM (JSFunction a b)
+        -- You can invoke functions
+        JS_Invoke :: JSFunction a b -> a -> JSM b
+
 infixl 4 <*>
 infixl 4 <$>
 infix  5 :=
@@ -114,28 +121,8 @@ instance Sunroof JSBool where
         box = JSBool
         unbox (JSBool v)  = v
 
--- data JSFunction = JSFunction (Expr (JSValue -> JSM JSValue))
-{-
-data JSInt = JSInt Expr
+data JSFunction a b = JSFunction Expr
 
-instance Show JSInt where
-        show (JSInt v) = show v
-
-instance Sunroof JSInt where
-        mkVar = JSInt . Var
-        directCompile i = (show i,Value,Direct)
-        box = JSInt
-        unbox (JSInt e) = e
-
-instance Num JSInt where
- e1 + e2 = JSInt $ Op "+" [to e1,to e2]
-        e1 - e2 = JSInt $ Op "-" [to e1,to e2]
-        e1 * e2 = JSInt $ Op "*" [to e1,to e2]
-        abs e1 = JSInt $ Op "Math.abs" [to e1]
-        signum e1 = JSInt $ Op "" [to e1]
-        fromInteger = JSInt . Lit . show . fromInteger
-
--}
 data JSNumber = JSNumber Expr
 
 instance Show JSNumber where
@@ -210,6 +197,9 @@ class Show a => Sunroof a where
         isUnit _ = False
         box :: Expr -> a
         unbox :: a -> Expr
+
+--directCompile :: (Sunroof a) => (String,Type,Style)
+--directCompile a = (show (unbox a),if isUnit a then
 
 instance Sunroof () where
         mkVar _ = ()
