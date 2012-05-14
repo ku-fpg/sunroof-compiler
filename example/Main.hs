@@ -10,12 +10,14 @@ import Web.Scotty
 import Web.Tractor as T
 import Data.Default
 import Control.Monad
-import Control.Applicative
+import qualified Control.Applicative as App
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Monad.IO.Class
 
 import qualified Data.Text.Lazy as Text
+
+import Web.Sunroof
 
 main = main_sunroof
 
@@ -72,7 +74,7 @@ data Wrapped a = Wrapped a
         deriving Show
 
 instance FromJSON a => FromJSON (Wrapped a) where
-   parseJSON (Object v) = Wrapped    <$>
+   parseJSON (Object v) = Wrapped    App.<$>
                           (v .: "wrapped")
    parseJSON _          = mzero
 
@@ -96,4 +98,17 @@ main_sunroof = do
 sunroof_app :: Document -> IO ()
 sunroof_app doc = do
         print "sunroof_app"
+
+        send doc "alert('x');"
+        sendS doc $ do
+                alert "ABC"
+                alert "CDE"
+
+sendS :: (Sunroof a) => Document -> JSM a -> IO ()
+sendS doc jsm = do
+        let ((txt,ty),_) = runCompM (compileC jsm) 0
+        print ("TXT:",txt)
+        print ("TY:",ty)
+        send doc (Text.pack $ "(" ++ txt ++ ")(function(k){})")
+        return ()
 
