@@ -19,9 +19,7 @@ import qualified Data.Text.Lazy as Text
 
 import Web.Sunroof
 
-main = main_sunroof
-
-main_tractor = do
+main = do
 
         -- build the scotty dispatch app
         scotty 3000 $ do
@@ -77,38 +75,4 @@ instance FromJSON a => FromJSON (Wrapped a) where
    parseJSON (Object v) = Wrapped    App.<$>
                           (v .: "wrapped")
    parseJSON _          = mzero
-
-
-main_sunroof = do
-
-        -- build the scotty dispatch app
-        scotty 3000 $ do
-                -- provide some static pages, include jquery
-                -- This is scotty code
-                get "/" $ file $ "index.html"
-                sequence_ [ get (literal ("/" ++ nm)) $ file $  nm
-                          | nm <- ["jquery.js","jquery-json.js"]
-                          ]
-                j_tractor <- liftIO jTractorStatic
-                get "/jquery-tractor.js" $ file $ j_tractor
-
-                -- connect /example to the following web_app
-                connect opts sunroof_app
-
-sunroof_app :: Document -> IO ()
-sunroof_app doc = do
-        print "sunroof_app"
-
-        send doc "alert('x');"
-        sendS doc $ do
-                alert "ABC"
-                alert "CDE"
-
-sendS :: (Sunroof a) => Document -> JSM a -> IO ()
-sendS doc jsm = do
-        let ((txt,ty),_) = runCompM (compileC jsm) 0
-        print ("TXT:",txt)
-        print ("TY:",ty)
-        send doc (Text.pack $ "(" ++ txt ++ ")(function(k){})")
-        return ()
 
