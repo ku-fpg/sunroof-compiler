@@ -68,7 +68,7 @@ type Uniq = Int         -- used as a unique label
 data Expr
         = Lit String    -- a precompiled version of this literal
         | Var Uniq
-        | Op String [JSValue]
+        | Op String [Expr]
         | Cast JSValue
 
 instance Show Expr where
@@ -115,7 +115,7 @@ instance Sunroof JSBool where
         unbox (JSBool v)  = v
 
 -- data JSFunction = JSFunction (Expr (JSValue -> JSM JSValue))
-
+{-
 data JSInt = JSInt Expr
 
 instance Show JSInt where
@@ -128,13 +128,14 @@ instance Sunroof JSInt where
         unbox (JSInt e) = e
 
 instance Num JSInt where
-        e1 + e2 = JSInt $ Op "+" [to e1,to e2]
+ e1 + e2 = JSInt $ Op "+" [to e1,to e2]
         e1 - e2 = JSInt $ Op "-" [to e1,to e2]
         e1 * e2 = JSInt $ Op "*" [to e1,to e2]
         abs e1 = JSInt $ Op "Math.abs" [to e1]
         signum e1 = JSInt $ Op "" [to e1]
         fromInteger = JSInt . Lit . show . fromInteger
 
+-}
 data JSNumber = JSNumber Expr
 
 instance Show JSNumber where
@@ -147,15 +148,15 @@ instance Sunroof JSNumber where
         unbox (JSNumber e) = e
 
 instance Num JSNumber where
-        e1 + e2 = JSNumber $ Op "+" [to e1,to e2]
-        e1 - e2 = JSNumber $ Op "-" [to e1,to e2]
-        e1 * e2 = JSNumber $ Op "*" [to e1,to e2]
-        abs e1 = JSNumber $ Op "Math.abs" [to e1]
-        signum e1 = JSNumber $ Op "" [to e1]
+        (JSNumber e1) + (JSNumber e2) = JSNumber $ Op "+" [e1,e2]
+        (JSNumber e1) - (JSNumber e2) = JSNumber $ Op "-" [e1,e2]
+        (JSNumber e1) * (JSNumber e2) = JSNumber $ Op "*" [e1,e2]
+        abs (JSNumber e1) = JSNumber $ Op "Math.abs" [e1]
+        signum (JSNumber e1) = JSNumber $ Op "" [e1]
         fromInteger = JSNumber . Lit . show . fromInteger
 
 instance Fractional JSNumber where
-        e1 / e2 = JSNumber $ Op "/" [to e1,to e2]
+        (JSNumber e1) / (JSNumber e2) = JSNumber $ Op "/" [e1,e2]
         fromRational = JSNumber . Lit . show . fromRational
 
 data JSString = JSString Expr
@@ -171,7 +172,7 @@ instance Sunroof JSString where
 
 instance Monoid JSString where
         mempty = fromString ""
-        mappend e1 e2 = JSString $ Op "+" [to e1,to e2]
+        mappend (JSString e1) (JSString e2) = JSString $ Op "+" [e1,e2]
 
 instance IsString JSString where
     fromString = JSString . Lit . show
@@ -186,6 +187,8 @@ instance Show JSObject where
 instance Sunroof JSObject where
         mkVar = JSObject . Var
         directCompile o = (show o,Value,Direct)
+        box = JSObject
+        unbox (JSObject o) = o
 
 {-
 data JSArray = JSArray Expr
@@ -315,8 +318,11 @@ writeJSVar (JSVar obj) val = do
 flush :: JSM ()
 flush = JS_Select $ JSS_Call "Sunroof_flush" [] Unit Continue :: JSM ()
 
-----------------------------------------------------------
+alert :: JSString -> JSM ()
+alert msg = JS_Select $ JSS_Call "alert" [to msg] Unit Direct :: JSM ()
 
+----------------------------------------------------------
+{-
 test2 :: JSM ()
 test2 = JS_Select $ JSS_Call "foo" [to (1 :: JSInt)] Value Direct
 
@@ -329,9 +335,6 @@ test3 = do
         JS_Select $ JSS_Call "foo3" [to (3 :: JSInt), to n] Value Direct :: JSM ()
 
 run_test3 = runCompM (compile test3) 0
-
-alert :: JSString -> JSM ()
-alert msg = JS_Select $ JSS_Call "alert" [to msg] Unit Direct :: JSM ()
 
 
 -- This works in the browser
@@ -352,7 +355,7 @@ test5 = do
         return ()
 
 run_test5 = runCompM (compile test5) 0
-
+-}
 ----------------------------------------------------------
 -- Old stuff
 compileArgs :: [(String,Type,Style)] -> CompM (String,[String],String)
