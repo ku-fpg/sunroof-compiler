@@ -22,13 +22,12 @@ data JSM a where
                   => JSS a -> JSM a
 --                  String -> [JSValue] -> Type -> Style
                                                            -- direct call
---        JS_Assign :: JSObject -> String -> JSValue -> JSM () -- obj . x = <exp>;
-
         JS_Dot    :: (Sunroof a)
                   => JSObject -> JSS a -> JSM a            -- obj . <selector>
 
 infixl 4 <*>
 infixl 4 <$>
+infix  5 :=
 
 (<*>) :: (Sunroof a) => JSM JSObject -> JSS a -> JSM a
 (<*>) m s = m >>= \ o -> o <$> s
@@ -39,15 +38,26 @@ infixl 4 <$>
 (!) :: forall a . (Sunroof a) => JSArray -> JSInt -> a
 (!) arr idx = from $ JSValue (Op "[]" [to arr,to idx] :: Expr a)
 
-
 data JSS a where
         JSS_Call   :: String -> [JSValue] -> Type -> Style -> JSS a
         JSS_Select :: String ->              Type ->          JSS a
-        JSS_Assign :: String -> JSValue   ->                  JSS ()
+        (:=)       :: (Sunroof a) => JSF a -> a ->            JSS ()
+
+data JSF a where
+        JSF_Field  :: String -> JSF a
+
+field :: String -> JSF a
+field = JSF_Field
 
 instance Monad JSM where
         return = JS_Return
         (>>=) = JS_Bind
+
+while :: JSM JSBool -> JSM ()
+while body = return ()
+
+cond :: JSM JSBool -> JSM () -> JSM ()
+cond _ _ = return ()
 
 ---------------------------------------------------------------
 
@@ -90,6 +100,18 @@ to = JSValue . Lit
 -- can fail *AT RUN TIME*.
 from :: (Sunroof a) => JSValue -> a
 from v = box (Cast v)
+
+data JSBool = JSBool (Expr Bool)
+
+instance Show JSBool where
+        show (JSBool (Lit b)) = if b then "true" else "false"
+        show (JSBool v) = show v
+
+instance Sunroof JSBool where
+        mkVar = JSBool . Var
+        directCompile i = (show i,Value,Direct)
+        type Internal JSBool = Bool
+        box = JSBool
 
 data JSInt = JSInt (Expr Int)
 
@@ -176,12 +198,15 @@ instance Sunroof JSArray where
 class Show a => Sunroof a where
         mkVar :: Int -> a
         directCompile :: a -> (String,Type,Style)
+        isUnit :: a -> Bool
+        isUnit _ = False
         type Internal a
         box :: Expr (Internal a) -> a
 
 instance Sunroof () where
         mkVar _ = ()
         directCompile i = ("",Unit,Direct)      -- TODO: what do we do for unit?
+        isUnit () = True
         type Internal () = ()
         box _ = ()
 
@@ -229,7 +254,7 @@ compileJSS (JSS_Call nm args ty style) = do
         return (inside,ty,style)
 compileJSS (JSS_Select nm ty) = do
         return (nm,ty,Direct)
-compileJSS (JSS_Assign nm arg) = do
+compileJSS ((JSF_Field nm) := arg) = do
         return (nm ++ " = (" ++ show arg ++ ")",Unit,Direct)
 
 

@@ -104,18 +104,12 @@ sunroof_app doc = do
         sendS doc $ do
                 alert "ABC"
                 c <- getContext "my-canvas"
-                alert ("CDE:" <> showJ c)
-
                 c <$> moveTo(50,50)
-
-                alert("4:")
-
                 c <$> lineTo(200,100)
-                c <$> lineWidth 10
-                c <$> strokeStyle "red"
+                c <$> lineWidth := 10
+                c <$> strokeStyle := "red"
                 c <$> stroke()
 
-                alert("9:")
 
 showJ :: (Sunroof a) => a -> JSString
 showJ = from . to
@@ -177,8 +171,8 @@ lineJoin = Command . LineJoin
 lineTo :: (JSFloat,JSFloat) -> JSS ()
 lineTo (a1,a2) = JSS_Call "lineTo" [to a1,to a2] Unit Direct :: JSS ()
 
-lineWidth :: JSFloat -> JSS ()
-lineWidth a1 = JSS_Assign "lineWidth" (to a1) :: JSS ()
+lineWidth :: JSF JSFloat
+lineWidth  = field "lineWidth"
 {-
 miterLimit :: JSFloat -> JSS ()
 miterLimit = Command . MiterLimit
@@ -211,8 +205,8 @@ strokeRect = Command . StrokeRect
 strokeText :: (String,JSFloat,JSFloat) -> JSS ()
 strokeText = Command . StrokeText
 -}
-strokeStyle :: JSString -> JSS ()
-strokeStyle a1 = JSS_Assign "strokeStyle" (to a1) :: JSS ()
+strokeStyle :: JSF JSString
+strokeStyle = field "strokeStyle"
 {-
 textAlign :: String -> JSS ()
 textAlign = Command . TextAlign
