@@ -4,6 +4,7 @@ module Web.Sunroof where
 
 import GHC.Exts
 import Data.Char
+import qualified Data.Map as Map
 import Data.Monoid
 --data JSM a = JSM a      -- ...
 
@@ -14,18 +15,32 @@ instance Show U where
   show (U a) = show a
 
 data JSM a where
-        JS_Call   :: (Sunroof a)
-                  => String -> [JSValue] -> Type -> Style -> JSM a
-                                                        -- direct call
         JS_Bind   :: JSM a -> (a -> JSM b) -> JSM b     -- Haskell monad bind
         JS_Return :: a -> JSM a                         -- Haskell monad return
 
+        JS_Select :: (Sunroof a)
+                  => JSS a -> JSM a
+--                  String -> [JSValue] -> Type -> Style
+                                                           -- direct call
+        JS_Dot    :: (Sunroof a)
+                  => JSObject -> JSS a -> JSM a            -- obj . <selector>
+        JS_Assign :: JSObject -> String -> JSValue -> JSM () -- obj . x = <exp>;
+{-
+infixl 4 <*>
+infixl 4 <$>
 
-data JSA where
-    JSA :: (Sunroof a) => a -> JSA
+(<*>) :: JSM JSObject -> JSS a -> JSM a
+(<*>) m s = m >>= \ o -> o <$> s
 
-instance Show JSA where
-    show (JSA a) = show a
+(<$>) :: JSObject -> JSS a -> JSM a
+(<$>) o s = o `JS_Dot` s
+-}
+data JSA a where
+        JSA_Select :: String -> Type -> JSA a
+
+data JSS a where
+        JSS_Call   :: String -> [JSValue] -> Type -> Style -> JSS a
+        JSS_Select :: String ->              Type ->          JSS a
 
 instance Monad JSM where
         return = JS_Return
@@ -70,14 +85,6 @@ fromJSValue :: (Sunroof a) => JSValue -> a
 fromJSValue (JSValueLit i) = error "fromJSValue"
 fromJSValue (JSValueVar uq) = mkVar uq
 
-{-
-instance Show JSInt where
-        show (JSValue v) = show v
-
-instance Sunroof JSInt where
-        mkVar = JSValue . Var
-        directCompile i = (show i,Value,Direct)
--}
 data JSInt = JSInt (Expr Int)
 
 instance Show JSInt where
@@ -110,52 +117,19 @@ instance Monoid JSString where
 instance IsString JSString where
     fromString = JSString . Lit
 
----------------------------------------------------------------
-{-
-data JSV a where
-        JS_Var :: Int                   -> JSV a        -- named value
-        JS_Int :: Int                   -> JSV Int
-        JS_String :: String             -> JSV String
+----------------------------------------------------
 
-instance Show (JSV a) where
-        show (JS_Var n) = "v" ++ show n
-        show (JS_Int i) = show i
-        show (JS_String s) = show s
+data JSObject = JSObject (Expr (Map.Map String JSValue))
 
-instance Num (JSV Int) where
-        fromInteger i = JS_Int (fromInteger i)
+----------------------------------------------------
 
-instance IsString (JSV String) where
-    fromString = JS_String
--}
----------------------------------------------------------------
-
--- TODO: split into Show => Value => Sunroof
--- and move mkVar into the Value class.
--- This will remove the class below
 class Show a => Sunroof a where
         mkVar :: Int -> a
         directCompile :: a -> (String,Type,Style)
-{-
 
-instance Sunroof (JSV Int) where
-        mkVar u = JS_Var u
-        directCompile i = (show i,Value,Direct)
-
-instance Sunroof (JSV String) where
-        mkVar u = JS_Var u
-        directCompile i = (show i,Value,Direct)        -- TODO: fix
-
-instance Sunroof U where
-        mkVar i = U (mkVar i :: JSV Int)        -- HACK
-        directCompile (U a) = directCompile a
--}
 instance Sunroof () where
         mkVar _ = ()
         directCompile i = ("undefined",Unit,Direct)
-
-
--- data JS_Call = JS_Call String [JSM U] Type
 
 data Style
         = Direct                -- just the answer
@@ -179,19 +153,17 @@ instance Monad CompM where
 uniqM :: CompM Int
 uniqM = CompM $ \ u -> (u,succ u)
 
-
-
-
 compile :: (Sunroof a) => JSM a -> CompM (String,Type,Style)
 compile (JS_Return a) = return $ directCompile a
-compile (JS_Call nm args ty style) = do
+compile (JS_Select (JSS_Call nm args ty style)) = do
         let inside = nm ++ "(" ++ commas (map show args) ++ ")"
         return (inside,ty,style)
 compile (JS_Bind m1 m2) = case m1 of
         JS_Return a     -> compile (m2 a)
         JS_Bind m11 m12 -> compile (JS_Bind m11 (\ a -> JS_Bind (m12 a) m2))
-        JS_Call {}      -> bind m1 m2
-
+        JS_Select {}    -> bind m1 m2
+        JS_Dot    {}    -> bind m1 m2
+        JS_Assign {}    -> bind m1 m2
 
 -- a version of compile that always returns CPS form.
 
@@ -216,30 +188,27 @@ bind m1 m2 = do
                     _     -> show a
         return ("function(k){(" ++ txt1 ++ ")(function(" ++ lab ++ "){" ++ txt2 ++ "(k)})}",ty2,Continue)
 
-
-
 commas [] = ""
 commas [x] = x
 commas (x:xs) = x ++ "," ++ commas xs
 
-
 ----------------------------------------------------------
 
 test2 :: JSM ()
-test2 = JS_Call "foo" [to (1 :: JSInt)] Value Direct
+test2 = JS_Select $ JSS_Call "foo" [to (1 :: JSInt)] Value Direct
 
 run_test2 = runCompM (compile test2) 0
 
 test3 :: JSM ()
 test3 = do
-        JS_Call "foo1" [to (1 :: JSInt)] Unit Direct :: JSM ()
-        (n :: JSInt) <- JS_Call "foo2" [to (2 :: JSInt)] Value Direct
-        JS_Call "foo3" [to (3 :: JSInt), to n] Value Direct :: JSM ()
+        JS_Select $ JSS_Call "foo1" [to (1 :: JSInt)] Unit Direct :: JSM ()
+        (n :: JSInt) <- JS_Select $ JSS_Call "foo2" [to (2 :: JSInt)] Value Direct
+        JS_Select $ JSS_Call "foo3" [to (3 :: JSInt), to n] Value Direct :: JSM ()
 
 run_test3 = runCompM (compile test3) 0
 
 alert :: JSString -> JSM ()
-alert msg = JS_Call "alert" [to msg] Unit Direct :: JSM ()
+alert msg = JS_Select $ JSS_Call "alert" [to msg] Unit Direct :: JSM ()
 
 
 -- This works in the browser
