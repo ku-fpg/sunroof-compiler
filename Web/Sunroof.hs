@@ -35,8 +35,8 @@ infix  5 :=
 (<$>) :: (Sunroof a) => JSObject -> JSS a -> JSM a
 (<$>) o s = o `JS_Dot` s
 
-(!) :: forall a . (Sunroof a) => JSArray -> JSInt -> a
-(!) arr idx = from $ JSValue (Op "[]" [to arr,to idx] :: Expr a)
+--(!) :: forall a . (Sunroof a) => JSArray -> JSInt -> a
+--(!) arr idx = from $ JSValue (Op "[]" [to arr,to idx] :: Expr a)
 
 data JSS a where
         JSS_Call   :: String -> [JSValue] -> Type -> Style -> JSS a
@@ -65,14 +65,14 @@ type Uniq = Int         -- used as a unique label
 
 ---------------------------------------------------------------
 -- Trivial expression language
-data Expr a
-        = Lit a
+data Expr
+        = Lit String    -- a precompiled version of this literal
         | Var Uniq
         | Op String [JSValue]
         | Cast JSValue
 
-instance Show a => Show (Expr a) where
-        show (Lit a)  = show a
+instance Show Expr where
+        show (Lit a)  = a
         show (Var uq) = "v" ++ show uq
         show (Op "[]" [a,x]) = "(" ++ show a ++ ")[" ++ show x ++ "]"
         show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")+(" ++ show b ++ ")"
@@ -83,7 +83,7 @@ instance Show a => Show (Expr a) where
 data Void
 
 data JSValue where
-  JSValue :: (Sunroof a) => Expr a -> JSValue
+  JSValue :: Expr -> JSValue
   JSValueVar :: Uniq -> JSValue         -- so the typing does not through a fit
 
 instance Show JSValue where
@@ -95,27 +95,26 @@ instance Sunroof JSValue where
         directCompile i = (show i,Value,Direct)
 
 to :: (Sunroof a) => a -> JSValue
-to = JSValue . Lit
+to = JSValue . unbox
 
 -- can fail *AT RUN TIME*.
 from :: (Sunroof a) => JSValue -> a
-from v = box (Cast v)
+from v = box (unbox v)
 
-data JSBool = JSBool (Expr Bool)
+data JSBool = JSBool Expr
 
 instance Show JSBool where
-        show (JSBool (Lit b)) = if b then "true" else "false"
-        show (JSBool v) = show v
+        show (JSBool e) = show e
 
 instance Sunroof JSBool where
         mkVar = JSBool . Var
         directCompile i = (show i,Value,Direct)
-        type Internal JSBool = Bool
         box = JSBool
+        unbox (JSBool v)  = v
 
 -- data JSFunction = JSFunction (Expr (JSValue -> JSM JSValue))
 
-data JSInt = JSInt (Expr Int)
+data JSInt = JSInt Expr
 
 instance Show JSInt where
         show (JSInt v) = show v
@@ -123,8 +122,8 @@ instance Show JSInt where
 instance Sunroof JSInt where
         mkVar = JSInt . Var
         directCompile i = (show i,Value,Direct)
-        type Internal JSInt = Int
         box = JSInt
+        unbox (JSInt e) = e
 
 instance Num JSInt where
         e1 + e2 = JSInt $ Op "+" [to e1,to e2]
@@ -132,9 +131,9 @@ instance Num JSInt where
         e1 * e2 = JSInt $ Op "*" [to e1,to e2]
         abs e1 = JSInt $ Op "Math.abs" [to e1]
         signum e1 = JSInt $ Op "" [to e1]
-        fromInteger = JSInt . Lit . fromInteger
+        fromInteger = JSInt . Lit . show . fromInteger
 
-data JSFloat = JSFloat (Expr Float)
+data JSFloat = JSFloat Expr
 
 instance Show JSFloat where
         show (JSFloat v) = show v
@@ -142,8 +141,8 @@ instance Show JSFloat where
 instance Sunroof JSFloat where
         mkVar = JSFloat . Var
         directCompile i = (show i,Value,Direct)
-        type Internal JSFloat = Float
         box = JSFloat
+        unbox (JSFloat e) = e
 
 instance Num JSFloat where
         e1 + e2 = JSFloat $ Op "+" [to e1,to e2]
@@ -151,13 +150,13 @@ instance Num JSFloat where
         e1 * e2 = JSFloat $ Op "*" [to e1,to e2]
         abs e1 = JSFloat $ Op "Math.abs" [to e1]
         signum e1 = JSFloat $ Op "" [to e1]
-        fromInteger = JSFloat . Lit . fromInteger
+        fromInteger = JSFloat . Lit . show . fromInteger
 
 instance Fractional JSFloat where
         e1 / e2 = JSFloat $ Op "/" [to e1,to e2]
-        fromRational = JSFloat . Lit . fromRational
+        fromRational = JSFloat . Lit . show . fromRational
 
-data JSString = JSString (Expr String)
+data JSString = JSString Expr
 
 instance Show JSString where
         show (JSString v) = show v
@@ -165,19 +164,19 @@ instance Show JSString where
 instance Sunroof JSString where
         mkVar = JSString . Var
         directCompile i = (show i,Value,Direct)
-        type Internal JSString = String
         box = JSString
+        unbox (JSString e) = e
 
 instance Monoid JSString where
         mempty = fromString ""
         mappend e1 e2 = JSString $ Op "+" [to e1,to e2]
 
 instance IsString JSString where
-    fromString = JSString . Lit
+    fromString = JSString . Lit . show
 
 ----------------------------------------------------
 
-data JSObject = JSObject (Expr (Map.Map String JSValue))
+data JSObject = JSObject Expr
 
 instance Show JSObject where
         show (JSObject v@(Var {})) = show v
@@ -186,7 +185,8 @@ instance Sunroof JSObject where
         mkVar = JSObject . Var
         directCompile o = (show o,Value,Direct)
 
-data JSArray = JSArray (Expr (Map.Map Int JSValue))
+{-
+data JSArray = JSArray Expr
 
 instance Show JSArray where
         show (JSArray v@(Var {})) = show v
@@ -194,6 +194,7 @@ instance Show JSArray where
 instance Sunroof JSArray where
         mkVar = JSArray . Var
         directCompile i = error "JSArray"
+-}
 
 ----------------------------------------------------
 
@@ -202,15 +203,15 @@ class Show a => Sunroof a where
         directCompile :: a -> (String,Type,Style)
         isUnit :: a -> Bool
         isUnit _ = False
-        type Internal a
-        box :: Expr (Internal a) -> a
+        box :: Expr -> a
+        unbox :: a -> Expr
 
 instance Sunroof () where
         mkVar _ = ()
         directCompile i = ("",Unit,Direct)      -- TODO: what do we do for unit?
         isUnit () = True
-        type Internal () = ()
         box _ = ()
+        unbox () = Lit ""
 
 data Style
         = Direct                -- just the answer
