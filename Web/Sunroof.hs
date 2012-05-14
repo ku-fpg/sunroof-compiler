@@ -93,13 +93,15 @@ instance Show JSValue where
 instance Sunroof JSValue where
         mkVar = JSValueVar
         directCompile i = (show i,Value,Direct)
+        box = JSValue
+        unbox (JSValue e) = e
 
+cast :: (Sunroof a, Sunroof b) => a -> b
+cast = box . unbox
+
+-- todo, remove
 to :: (Sunroof a) => a -> JSValue
-to = JSValue . unbox
-
--- can fail *AT RUN TIME*.
-from :: (Sunroof a) => JSValue -> a
-from v = box (unbox v)
+to = cast
 
 data JSBool = JSBool Expr
 
@@ -133,28 +135,28 @@ instance Num JSInt where
         signum e1 = JSInt $ Op "" [to e1]
         fromInteger = JSInt . Lit . show . fromInteger
 
-data JSFloat = JSFloat Expr
+data JSNumber = JSNumber Expr
 
-instance Show JSFloat where
-        show (JSFloat v) = show v
+instance Show JSNumber where
+        show (JSNumber v) = show v
 
-instance Sunroof JSFloat where
-        mkVar = JSFloat . Var
+instance Sunroof JSNumber where
+        mkVar = JSNumber . Var
         directCompile i = (show i,Value,Direct)
-        box = JSFloat
-        unbox (JSFloat e) = e
+        box = JSNumber
+        unbox (JSNumber e) = e
 
-instance Num JSFloat where
-        e1 + e2 = JSFloat $ Op "+" [to e1,to e2]
-        e1 - e2 = JSFloat $ Op "-" [to e1,to e2]
-        e1 * e2 = JSFloat $ Op "*" [to e1,to e2]
-        abs e1 = JSFloat $ Op "Math.abs" [to e1]
-        signum e1 = JSFloat $ Op "" [to e1]
-        fromInteger = JSFloat . Lit . show . fromInteger
+instance Num JSNumber where
+        e1 + e2 = JSNumber $ Op "+" [to e1,to e2]
+        e1 - e2 = JSNumber $ Op "-" [to e1,to e2]
+        e1 * e2 = JSNumber $ Op "*" [to e1,to e2]
+        abs e1 = JSNumber $ Op "Math.abs" [to e1]
+        signum e1 = JSNumber $ Op "" [to e1]
+        fromInteger = JSNumber . Lit . show . fromInteger
 
-instance Fractional JSFloat where
-        e1 / e2 = JSFloat $ Op "/" [to e1,to e2]
-        fromRational = JSFloat . Lit . show . fromRational
+instance Fractional JSNumber where
+        e1 / e2 = JSNumber $ Op "/" [to e1,to e2]
+        fromRational = JSNumber . Lit . show . fromRational
 
 data JSString = JSString Expr
 

@@ -112,7 +112,7 @@ sunroof_app doc = do
 
 
 showJ :: (Sunroof a) => a -> JSString
-showJ = from . to
+showJ = cast
 
 sendS :: (Sunroof a) => Document -> JSM a -> IO ()
 sendS doc jsm = do
@@ -125,20 +125,20 @@ sendS doc jsm = do
 -------------------------------------------------------------
 
 getContext :: JSString -> JSM JSObject
-getContext nm = JS_Select $ JSS_Call "getContext" [to nm] Value Direct
+getContext nm = JS_Select $ JSS_Call "getContext" [cast nm] Value Direct
 
 {-
 
-arc :: (JSFloat,JSFloat,JSFloat,JSFloat,JSFloat,Bool) -> JSS ()
+arc :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,Bool) -> JSS ()
 arc = Command . Arc
 
 beginPath :: () -> JSS ()
 beginPath () = Command BeginPath
 
-bezierCurveTo :: (JSFloat,JSFloat,JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+bezierCurveTo :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 bezierCurveTo = Command . BezierCurveTo
 
-clearRect :: (JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+clearRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 clearRect = Command . ClearRect
 
 closePath :: () -> JSS ()
@@ -147,19 +147,19 @@ closePath () = Command ClosePath
 fill :: () -> JSS ()
 fill () = Command Fill
 
-fillRect :: (JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+fillRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 fillRect = Command . FillRect
 
 fillStyle :: String -> JSS ()
 fillStyle = Command . FillStyle
 
-fillText :: (String,JSFloat,JSFloat) -> JSS ()
+fillText :: (String,JSNumber,JSNumber) -> JSS ()
 fillText = Command . FillText
 
 font :: String -> JSS ()
 font = Command . Font
 
-globalAlpha :: JSFloat -> JSS ()
+globalAlpha :: JSNumber -> JSS ()
 globalAlpha = Command . GlobalAlpha
 
 lineCap :: String -> JSS ()
@@ -168,17 +168,17 @@ lineCap = Command . LineCap
 lineJoin :: String -> JSS ()
 lineJoin = Command . LineJoin
 -}
-lineTo :: (JSFloat,JSFloat) -> JSS ()
-lineTo (a1,a2) = JSS_Call "lineTo" [to a1,to a2] Unit Direct :: JSS ()
+lineTo :: (JSNumber,JSNumber) -> JSS ()
+lineTo (a1,a2) = JSS_Call "lineTo" [cast a1,cast a2] Unit Direct :: JSS ()
 
-lineWidth :: JSF JSFloat
+lineWidth :: JSF JSNumber
 lineWidth  = field "lineWidth"
 {-
-miterLimit :: JSFloat -> JSS ()
+miterLimit :: JSNumber -> JSS ()
 miterLimit = Command . MiterLimit
 -}
-moveTo :: (JSFloat,JSFloat) -> JSS ()
-moveTo (a1,a2) = JSS_Call "moveTo" [to a1,to a2] Unit Direct :: JSS ()
+moveTo :: (JSNumber,JSNumber) -> JSS ()
+moveTo (a1,a2) = JSS_Call "moveTo" [cast a1,cast a2] Unit Direct :: JSS ()
 {-
 foo :: JSInt -> JSS ()
 
@@ -187,10 +187,10 @@ Command . MoveTo
 restore :: () -> JSS ()
 restore () = Command Restore
 
-rotate :: JSFloat -> JSS ()
+rotate :: JSNumber -> JSS ()
 rotate = Command . Rotate
 
-scale :: (JSFloat,JSFloat) -> JSS ()
+scale :: (JSNumber,JSNumber) -> JSS ()
 scale = Command . Scale
 
 save :: () -> JSS ()
@@ -199,10 +199,10 @@ save () = Command Save
 stroke :: () -> JSS ()
 stroke () = JSS_Call "stroke" [] Unit Direct :: JSS ()
 {-
-strokeRect :: (JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+strokeRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 strokeRect = Command . StrokeRect
 
-strokeText :: (String,JSFloat,JSFloat) -> JSS ()
+strokeText :: (String,JSNumber,JSNumber) -> JSS ()
 strokeText = Command . StrokeText
 -}
 strokeStyle :: JSF JSString
@@ -214,10 +214,10 @@ textAlign = Command . TextAlign
 textBaseline :: String -> JSS ()
 textBaseline = Command . TextBaseline
 
-transform :: (JSFloat,JSFloat,JSFloat,JSFloat,JSFloat,JSFloat) -> JSS ()
+transform :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 transform = Command . Transform
 
-translate :: (JSFloat,JSFloat) -> JSS ()
+translate :: (JSNumber,JSNumber) -> JSS ()
 translate = Command . Translate
 
 -}
