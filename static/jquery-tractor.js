@@ -31,7 +31,7 @@ var eventCallbacks = {};
 function tractor_register(eventname, fn) {
      eventQueues[eventname] = [];
 
-     $("." + eventname).on(eventname, function (event) {
+     $("body").on(eventname, "." + eventname, function (event) {
 	var e = fn(event,this);
 	e.eventname = eventname;
 	if (eventCallbacks[eventname] == undefined) {
