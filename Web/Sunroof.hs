@@ -21,6 +21,7 @@ data JSM a where
         JS_Select :: (Sunroof a)
                   => JSS a -> JSM a
 --                  String -> [JSValue] -> Type -> Style
+
                                                            -- direct call
         JS_Dot    :: (Sunroof a)
                   => JSObject -> JSS a -> JSM a            -- obj . <selector>
@@ -32,6 +33,9 @@ data JSM a where
         -- You can invoke functions
         JS_Invoke :: JSFunction a b -> a -> JSM b
 
+
+        JS_Loop :: JSM () -> JSM ()
+
 infixl 4 <*>
 infixl 4 <$>
 infix  5 :=
@@ -42,8 +46,8 @@ infix  5 :=
 (<$>) :: (Sunroof a) => JSObject -> JSS a -> JSM a
 (<$>) o s = o `JS_Dot` s
 
---(!) :: forall a . (Sunroof a) => JSArray -> JSInt -> a
---(!) arr idx = from $ JSValue (Op "[]" [to arr,to idx] :: Expr a)
+(!) :: forall a . (Sunroof a) => JSObject -> JSString -> a
+(!) arr idx = cast $ JSValue $ Op "[]" [unbox arr,unbox idx]
 
 data JSS a where
         JSS_Call   :: String -> [JSValue] -> Type -> Style -> JSS a
@@ -243,6 +247,10 @@ compile (JS_Dot o jss) = do
         (sel_txt,ty,style) <- compileJSS jss
         let (o_txt,_,_) = directCompile o
         return ("(" ++ o_txt ++ ")." ++ sel_txt,ty,style)
+compile (JS_Loop inner) = do
+        (inner_txt,Unit,Continue) <- compile inner
+        return ("function(){ var body = " ++ inner_txt ++ ";Y(body);}",Unit,Continue)
+
 
 compile (JS_Bind m1 m2) = case m1 of
         JS_Return a     -> compile (m2 a)
@@ -316,6 +324,9 @@ flush = JS_Select $ JSS_Call "Sunroof_flush" [] Unit Continue :: JSM ()
 
 alert :: JSString -> JSM ()
 alert msg = JS_Select $ JSS_Call "alert" [to msg] Unit Direct :: JSM ()
+
+loop :: JSM () -> JSM ()
+loop m = JS_Loop m
 
 ----------------------------------------------------------
 {-
