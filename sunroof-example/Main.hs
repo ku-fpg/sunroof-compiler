@@ -101,7 +101,7 @@ sunroof_app doc = do
         print "sunroof_app"
 
 --        send doc "alert('x');"
-        register doc "click" "return {x : event.pageX, y : event.pageY};"
+        register doc "mousemove" "return {x : event.pageX, y : event.pageY};"
 
 {-
               sendS doc $ do
@@ -115,7 +115,7 @@ sunroof_app doc = do
 -}
         sendS doc $ loop $ do
 --                alert "1"
-                event <- waitForS "click"
+                event <- waitForS "mousemove"
                 c <- getContext "my-canvas"
                 let (x,y) = (event ! "x",event ! "y")
                 c <$> beginPath()
