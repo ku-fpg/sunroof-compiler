@@ -34,6 +34,7 @@ function tractor_register(eventname, fn) {
      $("body").on(eventname, "." + eventname, function (event) {
 	var e = fn(event,this);
 	e.eventname = eventname;
+//	alert("EVENT " + e);
 	if (eventCallbacks[eventname] == undefined) {
 //		alert('pushing, no one is waiting (TO BE DONE)');
 	// These are effectively ignored (TODO: fix)
@@ -70,6 +71,11 @@ function tractor_reply(uq,obj) {
                  dataType: "json"});
 }
 
+function Y(body){
+//	alert("Y");
+	body(function(k){Y(body);})
+}
+
 /// Extra stuff
 
 function getContext(can) {
@@ -80,6 +86,14 @@ function getContext(can) {
                         return canvas.getContext("2d");
         }
         alert("no canvas");
+}
+
+function waitForS(eventname) {
+//	alert('waitForS');
+	return function(k){
+//		alert("wait CC");
+		tractor_waitFor(eventname, k);
+	}
 }
 
 function ugg() {
