@@ -82,7 +82,7 @@ instance Show Expr where
         show (Lit a)  = a
         show (Var uq) = "v" ++ show uq
         show (Op "[]" [a,x]) = "(" ++ show a ++ ")[" ++ show x ++ "]"
-        show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")+(" ++ show b ++ ")"
+        show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")" ++ x ++ "(" ++ show b ++ ")"
         show (Cast e) = show e
 
 ---------------------------------------------------------------
@@ -121,6 +121,9 @@ instance Sunroof JSBool where
         box = JSBool
         unbox (JSBool v)  = v
 
+true = JSBool (Lit "true")
+false = JSBool (Lit "false")
+
 data JSFunction a b = JSFunction Expr
 
 data JSNumber = JSNumber Expr
@@ -145,6 +148,9 @@ instance Num JSNumber where
 instance Fractional JSNumber where
         (JSNumber e1) / (JSNumber e2) = JSNumber $ Op "/" [e1,e2]
         fromRational = JSNumber . Lit . show . fromRational
+
+instance Floating JSNumber where
+        pi = JSNumber $ Lit $ "Math.PI"
 
 data JSString = JSString Expr
 
