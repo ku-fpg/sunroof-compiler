@@ -73,8 +73,8 @@ function tractor_reply(uq,obj) {
 /// Extra stuff
 
 function getContext(can) {
-	alert("got to get context ");
-	alert("arg = " + can);
+//	alert("got to get context ");
+//	alert("arg = " + can);
         var canvas = document.getElementById(can);
         if (canvas.getContext) {
                         return canvas.getContext("2d");
