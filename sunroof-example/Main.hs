@@ -100,16 +100,48 @@ sunroof_app :: Document -> IO ()
 sunroof_app doc = do
         print "sunroof_app"
 
-        send doc "alert('x');"
-        sendS doc $ do
-                alert "ABC"
+--        send doc "alert('x');"
+
+        let loop (x,y) = do
+{-
+              sendS doc $ do
                 c <- getContext "my-canvas"
+                c <$> beginPath()
                 c <$> moveTo(50,50)
-                c <$> lineTo(200,100)
+                c <$> lineTo(x,y)
                 c <$> lineWidth := 10
                 c <$> strokeStyle := "red"
                 c <$> stroke()
+-}
+             sendS doc $ do
+                c <- getContext "my-canvas"
+                c <$> beginPath()
+                c <$> arc(x, y, 20, 0, 2 * pi, false)
+                c <$> fillStyle := "#8ED6FF"
+                c <$> fill()
 
+             loop (x-1,x+1)
+        loop (100,100)
+
+{-
+        var canvas = document.getElementById("myCanvas");
+        var context = canvas.getContext("2d");
+        var centerX = canvas.width / 2;
+        var centerY = canvas.height / 2;
+        var radius = 70;
+
+        context.beginPath();
+        context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+        context.fillStyle = "#8ED6FF";
+        context.fill();
+
+                event <- waitFor "click"
+
+                waitFor $ \ event -> do
+                        ...
+                waitFor $ \ event -> do
+                        ...
+-}
 
 showJ :: (Sunroof a) => a -> JSString
 showJ = cast
@@ -124,17 +156,16 @@ sendS doc jsm = do
 
 -------------------------------------------------------------
 
+
 getContext :: JSString -> JSM JSObject
 getContext nm = JS_Select $ JSS_Call "getContext" [cast nm] Value Direct
 
-{-
-
-arc :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,Bool) -> JSS ()
-arc = Command . Arc
+arc :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSBool) -> JSS ()
+arc (a1,a2,a3,a4,a5,a6) = JSS_Call "arc" [cast a1,cast a2,cast a3,cast a4,cast a5,cast a6] Unit Direct :: JSS ()
 
 beginPath :: () -> JSS ()
-beginPath () = Command BeginPath
-
+beginPath () = JSS_Call "beginPath" [] Unit Direct
+{-
 bezierCurveTo :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 bezierCurveTo = Command . BezierCurveTo
 
@@ -143,16 +174,17 @@ clearRect = Command . ClearRect
 
 closePath :: () -> JSS ()
 closePath () = Command ClosePath
-
+-}
 fill :: () -> JSS ()
-fill () = Command Fill
+fill () = JSS_Call "fill" [] Unit Direct
 
+{-
 fillRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 fillRect = Command . FillRect
-
-fillStyle :: String -> JSS ()
-fillStyle = Command . FillStyle
-
+-}
+fillStyle :: JSF JSString
+fillStyle = field "fillStyle"
+{-
 fillText :: (String,JSNumber,JSNumber) -> JSS ()
 fillText = Command . FillText
 
