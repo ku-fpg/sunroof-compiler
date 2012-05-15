@@ -101,8 +101,8 @@ sunroof_app doc = do
         print "sunroof_app"
 
 --        send doc "alert('x');"
+        register doc "click" "return {x : event.pageX, y : event.pageY};"
 
-        let loop (x,y) = do
 {-
               sendS doc $ do
                 c <- getContext "my-canvas"
@@ -113,15 +113,19 @@ sunroof_app doc = do
                 c <$> strokeStyle := "red"
                 c <$> stroke()
 -}
-             sendS doc $ do
+        sendS doc $ loop $ do
+--                alert "1"
+                event <- waitForS "click"
                 c <- getContext "my-canvas"
+                let (x,y) = (event ! "x",event ! "y")
                 c <$> beginPath()
                 c <$> arc(x, y, 20, 0, 2 * pi, false)
                 c <$> fillStyle := "#8ED6FF"
                 c <$> fill()
+--                alert "X"
 
-             loop (x-1,x+1)
-        loop (100,100)
+--             loop (x-1,x+1)
+--        loop (100,100)
 
 {-
         var canvas = document.getElementById("myCanvas");
@@ -154,6 +158,13 @@ sendS doc jsm = do
         send doc (Text.pack $ "(" ++ txt ++ ")(function(k){})")
         return ()
 
+-------------------------------------------------------------
+
+waitForS :: JSString -> JSM JSObject
+waitForS event =
+--        send "
+        JS_Select $ JSS_Call "waitForS" [to event] Value Continue
+--        return $ JSObject $ Lit $ "{x:100,y:50}"
 -------------------------------------------------------------
 
 
