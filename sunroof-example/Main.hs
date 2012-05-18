@@ -44,6 +44,8 @@ sunroof_app :: Document -> IO ()
 sunroof_app doc = do
         print "sunroof_app"
 
+        register doc "mousemove" "return {x : event.pageX, y : event.pageY};"
+
         sendS doc $ loop $ do
                 event <- waitForS "mousemove"
                 c <- getContext "my-canvas"
