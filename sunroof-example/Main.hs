@@ -20,7 +20,8 @@ import qualified Data.Text.Lazy as Text
 
 -- import Web.Sunroof
 import Language.Sunroof
-import Language.Sunroof.Class
+import Language.Sunroof.Compiler
+import Language.Sunroof.Types
 
 opts :: T.Options
 opts = def { prefix = "/example", verbose = 2 }
