@@ -1,2 +1,7 @@
 *~
 dist/*
+*.o
+*.hi
+*.swp
+*.swo
+.DS_Store
