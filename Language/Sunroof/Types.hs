@@ -10,12 +10,6 @@ import Data.Monoid
 
 type Uniq = Int         -- used as a unique label
 
-data Style = Direct                -- just the answer
-           | Continue              -- expecting the continuation to be passed
-    deriving Show
-
-data Type = Unit | Value deriving Show
-
 cast :: (Sunroof a, Sunroof b) => a -> b
 cast = box . unbox
 
@@ -44,14 +38,14 @@ class Show a => Sunroof a where
         showVar :: a -> String -- needed because show instance for unit is problematic
         showVar = show
 
-        getTy :: a -> Type
-        getTy _ = Value
+        assignVar :: a -> String
+        assignVar a = "var " ++ show a ++ "="
 
 -- unit is the oddball
 instance Sunroof () where
         mkVar _ = ()
         showVar _ = ""
-        getTy _ = Unit
+        assignVar _ = ""
         box _ = ()
         unbox () = Lit ""
 

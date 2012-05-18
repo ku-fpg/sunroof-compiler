@@ -61,28 +61,21 @@ showJ = cast
 
 sendS :: (Sunroof a) => Document -> JSM a -> IO ()
 sendS doc jsm = do
-        let (txt,ty) = toC $ compileJS jsm
+        let txt = compileJS jsm
         print ("TXT:",txt)
-        print ("TY:",ty)
-        send doc (Text.pack $ "(" ++ txt ++ ")(function(k){})")
+        send doc $ Text.pack txt
         return ()
 
 -------------------------------------------------------------
 
-waitForS :: JSString -> JSM JSObject
-waitForS event =
-        jsSelect $ JSS_Call "waitForS" [cast event] Value Continue
--------------------------------------------------------------
-
-
 getContext :: JSString -> JSM JSObject
-getContext nm = jsSelect $ JSS_Call "getContext" [cast nm] Value Direct
+getContext nm = jsSelect $ JSS_Call "getContext" [cast nm]
 
 arc :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSBool) -> JSS ()
-arc (a1,a2,a3,a4,a5,a6) = JSS_Call "arc" [cast a1,cast a2,cast a3,cast a4,cast a5,cast a6] Unit Direct :: JSS ()
+arc (a1,a2,a3,a4,a5,a6) = JSS_Call "arc" [cast a1,cast a2,cast a3,cast a4,cast a5,cast a6] :: JSS ()
 
 beginPath :: () -> JSS ()
-beginPath () = JSS_Call "beginPath" [] Unit Direct
+beginPath () = JSS_Call "beginPath" []
 {-
 bezierCurveTo :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 bezierCurveTo = Command . BezierCurveTo
@@ -94,7 +87,7 @@ closePath :: () -> JSS ()
 closePath () = Command ClosePath
 -}
 fill :: () -> JSS ()
-fill () = JSS_Call "fill" [] Unit Direct
+fill () = JSS_Call "fill" []
 
 {-
 fillRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
@@ -119,7 +112,7 @@ lineJoin :: String -> JSS ()
 lineJoin = Command . LineJoin
 -}
 lineTo :: (JSNumber,JSNumber) -> JSS ()
-lineTo (a1,a2) = JSS_Call "lineTo" [cast a1,cast a2] Unit Direct :: JSS ()
+lineTo (a1,a2) = JSS_Call "lineTo" [cast a1,cast a2] :: JSS ()
 
 lineWidth :: JSF JSNumber
 lineWidth  = field "lineWidth"
@@ -128,7 +121,7 @@ miterLimit :: JSNumber -> JSS ()
 miterLimit = Command . MiterLimit
 -}
 moveTo :: (JSNumber,JSNumber) -> JSS ()
-moveTo (a1,a2) = JSS_Call "moveTo" [cast a1,cast a2] Unit Direct :: JSS ()
+moveTo (a1,a2) = JSS_Call "moveTo" [cast a1,cast a2] :: JSS ()
 {-
 foo :: JSInt -> JSS ()
 
@@ -147,7 +140,7 @@ save :: () -> JSS ()
 save () = Command Save
 -}
 stroke :: () -> JSS ()
-stroke () = JSS_Call "stroke" [] Unit Direct :: JSS ()
+stroke () = JSS_Call "stroke" [] :: JSS ()
 {-
 strokeRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
 strokeRect = Command . StrokeRect

@@ -10,7 +10,7 @@ import Language.Sunroof.Types
 
 infix  5 :=
 
-compileJS :: (Sunroof a) => JSM a -> (String,Type,Style)
+compileJS :: (Sunroof a) => JSM a -> String
 compileJS = flip evalState 0 . compile
 
 -- define primitive effects / "instructions" for the JSM monad
@@ -21,6 +21,7 @@ data JSMI a where
     -- object . <selector>
     JS_Dot    :: (Sunroof a) => JSObject -> JSS a -> JSMI a
 
+    JS_Wait   :: JSString -> JSMI JSObject
 {-
     -- You can build functions, and pass them round
     JS_Function :: (Sunroof a, Sunroof b)
@@ -34,71 +35,60 @@ data JSMI a where
 -- Control.Monad.Operational makes a monad out of JSM for us
 type JSM a = Program JSMI a
 
--- compile a base type
-directCompile :: (Sunroof a) => a -> (String,Type,Style)
-directCompile a = (showVar a, getTy a, Direct)
-
 -- compile an existing expression
-compile :: Sunroof c => JSM c -> CompM (String,Type,Style)
+compile :: Sunroof c => JSM c -> CompM String
 compile = eval . view
     -- since the type  Program  is abstract (for efficiency),
     -- we have to apply the  view  function first,
     -- to get something we can pattern match on
-    where
-        eval :: Sunroof b => ProgramView JSMI b -> CompM (String,Type,Style)
-        -- either we call a primitive JavaScript function
-        eval (JS_Select jss :>>= g) = do
-            code <- toC App.<$> compileJSS jss
-            compileBind code g
-        eval (JS_Dot o jss :>>= g) = do
-            (sel_txt,ty,style) <- compileJSS jss
-            let (o_txt,_,_) = directCompile o
-            compileBind (toC ("(" ++ o_txt ++ ")." ++ sel_txt,ty,style)) g
-        eval (JS_Loop inner :>>= g) = do
-            (inner_txt,Unit,Continue) <- compile inner
-            compileBind (toC ("function(){ var body = " ++ inner_txt ++ ";Y(body);}",Unit,Continue)) g
+    where eval :: Sunroof b => ProgramView JSMI b -> CompM String
+          -- either we call a primitive JavaScript function
+          eval (JS_Select jss :>>= g) = do
+            txt1 <- compileJSS jss
+            compileBind txt1 g
+          eval (JS_Dot o jss :>>= g) = do
+            sel_txt <- compileJSS jss
+            compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
+          eval (JS_Loop body :>>= g) = do -- note, we do nothing with g, as it's unreachable
+            -- create a new name for our loop
+            loop <- newLoop
+            -- the magic: add call to loop at end of loop body instructions,
+            -- this way, if body contains a JS_Wait, it gets sucked into the
+            -- event callback!
+            loop_body <- compile (body >>= (\() -> singleton (JS_Select (JSS_Call loop []) :: JSMI ())))
+            -- define loop function, and call it once
+            return $ "var " ++ loop ++ " = function(){ " ++ loop_body ++ " }; " ++ loop ++ "();"
+          eval (JS_Wait event :>>= g) = do
+            a <- newVar
+            txt2 <- compile (g a)
+            return $ "tractor_waitFor(" ++ show event ++ ",function(" ++ showVar a ++ "){" ++ txt2 ++ "})"
 
-        -- or we're done already
-        eval (Return b) = return $ directCompile b
+          -- or we're done already
+          eval (Return b) = return $ showVar b
 
-compileBind :: (Sunroof a, Sunroof b) => (String,Type) -> (a -> JSM b) -> CompM (String,Type,Style)
-compileBind (txt1,_ty1) m2 = do
+compileBind :: (Sunroof a, Sunroof b) => String -> (a -> JSM b) -> CompM String
+compileBind txt1 m2 = do
     a <- newVar
-    (txt2,ty2) <- toC App.<$> compile (m2 a)
-    return ("function(k){(" ++ txt1 ++ ")(function(" ++ showVar a ++ "){(" ++ txt2 ++ ")(k)})}",ty2,Continue)
-
-{-
--- note: now that we have showVar () = "" instead of show () = "()", these are the same
-    case ty1 of
-        Unit -> return ("function(k){(" ++ txt1 ++ ")(function(){(" ++ txt2 ++ ")(k)})}",ty2,Continue)
-        _    -> return ("function(k){(" ++ txt1 ++ ")(function(" ++ showVar a ++ "){(" ++ txt2 ++ ")(k)})}",ty2,Continue)
--}
-
--- convert Direct to CPS form
-toC :: (String,Type,Style) -> (String,Type)
-toC (txt,ty,style) =
-    case (style,ty) of
-        (Direct,Unit)  -> ("(function(k){" ++ txt ++ ";k();})",ty)
-        (Direct,Value) -> ("(function(k){k(" ++ txt ++ ")})",ty)
-        _ -> (txt,ty)
+    txt2 <- compile (m2 a)
+    return $ assignVar a ++ txt1 ++ ";" ++ txt2
 
 data JSS a where
-    JSS_Call   :: String -> [JSValue] -> Type -> Style -> JSS a
-    JSS_Select :: String ->              Type ->          JSS a
-    (:=)       :: (Sunroof a) => JSF a -> a ->            JSS ()
+    JSS_Call   :: String -> [JSValue]       -> JSS a
+    JSS_Select :: String                    -> JSS a
+    (:=)       :: (Sunroof a) => JSF a -> a -> JSS ()
 
 data JSF a where
-        JSF_Field  :: String -> JSF a
+    JSF_Field  :: String -> JSF a
 
-compileJSS :: (Sunroof a) => JSS a -> CompM (String,Type,Style)
-compileJSS (JSS_Call nm args ty style) = do
+compileJSS :: (Sunroof a) => JSS a -> CompM String
+compileJSS (JSS_Call nm args) = do
         -- This show is doing the compile
-        let inside = nm ++ "(" ++ intercalate "," (map show args) ++ ")"
-        return (inside,ty,style)
-compileJSS (JSS_Select nm ty) = do
-        return (nm,ty,Direct)
+        return $ nm ++ "(" ++ intercalate "," (map show args) ++ ")"
+compileJSS (JSS_Select nm) = return nm
 compileJSS ((JSF_Field nm) := arg) = do
-        return (nm ++ " = (" ++ show arg ++ ")",Unit,Direct)
+        return $ nm ++ " = (" ++ show arg ++ ")"
+
+type CompM a = State Uniq a
 
 uniqM :: CompM Uniq
 uniqM = do
@@ -109,5 +99,7 @@ uniqM = do
 newVar :: (Sunroof a) => CompM a
 newVar = mkVar App.<$> uniqM
 
-type CompM a = State Uniq a
-
+newLoop :: CompM String
+newLoop = do
+    u <- uniqM
+    return $ "loop" ++ show u
