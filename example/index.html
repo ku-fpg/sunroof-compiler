@@ -1,19 +1,19 @@
 <html>
     <head>
-        <title>Tractor Example</title>
+        <title>Kansas Comet Example</title>
         <script type="text/javascript" src="jquery.js"></script>
         <script type="text/javascript" src="jquery-json.js"></script>
-        <script type="text/javascript" src="jquery-tractor.js"></script>
+        <script type="text/javascript" src="kansas-comet.js"></script>
     </head>
     <body>
-         fib <input id="fib-in" value="0" size="2"></text> = <span id="fib-out">1</span>
-         <button id="button1" class="click">Compute</button>
-
+         <div>
+           <canvas id="my-canvas" width="600" height="600" style="border:1pt solid red" class="mousemove"></canvas>
+         </div>
 
         <script type="text/javascript">
         // This is how we tell this page to 'connect' to path /example
             $(document).ready(function() {
-                tractor_connect("/example");
+                kansascomet_connect("/example");
             });
         </script>
     </body>

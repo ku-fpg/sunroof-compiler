@@ -1,8 +1,8 @@
-Name:                tractor
+Name:                sunroof
 Version:             0.1
-Synopsis:            A javascript push mechanism and event listener
-Homepage:            https://github.com/
-Bug-reports:         https://github.com/
+Synopsis:            Monadic Javascript Compiler
+Homepage:            https://github.com/kufpg/sunroof/
+Bug-reports:         https://github.com/kufpg/sunroof/
 License:             BSD3
 License-file:        LICENSE
 Author:              Andrew Gill <andygill@ku.edu>
@@ -13,29 +13,27 @@ Stability:           experimental
 Build-type:          Simple
 Cabal-version:       >= 1.10
 Description:
-  A transport level remote JavaScript RESTful push mechanism.
+  Monadic Javascript Compiler
 
-data-files:
-    static/jquery-tractor.js
+--data-files:
+--    static/kansas-comet.js
 
 Extra-source-files:
     README
-    examples/basic.hs
-    examples/urlshortener.hs
-    examples/json.hs
-    examples/static/jquery.js
-    examples/static/jquery-json.js
-    examples/static/json.js
 
 Library
-  Exposed-modules:     Web.Tractor
-  other-modules:       Paths_tractor
+  Exposed-modules:     Language.Sunroof
+                       Language.Sunroof.Compiler
+                       Language.Sunroof.Types
+--  other-modules:       Paths_kansas-comet
   default-language:    Haskell2010
   build-depends:       aeson            >= 0.5,
                        base             >= 4.3.1 && < 5,
                        containers       == 0.4.*,
                        data-default     == 0.3.*,
-                       language-javascript,
+                       kansas-comet,
+                       mtl,
+                       operational      >= 0.2.0.3 && < 0.3,
                        scotty           >= 0.4.2 && < 0.5,
                        stm              == 2.2.*,
                        transformers     == 0.2.*,
@@ -47,4 +45,4 @@ Library
 
 --source-repository head
 --  type:     git
---  location: git://github.com/xich/scotty.git
+--  location: git://github.com/kufpg/sunroof.git

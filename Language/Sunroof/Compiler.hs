@@ -61,7 +61,7 @@ compile = eval . view
           eval (JS_Wait event :>>= g) = do
             a <- newVar
             txt2 <- compile (g a)
-            return $ "tractor_waitFor(" ++ show event ++ ",function(" ++ showVar a ++ "){" ++ txt2 ++ "})"
+            return $ "kansascomet_waitFor(" ++ show event ++ ",function(" ++ showVar a ++ "){" ++ txt2 ++ "})"
 
           -- or we're done already
           eval (Return b) = return $ showVar b
