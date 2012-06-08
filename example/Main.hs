@@ -1,164 +1,97 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, KindSignatures, GADTs #-}
+
+-- Example of using Kansas Comet
 
 module Main where
 
 import Data.Aeson as A
 import Data.Aeson.Types as AP
-import Web.Scotty
+import qualified Web.Scotty as Scotty
+import Web.Scotty (scottyOpts, get, file, literal, middleware)
 import Web.KansasComet as KC
 import Data.Default
-import Data.Monoid
+import Data.Map (Map)
 import Control.Monad
-import qualified Control.Applicative as App
+--import Control.Applicative
 import Control.Concurrent
 import Control.Concurrent.STM
+import Data.Monoid
+import Data.List as L
 import Control.Monad.IO.Class
+import Network.Wai.Middleware.Static
+-- import Network.Wai      -- TMP for debug
 
-import qualified Data.Text.Lazy as Text
-
-import Language.Sunroof
-import Language.Sunroof.Compiler
-import Language.Sunroof.Types
-
-opts :: KC.Options
-opts = def { prefix = "/example", verbose = 2 }
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text      as T
 
 main = do
         -- build the scotty dispatch app
-        scotty 3000 $ do
+        scottyOpts (def { Scotty.verbose = 0 })  $ do
                 -- provide some static pages, include jquery
                 -- This is scotty code
-                get "/" $ file $ "index.html"
-                sequence_ [ get (literal ("/" ++ nm)) $ file $  nm
-                          | nm <- ["jquery.js","jquery-json.js"]
-                          ]
+
+                let hasPrefix pre x = if pre`isPrefixOf` x then return x else Nothing
+
+                let policy =  only [("","index.html")]
+                          <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase ".")
+
+                middleware $ staticPolicy $ policy
+
                 kcomet <- liftIO kCometPlugin
-                liftIO $ print kcomet
-                get "/kansas-comet.js" $ file $ kcomet
-
+                get "/js/kansas-comet.js" $ file $ kcomet
                 -- connect /example to the following web_app
-                connect opts sunroof_app
+                connect opts web_app
 
-sunroof_app :: Document -> IO ()
-sunroof_app doc = do
-        print "sunroof_app"
+opts :: KC.Options
+opts = def { prefix = "/example", verbose = 0 }
 
-        register doc "mousemove" "return {x : event.pageX, y : event.pageY};"
+-- This is run each time the page is first accessed
+web_app :: Document -> IO ()
+web_app doc = do
+        print "web_app"
 
-        sendS doc $ loop $ do
-                event <- waitForS "mousemove"
-                c <- getContext "my-canvas"
-                let (x,y) = (event ! "x",event ! "y")
-                c <$> beginPath()
-                c <$> arc(x, y, 20, 0, 2 * pi, false)
-                c <$> fillStyle := "#8ED6FF"
-                c <$> fill()
+        registerEvents doc (slide <> click)
 
-showJ :: (Sunroof a) => a -> JSString
-showJ = cast
+        let control model = do
+                Just res <- waitForEvent doc (slide <> click)
+                case res of
+                  Slide _ n                      -> view n
+                  Click "up"    _ _ | model < 25 -> view (model + 1)
+                  Click "down"  _ _ | model > 0  -> view (model - 1)
+                  Click "reset" _ _              -> view 0
+                  _ -> control model
 
-sendS :: (Sunroof a) => Document -> JSM a -> IO ()
-sendS doc jsm = do
-        let txt = compileJS jsm
-        print ("TXT:",txt)
-        send doc $ Text.pack txt
+            view model = do
+                let n = model
+                send doc $ concat
+                        [ "$('#slider').slider('value'," ++ show n ++ ");"
+                        , "$('#fib-out').html('fib " ++ show n ++ " = " ++ "&#171;&#8226;&#187;')"
+                        ]
+                -- sent a 2nd packet, because it will take time to compute fib
+                send doc ("$('#fib-out').text('fib " ++ show n ++ " = " ++ show (fib n) ++ "')")
+
+                control model
+
+
+        forkIO $ control 0
+
         return ()
 
--------------------------------------------------------------
+fib n = if n < 2 then 1 else fib (n-1) + fib (n-2)
 
-getContext :: JSString -> JSM JSObject
-getContext nm = jsSelect $ JSS_Call "getContext" [cast nm]
+data Event = Slide String Int
+           | Click String Int Int
+    deriving (Show)
 
-arc :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSBool) -> JSS ()
-arc (a1,a2,a3,a4,a5,a6) = JSS_Call "arc" [cast a1,cast a2,cast a3,cast a4,cast a5,cast a6] :: JSS ()
 
-beginPath :: () -> JSS ()
-beginPath () = JSS_Call "beginPath" []
-{-
-bezierCurveTo :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
-bezierCurveTo = Command . BezierCurveTo
+slide = event "slide" Slide
+            <&> "id"      := "$(widget).attr('id')"
+            <&> "count"   := "aux.value"
 
-clearRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
-clearRect = Command . ClearRect
+click = event "click" Click
+            <&> "id"      := "$(widget).attr('id')"
+            <&> "pageX"   :=  "event.pageX"
+            <&> "pageY"   :=  "event.pageY"
 
-closePath :: () -> JSS ()
-closePath () = Command ClosePath
--}
-fill :: () -> JSS ()
-fill () = JSS_Call "fill" []
+events = slide <> click
 
-{-
-fillRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
-fillRect = Command . FillRect
--}
-fillStyle :: JSF JSString
-fillStyle = field "fillStyle"
-{-
-fillText :: (String,JSNumber,JSNumber) -> JSS ()
-fillText = Command . FillText
-
-font :: String -> JSS ()
-font = Command . Font
-
-globalAlpha :: JSNumber -> JSS ()
-globalAlpha = Command . GlobalAlpha
-
-lineCap :: String -> JSS ()
-lineCap = Command . LineCap
-
-lineJoin :: String -> JSS ()
-lineJoin = Command . LineJoin
--}
-lineTo :: (JSNumber,JSNumber) -> JSS ()
-lineTo (a1,a2) = JSS_Call "lineTo" [cast a1,cast a2] :: JSS ()
-
-lineWidth :: JSF JSNumber
-lineWidth  = field "lineWidth"
-{-
-miterLimit :: JSNumber -> JSS ()
-miterLimit = Command . MiterLimit
--}
-moveTo :: (JSNumber,JSNumber) -> JSS ()
-moveTo (a1,a2) = JSS_Call "moveTo" [cast a1,cast a2] :: JSS ()
-{-
-foo :: JSInt -> JSS ()
-
-Command . MoveTo
-
-restore :: () -> JSS ()
-restore () = Command Restore
-
-rotate :: JSNumber -> JSS ()
-rotate = Command . Rotate
-
-scale :: (JSNumber,JSNumber) -> JSS ()
-scale = Command . Scale
-
-save :: () -> JSS ()
-save () = Command Save
--}
-stroke :: () -> JSS ()
-stroke () = JSS_Call "stroke" [] :: JSS ()
-{-
-strokeRect :: (JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
-strokeRect = Command . StrokeRect
-
-strokeText :: (String,JSNumber,JSNumber) -> JSS ()
-strokeText = Command . StrokeText
--}
-strokeStyle :: JSF JSString
-strokeStyle = field "strokeStyle"
-{-
-textAlign :: String -> JSS ()
-textAlign = Command . TextAlign
-
-textBaseline :: String -> JSS ()
-textBaseline = Command . TextBaseline
-
-transform :: (JSNumber,JSNumber,JSNumber,JSNumber,JSNumber,JSNumber) -> JSS ()
-transform = Command . Transform
-
-translate :: (JSNumber,JSNumber) -> JSS ()
-translate = Command . Translate
-
--}

@@ -1,19 +1,52 @@
 <html>
     <head>
         <title>Kansas Comet Example</title>
-        <script type="text/javascript" src="jquery.js"></script>
-        <script type="text/javascript" src="jquery-json.js"></script>
-        <script type="text/javascript" src="kansas-comet.js"></script>
+        <script type="text/javascript" src="js/jquery.js"></script>
+        <script type="text/javascript" src="js/jquery-json.js"></script>
+        <script type="text/javascript" src="js/kansas-comet.js"></script>
+        <link type="text/css" href="css/ui-lightness/jquery-ui.css" rel="Stylesheet" />	
+        <script type="text/javascript" src="js/jquery-ui.js"></script>
     </head>
     <body>
-         <div>
-           <canvas id="my-canvas" width="600" height="600" style="border:1pt solid red" class="mousemove"></canvas>
-         </div>
+
+
+<table border="0" style="border: 1px solid black">
+  <tr>
+    <td align="center">
+      <button id="reset" class="click">Reset</button>
+      <button id="down" class="click">-1</button>
+      <button width="" id="up" class="click">+1</button>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" style="padding: 10px">
+      <span id="fib-out" style="border: 5px; font-size: x-large" class="click">fib 0 = 1</span>
+    </td>
+  </tr>        
+  <tr>
+    <td align="center" style="padding: 10px">
+      <div id="slider" style="width: 200px" class="slide"></div>        
+    </td>
+  </tr>        
+</table>
+
+
+
+        <div id="log"></div>
+
 
         <script type="text/javascript">
-        // This is how we tell this page to 'connect' to path /example
             $(document).ready(function() {
-                kansascomet_connect("/example");
+                $.kc.connect("/example");
+
+                $("button").button();
+
+		$( "#slider" ).slider({
+			range: "min",
+			value: 0,
+			min: 0,
+			max: 25
+		});
             });
         </script>
     </body>
