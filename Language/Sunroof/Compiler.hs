@@ -7,6 +7,8 @@ import Control.Monad.State
 import Data.List (intercalate)
 
 import Language.Sunroof.Types
+import Web.KansasComet (Template(..), extract)
+
 
 infix  5 :=
 
@@ -21,7 +23,7 @@ data JSMI a where
     -- object . <selector>
     JS_Dot    :: (Sunroof a) => JSObject -> JSS a -> JSMI a
 
-    JS_Wait   :: JSString -> JSMI JSObject
+    JS_Wait   :: Template a -> JSMI JSObject
 {-
     -- You can build functions, and pass them round
     JS_Function :: (Sunroof a, Sunroof b)
@@ -58,10 +60,11 @@ compile = eval . view
             loop_body <- compile (body >>= (\() -> singleton (JS_Select (JSS_Call loop []) :: JSMI ())))
             -- define loop function, and call it once
             return $ "var " ++ loop ++ " = function(){ " ++ loop_body ++ " }; " ++ loop ++ "();"
-          eval (JS_Wait event :>>= g) = do
+          eval (JS_Wait tmpl :>>= g) = do
             a <- newVar
             txt2 <- compile (g a)
-            return $ "kansascomet_waitFor(" ++ show event ++ ",function(" ++ showVar a ++ "){" ++ txt2 ++ "})"
+            let eventNames = map fst $ extract tmpl
+            return $ "$.kc.waitFor(" ++ show eventNames ++ ",function(" ++ showVar a ++ "){" ++ txt2 ++ "})"
 
           -- or we're done already
           eval (Return b) = return $ showVar b

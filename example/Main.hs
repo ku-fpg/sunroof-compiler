@@ -8,7 +8,6 @@ import Data.Aeson as A
 import Data.Aeson.Types as AP
 import qualified Web.Scotty as Scotty
 import Web.Scotty (scottyOpts, get, file, literal, middleware)
-import Web.KansasComet as KC
 import Data.Default
 import Data.Map (Map)
 import Control.Monad
@@ -21,10 +20,39 @@ import Control.Monad.IO.Class
 import Network.Wai.Middleware.Static
 -- import Network.Wai      -- TMP for debug
 
+import qualified Web.KansasComet as KC
+import Web.KansasComet as KC ((<&>), event, send, registerEvents, waitForEvent, Document, prefix, kCometPlugin, connect, verbose)
+
+import Language.Sunroof
+import Language.Sunroof.Compiler
+import Language.Sunroof.Types
+
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text      as T
 
+test = do
+    print $ compileJS $ loop $ do
+         jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JSM ()
+         (n :: JSNumber) <- jsSelect $ JSS_Call "foo2" [cast (2 :: JSNumber)]
+--         waitForS "FOO"
+         jsSelect $ JSS_Call "foo3" [cast (3 :: JSNumber), cast n] :: JSM ()
+
+-- Async requests that something be done, without waiting for any reply
+async :: Document -> JSM () -> IO ()
+async = undefined
+
+-- Sync requests that something be done, *and* waits for a reply.
+sync :: (Sunroof a) => Document -> JSM a -> IO a
+sync doc jsm = do
+        let res = compileJS jsm
+        print res
+        send doc $ res
+        return $ undefined
+
+
 main = do
+
+
         -- build the scotty dispatch app
         scottyOpts (def { Scotty.verbose = 0 })  $ do
                 -- provide some static pages, include jquery
@@ -52,6 +80,14 @@ web_app doc = do
 
         registerEvents doc (slide <> click)
 
+        sync doc $ do
+                alert "Gello!"
+                c <- wait click
+                alert ("you clicked" <> cast c)
+
+{-
+--        jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JSM ()
+
         let control model = do
                 Just res <- waitForEvent doc (slide <> click)
                 case res of
@@ -74,7 +110,7 @@ web_app doc = do
 
 
         forkIO $ control 0
-
+-}
         return ()
 
 fib n = if n < 2 then 1 else fib (n-1) + fib (n-2)
@@ -83,15 +119,16 @@ data Event = Slide String Int
            | Click String Int Int
     deriving (Show)
 
+(~=) = (KC.:=)
 
 slide = event "slide" Slide
-            <&> "id"      := "$(widget).attr('id')"
-            <&> "count"   := "aux.value"
+            <&> "id"      ~= "$(widget).attr('id')"
+            <&> "count"   ~= "aux.value"
 
 click = event "click" Click
-            <&> "id"      := "$(widget).attr('id')"
-            <&> "pageX"   :=  "event.pageX"
-            <&> "pageY"   :=  "event.pageY"
+            <&> "id"      ~= "$(widget).attr('id')"
+            <&> "pageX"   ~=  "event.pageX"
+            <&> "pageY"   ~=  "event.pageY"
 
 events = slide <> click
 

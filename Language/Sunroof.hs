@@ -6,6 +6,8 @@ import Control.Monad.Operational
 import Language.Sunroof.Compiler
 import Language.Sunroof.Types
 
+import Web.KansasComet (Template(..), extract)
+
 infixl 4 <*>
 infixl 4 <$>
 
@@ -33,9 +35,14 @@ alert msg = jsSelect $ JSS_Call "alert" [cast msg] :: JSM ()
 jsSelect :: (Sunroof a) => JSS a -> JSM a
 jsSelect = singleton . JS_Select
 
-waitForS :: JSString -> JSM JSObject
-waitForS = singleton . JS_Wait
+wait :: Template event -> JSM JSObject
+wait = singleton . JS_Wait
 
+{-
+send :: Document -> JSM a -> IO a
+send doc jsm = do
+        print $ compile jsm
+-}
 -----------------------------------------------------------
 
 test2 :: JSM ()
