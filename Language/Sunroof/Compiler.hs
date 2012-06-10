@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, RankNTypes #-}
+{-# LANGUAGE GADTs, RankNTypes, KindSignatures #-}
 module Language.Sunroof.Compiler where
 
 import qualified Control.Applicative as App
@@ -9,76 +9,29 @@ import Data.List (intercalate)
 import Language.Sunroof.Types
 import Web.KansasComet (Template(..), extract)
 
-
-infix  5 :=
-
-compileJS :: (Sunroof a) => JSM a -> String
+compileJS :: (Sunroof a) => JS a -> String
 compileJS = flip evalState 0 . compile
 
-{-
- - What is a JS statement?
- -
- -
- -
- -}
-
--- define primitive effects / "instructions" for the JSM monad
-data JSMI a where
-    -- selector (function, property, or property assignment)
-    JS_Select :: (Sunroof a) => JSS a                           -> JSMI a
-
-    -- Not the same as return; does evaluation of argument
-    JS_Eval   :: (Sunroof a) => a                               -> JSMI a
-
-    -- object . <selector>
-    JS_Dot    :: (Sunroof a) => JSObject -> JSS a               -> JSMI a
-    JS_App    :: (Sunroof a) => JSObject -> Action (JSObject -> a) -> JSMI a
-
-    -- object (...); assumes object is a function
---    JS_Invoke :: (Sunroof a) => [JSValue]                       -> JSMI (JSObject -> a)
-
-    -- object . nm = <...>
---    JS_Assign :: (Sunroof a) => String -> a                     -> JSMI (JSObject -> ())
-
-
-    JS_Wait   :: Template a                                     -> JSMI JSObject
-{-
-    -- You can build functions, and pass them round
-    JS_Function :: (Sunroof a, Sunroof b)
-                => (a -> JSM b)
-                -> JSM (JSFunction a b)
-    -- You can invoke functions
-    JS_Invoke :: JSFunction a b -> a -> JSM b
--}
-    JS_Loop :: JSM () -> JSMI ()
-
-data Action a where
-   Invoke :: [JSValue]                                          -> Action (JSObject -> a)
-   Assign  :: String -> a                                       -> Action (JSObject -> a)
-
-
--- Control.Monad.Operational makes a monad out of JSM for us
-type JSM a = Program JSMI a
-
 -- compile an existing expression
-compile :: Sunroof c => JSM c -> CompM String
+compile :: Sunroof c => JS c -> CompM String
 compile = eval . view
     -- since the type  Program  is abstract (for efficiency),
     -- we have to apply the  view  function first,
     -- to get something we can pattern match on
-    where eval :: Sunroof b => ProgramView JSMI b -> CompM String
+    where eval :: Sunroof b => ProgramView JSI b -> CompM String
           -- either we call a primitive JavaScript function
-          eval (JS_Select jss :>>= g) = do
-            txt1 <- compileJSS jss
-            compileBind txt1 g
-          eval (JS_Dot o jss :>>= g) = do
-            sel_txt <- compileJSS jss
-            compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
+--          eval (JS_Select jss :>>= g) = do
+--            txt1 <- compileJSS jss
+--            compileBind txt1 g
+--          eval (JS_Dot o jss :>>= g) = do
+--            sel_txt <- compileJSS jss
+--            compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
           eval (JS_Eval o :>>= g) = do
             compileBind ("(" ++ showVar o ++ ")") g
           eval (JS_App o jss :>>= g) = do
-            sel_txt <- compileAction jss
-            compileBind ("(" ++ showVar o ++ ")" ++ sel_txt) g
+            act <- compileAction o jss
+            compileBind act g
+--            ("(" ++ showVar o ++ ")" ++ sel_txt) g
 --          eval (JS_Invoke args :>>= g) = do
 --            compileBind ("(function(o) { return o.(" ++ intercalate "," (map show args) ++ ");}") g
           eval (JS_Loop body :>>= g) = do -- note, we do nothing with g, as it's unreachable
@@ -87,7 +40,7 @@ compile = eval . view
             -- the magic: add call to loop at end of loop body instructions,
             -- this way, if body contains a JS_Wait, it gets sucked into the
             -- event callback!
-            loop_body <- compile (body >>= (\() -> singleton (JS_Select (JSS_Call loop []) :: JSMI ())))
+            loop_body <- compile (body >>= (\() -> singleton (JS_App (box $ Lit loop) $ Invoke [] :: JSI ())))
             -- define loop function, and call it once
             return $ "var " ++ loop ++ " = function(){ " ++ loop_body ++ " }; " ++ loop ++ "();"
           eval (JS_Wait tmpl :>>= g) = do
@@ -99,7 +52,7 @@ compile = eval . view
           -- or we're done already
           eval (Return b) = return $ showVar b
 
-compileBind :: (Sunroof a, Sunroof b) => String -> (a -> JSM b) -> CompM String
+compileBind :: (Sunroof a, Sunroof b) => String -> (a -> JS b) -> CompM String
 compileBind txt1 m2 = do
     a <- newVar
     txt2 <- compile (m2 a)
@@ -108,34 +61,17 @@ compileBind txt1 m2 = do
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?
 
-data JSProperty a where
-   PropName :: String                   -> JSProperty a
+compileAction :: (Sunroof a) => a -> Action a b -> CompM String
+compileAction o (Invoke args) =
+        return $ "(" ++ showVar o ++ ")(" ++ intercalate "," (map show args) ++ ")"
+compileAction o (nm := val) =
+        return $ "(" ++ showVar o ++ ")[" ++ show nm ++ "] = (" ++ show (unbox val) ++ ")" -- this is a total hack, (pres. is wrong), but works
+compileAction o (Map f act) =
+        compileAction (f o) act
 
-data JSS a where
-    JSS_Call   :: String -> [JSValue]       -> JSS a
-    JSS_Select :: String                    -> JSS a
-    (:=)       :: (Sunroof a) => JSF a -> a -> JSS ()   -- we think of assign as a type of function call
 
-data JSF a where
-    JSF_Field  :: String -> JSF a
-
-compileAction :: (Sunroof a) => Action (JSObject -> a) -> CompM String
-compileAction (Invoke args) =
-        return $ "(" ++ intercalate "," (map show args) ++ ")"
---compileAction (Assign  args) =
---        return $ "(" ++ intercalate "," (map show args) ++ ")"
-
-compileJSS :: (Sunroof a) => JSS a -> CompM String
-compileJSS (JSS_Call nm args) = do
-        -- This show is doing the compile
-        return $ nm ++ "(" ++ intercalate "," (map show args) ++ ")"
-compileJSS (JSS_Select nm) = return nm
-compileJSS ((JSF_Field nm) := arg) = do
-        return $ nm ++ " = (" ++ show arg ++ ")" -- this is a total hack, (pres. is wrong), but works
-
-eval :: (Sunroof a) => a -> JSM a
+eval :: (Sunroof a) => a -> JS a
 eval a  = singleton (JS_Eval a)
-
 
 type CompM a = State Uniq a
 

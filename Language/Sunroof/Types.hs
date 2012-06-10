@@ -7,6 +7,9 @@ import Data.Char
 import Data.List (intercalate)
 import qualified Data.Map as Map
 import Data.Monoid
+import Control.Monad.Operational
+import Web.KansasComet (Template(..), extract)
+
 
 type Uniq = Int         -- used as a unique label
 
@@ -79,7 +82,18 @@ instance Sunroof JSBool where
 
 ---------------------------------------------------------------
 
-data JSFunction a b = JSFunction Expr
+data JSFunction ret = JSFunction Expr
+
+--data JSFunction :: * -> * where
+--        JSFunction ::                   JSFunction a
+
+instance Show (JSFunction a) where
+        show (JSFunction v) = show v
+
+instance Sunroof (JSFunction a) where
+        mkVar = JSFunction . Var
+        box = JSFunction
+        unbox (JSFunction e) = e
 
 ---------------------------------------------------------------
 
@@ -141,7 +155,7 @@ instance Sunroof JSObject where
 
 ---------------------------------------------------------------
 
-instance IsString (JSSelector (JSObject -> a)) where
+instance IsString (JSSelector a) where
     fromString = JSSelector . fromString
 
 data JSSelector :: * -> * where
@@ -159,3 +173,59 @@ instance Sunroof JSArray where
 -}
 
 ---------------------------------------------------------------
+
+(!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
+(!) arr (JSSelector idx) = cast $ JSValue $ Op "[]" [unbox arr,unbox idx]
+
+---------------------------------------------------------------
+
+infix  5 :=
+
+data Action :: * -> * -> * where
+   Invoke :: [JSValue]                                          -> Action (JSFunction a) a
+   -- Basically, this is special form of call, to assign to a field
+   (:=)   :: (Sunroof a) => String -> a                         -> Action JSObject ()
+   -- This is the fmap-like function, an effect-free modifier on the first argument
+   Map :: (Sunroof b) => (a -> b) -> Action b c                 -> Action a c
+
+---------------------------------------------------------------
+
+method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
+method str args = (! str) `Map` with args
+
+object :: String -> JSObject
+object = JSObject . Lit
+
+function :: String -> JSFunction a
+function = JSFunction . Lit
+
+with :: [JSValue] -> Action (JSFunction a) a
+with = Invoke
+
+---------------------------------------------------------------
+
+-- Control.Monad.Operational makes a monad out of JS for us
+type JS a = Program JSI a
+
+-- define primitive effects / "instructions" for the JS monad
+data JSI a where
+
+    -- apply an action to an 'a', and compute a b
+    JS_App    :: (Sunroof a, Sunroof b) => a -> Action a b      -> JSI b
+
+    -- Not the same as return; does evaluation of argument
+    JS_Eval   :: (Sunroof a) => a                               -> JSI a
+
+    -- special primitives
+    JS_Wait   :: Template a                                     -> JSI JSObject
+    JS_Loop :: JS ()                                            -> JSI ()
+
+
+---------------------------------------------------------------
+
+--(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
+--(<$>) o s = singleton $ o `JS_App` s
+
+
+---------------------------------------------------------------
+

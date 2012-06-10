@@ -32,18 +32,18 @@ import qualified Data.Text      as T
 
 test = do
     print $ compileJS $ loop $ do
-         jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JSM ()
-         (n :: JSNumber) <- jsSelect $ JSS_Call "foo2" [cast (2 :: JSNumber)]
+--         jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JS ()
+--         (n :: JSNumber) <- jsSelect $ JSS_Call "foo2" [cast (2 :: JSNumber)]
          alert("Hello")
 --         waitForS "FOO"
-         jsSelect $ JSS_Call "foo3" [cast (3 :: JSNumber), cast n] :: JSM ()
+--         jsSelect $ JSS_Call "foo3" [cast (3 :: JSNumber), cast n] :: JS ()
 
 -- Async requests that something be done, without waiting for any reply
-async :: Document -> JSM () -> IO ()
+async :: Document -> JS () -> IO ()
 async = undefined
 
 -- Sync requests that something be done, *and* waits for a reply.
-sync :: (Sunroof a) => Document -> JSM a -> IO a
+sync :: (Sunroof a) => Document -> JS a -> IO a
 sync doc jsm = do
         let res = compileJS jsm
         print res
@@ -98,7 +98,7 @@ web_app doc = do
 
 
 {-
---        jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JSM ()
+--        jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JS ()
 
         let control model = do
                 Just res <- waitForEvent doc (slide <> click)
