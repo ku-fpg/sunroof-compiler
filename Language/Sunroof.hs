@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables, OverloadedStrings, KindSignatures, GADTs #-}
 module Language.Sunroof where
 
 import Control.Monad.Operational
@@ -8,17 +8,22 @@ import Language.Sunroof.Types
 
 import Web.KansasComet (Template(..), extract)
 
-infixl 4 <*>
+--infixl 4 <*>
 infixl 4 <$>
 
-(<*>) :: (Sunroof a) => JSM JSObject -> JSS a -> JSM a
-(<*>) m s = m >>= \ o -> o <$> s
+--(<*>) :: (Sunroof a) => JSM JSObject -> JSS a -> JSM a
+--(<*>) m s = m >>= \ o -> o <$> s
 
-(<$>) :: (Sunroof a) => JSObject -> JSS a -> JSM a
-(<$>) o s = singleton $ o `JS_Dot` s
+(<$>) :: (Sunroof a) => JSObject -> Action (JSObject -> a) -> JSM a
+(<$>) o s = singleton $ o `JS_App` s
 
-(!) :: forall a . (Sunroof a) => JSObject -> JSString -> a
-(!) arr idx = cast $ JSValue $ Op "[]" [unbox arr,unbox idx]
+-- This is more direct that the others.
+-- It can not modify the value, but can look it up.
+-- Hum, not sure about this.
+(!) :: forall a . (Sunroof a) => JSObject -> JSSelector (JSObject -> a) -> a
+(!) arr (JSSelector idx) = cast $ JSValue $ Op "[]" [unbox arr,unbox idx]
+
+
 
 true = JSBool (Lit "true")
 false = JSBool (Lit "false")
@@ -30,13 +35,15 @@ loop :: JSM () -> JSM ()
 loop = singleton . JS_Loop
 
 alert :: JSString -> JSM ()
-alert msg = jsSelect $ JSS_Call "alert" [cast msg] :: JSM ()
+alert msg = singleton $ JS_App (box $ Lit "alert") $ Invoke [cast msg]
 
 jsSelect :: (Sunroof a) => JSS a -> JSM a
 jsSelect = singleton . JS_Select
 
 wait :: Template event -> JSM JSObject
 wait = singleton . JS_Wait
+
+-- Need better utility functions here
 
 {-
 send :: Document -> JSM a -> IO a
@@ -69,6 +76,7 @@ run_test4 = compileJS test4
 foo :: JSNumber -> JSS ()
 foo msg = JSS_Call "foo" [cast msg] :: JSS ()
 
+{-
 test5 :: JSM ()
 test5 = do
         let c = mkVar 0 :: JSObject
@@ -76,3 +84,4 @@ test5 = do
         return ()
 
 run_test5 = compileJS test5
+-}

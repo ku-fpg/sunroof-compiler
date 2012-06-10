@@ -15,15 +15,33 @@ infix  5 :=
 compileJS :: (Sunroof a) => JSM a -> String
 compileJS = flip evalState 0 . compile
 
+{-
+ - What is a JS statement?
+ -
+ -
+ -
+ -}
+
 -- define primitive effects / "instructions" for the JSM monad
 data JSMI a where
     -- selector (function, property, or property assignment)
-    JS_Select :: (Sunroof a) => JSS a -> JSMI a
+    JS_Select :: (Sunroof a) => JSS a                           -> JSMI a
+
+    -- Not the same as return; does evaluation of argument
+    JS_Eval   :: (Sunroof a) => a                               -> JSMI a
 
     -- object . <selector>
-    JS_Dot    :: (Sunroof a) => JSObject -> JSS a -> JSMI a
+    JS_Dot    :: (Sunroof a) => JSObject -> JSS a               -> JSMI a
+    JS_App    :: (Sunroof a) => JSObject -> Action (JSObject -> a) -> JSMI a
 
-    JS_Wait   :: Template a -> JSMI JSObject
+    -- object (...); assumes object is a function
+--    JS_Invoke :: (Sunroof a) => [JSValue]                       -> JSMI (JSObject -> a)
+
+    -- object . nm = <...>
+--    JS_Assign :: (Sunroof a) => String -> a                     -> JSMI (JSObject -> ())
+
+
+    JS_Wait   :: Template a                                     -> JSMI JSObject
 {-
     -- You can build functions, and pass them round
     JS_Function :: (Sunroof a, Sunroof b)
@@ -33,6 +51,11 @@ data JSMI a where
     JS_Invoke :: JSFunction a b -> a -> JSM b
 -}
     JS_Loop :: JSM () -> JSMI ()
+
+data Action a where
+   Invoke :: [JSValue]                                          -> Action (JSObject -> a)
+   Assign  :: String -> a                                       -> Action (JSObject -> a)
+
 
 -- Control.Monad.Operational makes a monad out of JSM for us
 type JSM a = Program JSMI a
@@ -51,6 +74,13 @@ compile = eval . view
           eval (JS_Dot o jss :>>= g) = do
             sel_txt <- compileJSS jss
             compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
+          eval (JS_Eval o :>>= g) = do
+            compileBind ("(" ++ showVar o ++ ")") g
+          eval (JS_App o jss :>>= g) = do
+            sel_txt <- compileAction jss
+            compileBind ("(" ++ showVar o ++ ")" ++ sel_txt) g
+--          eval (JS_Invoke args :>>= g) = do
+--            compileBind ("(function(o) { return o.(" ++ intercalate "," (map show args) ++ ");}") g
           eval (JS_Loop body :>>= g) = do -- note, we do nothing with g, as it's unreachable
             -- create a new name for our loop
             loop <- newLoop
@@ -75,13 +105,25 @@ compileBind txt1 m2 = do
     txt2 <- compile (m2 a)
     return $ assignVar a ++ txt1 ++ ";" ++ txt2
 
+-- These are a mix of properties, methods, and assignment.
+-- What is the unifing name? JSProperty?
+
+data JSProperty a where
+   PropName :: String                   -> JSProperty a
+
 data JSS a where
     JSS_Call   :: String -> [JSValue]       -> JSS a
     JSS_Select :: String                    -> JSS a
-    (:=)       :: (Sunroof a) => JSF a -> a -> JSS ()
+    (:=)       :: (Sunroof a) => JSF a -> a -> JSS ()   -- we think of assign as a type of function call
 
 data JSF a where
     JSF_Field  :: String -> JSF a
+
+compileAction :: (Sunroof a) => Action (JSObject -> a) -> CompM String
+compileAction (Invoke args) =
+        return $ "(" ++ intercalate "," (map show args) ++ ")"
+--compileAction (Assign  args) =
+--        return $ "(" ++ intercalate "," (map show args) ++ ")"
 
 compileJSS :: (Sunroof a) => JSS a -> CompM String
 compileJSS (JSS_Call nm args) = do
@@ -89,7 +131,11 @@ compileJSS (JSS_Call nm args) = do
         return $ nm ++ "(" ++ intercalate "," (map show args) ++ ")"
 compileJSS (JSS_Select nm) = return nm
 compileJSS ((JSF_Field nm) := arg) = do
-        return $ nm ++ " = (" ++ show arg ++ ")"
+        return $ nm ++ " = (" ++ show arg ++ ")" -- this is a total hack, (pres. is wrong), but works
+
+eval :: (Sunroof a) => a -> JSM a
+eval a  = singleton (JS_Eval a)
+
 
 type CompM a = State Uniq a
 

@@ -53,7 +53,7 @@ instance Sunroof () where
 
 data JSValue where
   JSValue :: Expr -> JSValue
-  JSValueVar :: Uniq -> JSValue         -- so the typing does not through a fit
+  JSValueVar :: Uniq -> JSValue         -- so the typing does not throw a fit
 
 instance Show JSValue where
         show (JSValue v)  = show v
@@ -132,7 +132,7 @@ instance IsString JSString where
 data JSObject = JSObject Expr
 
 instance Show JSObject where
-        show (JSObject v@(Var {})) = show v
+        show (JSObject v) = show v
 
 instance Sunroof JSObject where
         mkVar = JSObject . Var
@@ -140,6 +140,13 @@ instance Sunroof JSObject where
         unbox (JSObject o) = o
 
 ---------------------------------------------------------------
+
+instance IsString (JSSelector (JSObject -> a)) where
+    fromString = JSSelector . fromString
+
+data JSSelector :: * -> * where
+        JSSelector :: JSString           -> JSSelector a
+
 
 {-
 data JSArray = JSArray Expr

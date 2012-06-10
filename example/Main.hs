@@ -34,6 +34,7 @@ test = do
     print $ compileJS $ loop $ do
          jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JSM ()
          (n :: JSNumber) <- jsSelect $ JSS_Call "foo2" [cast (2 :: JSNumber)]
+         alert("Hello")
 --         waitForS "FOO"
          jsSelect $ JSS_Call "foo3" [cast (3 :: JSNumber), cast n] :: JSM ()
 
@@ -83,7 +84,18 @@ web_app doc = do
         sync doc $ do
                 alert "Gello!"
                 c <- wait click
+--              foo <$> "c" <$> "d" := c
+
+--                let v = c ! "pageX" :: JSNumber
+                v <- eval (c ! "pageX" :: JSNumber)
+                nm <- eval (c ! "eventname" :: JSString)
+                alert ("you clicked" <> cast v)
                 alert ("you clicked" <> cast c)
+{-
+                switch  [ (nm .==. "click", ...)
+                        ]
+-}
+
 
 {-
 --        jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JSM ()
