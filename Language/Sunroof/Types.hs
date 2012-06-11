@@ -248,8 +248,8 @@ new = eval $ object "new Object()"
 eval :: (Sunroof a) => a -> JS a
 eval a  = singleton (JS_Eval a)
 
-loop :: JS () -> JS ()
-loop = singleton . JS_Loop
+loop :: a -> (a -> JS a) -> JS ()
+loop a f = singleton (JS_Loop a f)
 
 -- This can be build out of primitives
 wait :: Template event -> (JSObject -> JS ()) -> JS ()
@@ -273,14 +273,14 @@ data JSI a where
 
     -- special primitives
 --    JS_Wait   :: Template a -> (JSObject -> JS ())              -> JSI ()
-    JS_Loop :: JS ()                                            -> JSI ()
-    JS_Function :: (Sunroof a) => (a -> JS ())                  -> JSI (JSFunction ())
+    JS_Loop :: a -> (a -> JS a)                                 -> JSI ()
+    JS_Function :: (Sunroof a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction b)
 
 ---------------------------------------------------------------
 
 -- We only can compile functions that do not have interesting return
 -- values, so we can assume they are continuation-like things.
-function :: (Sunroof a) => (a -> JS ()) -> JS (JSFunction ())
+function :: (Sunroof a, Sunroof b) => (a -> JS b) -> JS (JSFunction b)
 function = singleton . JS_Function
 
 infixl 4 <$>
@@ -288,16 +288,19 @@ infixl 4 <$>
 (<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
 (<$>) o s = singleton $ o `JS_App` s
 
-cond :: JS JSBool -> JS () -> JS () -> JS ()
-cond i h e = do
-      b <- i
+instance forall a . (Sunroof a) => IfB (Program JSI a) where
+    type BooleanOf (Program JSI a) = JSBool
+    -- I expect this should be a JS primitive, but we *can* do it without the prim
+    ifB i h e = do
       h_f <- function $ \ () -> h
       e_f <- function $ \ () -> e
       o <- new
       o <$> "true" := h_f
       o <$> "false" := e_f
-      o ! (label (cast b) :: JSSelector (JSFunction ())) <$> with []
-      return ()
+      o ! (label (cast i) :: JSSelector (JSFunction a)) <$> with []
+--      return ()
+
+
 
 ---------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, KindSignatures, GADTs #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, KindSignatures, GADTs, DoRec #-}
 
 -- Example of using Kansas Comet
 
@@ -32,16 +32,6 @@ import Language.Sunroof.Types
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text      as T
 
-test = do
-    print $ compileJS $ loop $ do
---         jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JS ()
---         (n :: JSNumber) <- jsSelect $ JSS_Call "foo2" [cast (2 :: JSNumber)]
-         alert("Hello")
-         v <- function $ \ (x::JSNumber) -> return ()
-         return ()
---         waitForS "FOO"
---         jsSelect $ JSS_Call "foo3" [cast (3 :: JSNumber), cast n] :: JS ()
-
 -- Async requests that something be done, without waiting for any reply
 async :: Document -> JS () -> IO ()
 async = undefined
@@ -49,8 +39,8 @@ async = undefined
 -- Sync requests that something be done, *and* waits for a reply.
 sync :: (Sunroof a) => Document -> JS a -> IO a
 sync doc jsm = do
-        let res = compileJS jsm
-        print res
+        let (res,ret) = compileJS jsm
+        print (res,ret)
         send doc $ res
         return $ undefined
 
@@ -86,11 +76,49 @@ web_app doc = do
         registerEvents doc (slide <> click)
 
         sync doc $ do
-                alert "Gello!"
-                wait (slide <> click) $ \ event -> do
-                        alert "Hello"
+                obj <- new
+
+                control' <- function $ \ (model :: JSNumber) -> wait (slide <> click) $ \ event -> do
+                        model' <- ifB ((event ! "eventname" :: JSString) ==* "slide")
+                                        (return (event ! "value" :: JSNumber))
+                                $ ifB ((event ! "id" :: JSString) ==* "up")
+                                        (return (model + 1))
+                                $ ifB ((event ! "id" :: JSString) ==* "down")
+                                        (return (model - 1))
+                                $ ifB ((event ! "id" :: JSString) ==* "reset")
+                                        (return 0)
+                                $ (return model)
+                        obj ! "view" <$> with [cast model']
+
+                obj <$> "control" := control'
+
+                view' <- function $ \ (model :: JSNumber) -> do
+                        () <- call "$('#slider').slider" <$> with [cast ("value" :: JSString), cast model]
+                        () <- call "$('#fib-out').html" <$> with [cast $ ("fib " :: JSString) <> cast model]
+                        obj ! "control" <$> with [cast model] :: JS ()
+                obj <$> "view" := view'
+
+        {-
+
+                    view <- function $ \ (model :: JSNumber) -> do
+                            call "$('#fib-out').html" <$> with [cast $ ("fib " :: JSString) <> cast model]
+                            view <$> with [cast model]
+-}
+                -- call control
+                obj ! "control" <$> with [cast (0 :: JSNumber)] :: JS ()
+
+
+{-
+
+
                         nm <- eval (event ! "eventname" :: JSString)
-                        alert ("eventname = " <> (ifB (nm ==* "click") "CLICK" "NO CLICK"))
+                        ifB  (nm ==* "click")
+                             (do alert "CLICKy")
+                             (do alert "NO CLICKy")
+                        alert ("Finally")
+--                        alert ("eventname = " <> (ifB (nm ==* "click") "CLICK" "NO CLICK"))
+-}
+
 {-
 
 --              foo <$> "c" <$> "d" := c
@@ -145,7 +173,7 @@ data Event = Slide String Int
 
 slide = event "slide" Slide
             <&> "id"      ~= "$(widget).attr('id')"
-            <&> "count"   ~= "aux.value"
+            <&> "value"   ~= "aux.value"
 
 click = event "click" Click
             <&> "id"      ~= "$(widget).attr('id')"
