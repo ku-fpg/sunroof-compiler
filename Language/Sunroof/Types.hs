@@ -291,6 +291,10 @@ infixl 4 <$>
 (<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
 (<$>) o s = singleton $ o `JS_App` s
 
+(<*>) :: (Sunroof a, Sunroof b) => JS a -> Action a b -> JS b
+(<*>) m s = m >>= \ o -> singleton $ o `JS_App` s
+
+
 instance forall a . (Sunroof a) => IfB (Program JSI a) where
     type BooleanOf (Program JSI a) = JSBool
     -- I expect this should be a JS primitive, but we *can* do it without the prim
