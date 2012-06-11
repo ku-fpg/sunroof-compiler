@@ -78,7 +78,18 @@ web_app doc = do
         sync doc $ do
                 obj <- new
 
-                control' <- function $ \ (model :: JSNumber) -> wait (slide <> click) $ \ event -> do
+                -- This is using the imperative update to enable the
+                let control :: JSNumber -> JS ()
+                    control m = obj ! "control" <$> with [cast m]
+
+                    view :: JSNumber -> JS ()
+                    view m = obj ! "view" <$> with [cast m]
+
+                    set :: (Sunroof a, Sunroof b) => String -> (a -> JS b) -> JS ()
+                    set nm f = do n <- function f
+                                  obj <$> nm := n
+
+                set "control" $ \ (model :: JSNumber) -> wait (slide <> click) $ \ event -> do
                         model' <- ifB ((event ! "eventname" :: JSString) ==* "slide")
                                         (return (event ! "value" :: JSNumber))
                                 $ ifB ((event ! "id" :: JSString) ==* "up")
@@ -88,24 +99,15 @@ web_app doc = do
                                 $ ifB ((event ! "id" :: JSString) ==* "reset")
                                         (return 0)
                                 $ (return model)
-                        obj ! "view" <$> with [cast model']
+                        view model'
 
-                obj <$> "control" := control'
-
-                view' <- function $ \ (model :: JSNumber) -> do
+                set "view" $ \ (model :: JSNumber) -> do
                         () <- call "$('#slider').slider" <$> with [cast ("value" :: JSString), cast model]
                         () <- call "$('#fib-out').html" <$> with [cast $ ("fib " :: JSString) <> cast model]
-                        obj ! "control" <$> with [cast model] :: JS ()
-                obj <$> "view" := view'
+                        control model
 
-        {-
-
-                    view <- function $ \ (model :: JSNumber) -> do
-                            call "$('#fib-out').html" <$> with [cast $ ("fib " :: JSString) <> cast model]
-                            view <$> with [cast model]
--}
                 -- call control
-                obj ! "control" <$> with [cast (0 :: JSNumber)] :: JS ()
+                control 0
 
 
 {-
