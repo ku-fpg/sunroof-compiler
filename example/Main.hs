@@ -107,6 +107,14 @@ web_app doc = do
 --                    slider :: JSString -> JS (JFunction ())
 --                    slider nm = call "$" with [cast nm]
 
+                    fib :: JSNumber -> JS JSNumber
+                    fib n = obj ! "fib" <$> with [cast n]
+
+                set "fib" $ \ (n :: JSNumber) ->
+                        ifB (n <* 2)
+                                (return 1)
+                                (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
+
                 set "control" $ \ () -> wait (slide <> click) $ \ event -> do
                         model <- eval (obj ! "model") :: JS JSNumber
                         model' <- ifB ((event ! eventname) ==* "slide")
@@ -124,7 +132,9 @@ web_app doc = do
                 set "view" $ \ () -> do
                         model <- eval (obj ! "model") :: JS JSNumber
                         jQuery "#slider"  <*> slider (cast model)
-                        jQuery "#fib-out" <*> html ("fib " <> cast model)
+                        jQuery "#fib-out" <*> html ("fib " <> cast model <> "...")
+                        res <- fib model
+                        jQuery "#fib-out" <*> html ("fib " <> cast model <> " = " <> cast res)
                         control ()
 
                 -- call control
