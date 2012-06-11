@@ -152,6 +152,18 @@ instance IfB JSNumber where
     type BooleanOf JSNumber = JSBool
     ifB = js_ifB
 
+instance EqB JSNumber where
+    (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
+    (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
+
+instance OrdB JSNumber where
+    (>*)  e1 e2 = JSBool $ Op ">"  [unbox e1,unbox e2]
+    (>=*) e1 e2 = JSBool $ Op ">=" [unbox e1,unbox e2]
+    (<*)  e1 e2 = JSBool $ Op "<"  [unbox e1,unbox e2]
+    (<=*) e1 e2 = JSBool $ Op "<=" [unbox e1,unbox e2]
+
+
+
 ---------------------------------------------------------------
 
 data JSString = JSString Expr
