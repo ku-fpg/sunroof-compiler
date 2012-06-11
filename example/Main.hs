@@ -124,7 +124,7 @@ web_app doc = do
                 set "view" $ \ () -> do
                         model <- eval (obj ! "model") :: JS JSNumber
                         jQuery "#slider"  <*> slider (cast model)
-                        jQuery "#fib-out" <*> html (cast $ ("fib " :: JSString) <> cast model)
+                        jQuery "#fib-out" <*> html ("fib " <> cast model)
                         control ()
 
                 -- call control
