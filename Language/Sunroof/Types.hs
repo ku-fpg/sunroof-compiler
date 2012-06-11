@@ -69,6 +69,9 @@ instance Sunroof JSValue where
         box = JSValue
         unbox (JSValue e) = e
 
+instance IsString JSValue where
+    fromString = JSValue . Lit . show
+
 ---------------------------------------------------------------
 
 data JSBool = JSBool Expr
