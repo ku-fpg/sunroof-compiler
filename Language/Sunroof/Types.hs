@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 import Data.Monoid
 import Control.Monad.Operational
 import Web.KansasComet (Template(..), extract)
-
+import Data.Boolean
 
 type Uniq = Int         -- used as a unique label
 
@@ -28,6 +28,7 @@ instance Show Expr where
         show (Lit a)  = a
         show (Var uq) = "v" ++ show uq
         show (Op "[]" [a,x]) = "(" ++ show a ++ ")[" ++ show x ++ "]"
+        show (Op "?:" [a,x,y]) = "((" ++ show a ++ ")?(" ++ show x ++ "):(" ++ show y ++ "))"
         show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")" ++ x ++ "(" ++ show b ++ ")"
 --        show (Cast e) = show e
 
@@ -80,12 +81,29 @@ instance Sunroof JSBool where
         box = JSBool
         unbox (JSBool v)  = v
 
+--true = JSBool (Lit "true")
+--false = JSBool (Lit "false")
+
+instance Boolean JSBool where
+  true          = JSBool (Lit "true")
+  false         = JSBool (Lit "false")
+  notB  (JSBool e1) = JSBool $ Op "!" [e1]
+  (&&*) (JSBool e1)
+        (JSBool e2) = JSBool $ Op "&&" [e1,e2]
+  (||*) (JSBool e1)
+        (JSBool e2) = JSBool $ Op "||" [e1,e2]
+
+
+instance IfB JSBool where
+    type BooleanOf JSBool = JSBool
+    ifB = js_ifB
+
+js_ifB (JSBool c) t e = box $ Op "?:" [c,unbox t,unbox e]
+
 ---------------------------------------------------------------
 
+-- The type argument of JSFunction is what the function returns.
 data JSFunction ret = JSFunction Expr
-
---data JSFunction :: * -> * where
---        JSFunction ::                   JSFunction a
 
 instance Show (JSFunction a) where
         show (JSFunction v) = show v
@@ -94,6 +112,11 @@ instance Sunroof (JSFunction a) where
         mkVar = JSFunction . Var
         box = JSFunction
         unbox (JSFunction e) = e
+
+
+instance IfB (JSFunction a) where
+    type BooleanOf (JSFunction a) = JSBool
+    ifB = js_ifB
 
 ---------------------------------------------------------------
 
@@ -122,6 +145,10 @@ instance Fractional JSNumber where
 instance Floating JSNumber where
         pi = JSNumber $ Lit $ "Math.PI"
 
+instance IfB JSNumber where
+    type BooleanOf JSNumber = JSBool
+    ifB = js_ifB
+
 ---------------------------------------------------------------
 
 data JSString = JSString Expr
@@ -141,6 +168,14 @@ instance Monoid JSString where
 instance IsString JSString where
     fromString = JSString . Lit . show
 
+instance IfB JSString where
+    type BooleanOf JSString = JSBool
+    ifB = js_ifB
+
+instance EqB JSString where
+    (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
+    (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
+
 ---------------------------------------------------------------
 
 data JSObject = JSObject Expr
@@ -153,24 +188,22 @@ instance Sunroof JSObject where
         box = JSObject
         unbox (JSObject o) = o
 
+instance IfB JSObject where
+    type BooleanOf JSObject = JSBool
+    ifB = js_ifB
+
 ---------------------------------------------------------------
+
+-- | a 'JSSelector' selects a field from a JSObject.
+-- The phantom is the type of the selected value.
+data JSSelector :: * -> * where
+        JSSelector :: JSString           -> JSSelector a
 
 instance IsString (JSSelector a) where
     fromString = JSSelector . fromString
 
-data JSSelector :: * -> * where
-        JSSelector :: JSString           -> JSSelector a
-
-
-{-
-data JSArray = JSArray Expr
-
-instance Show JSArray where
-        show (JSArray v@(Var {})) = show v
-
-instance Sunroof JSArray where
-        mkVar = JSArray . Var
--}
+label :: JSString -> JSSelector a
+label = JSSelector
 
 ---------------------------------------------------------------
 
@@ -182,6 +215,7 @@ instance Sunroof JSArray where
 infix  5 :=
 
 data Action :: * -> * -> * where
+   -- Invoke is not quite right
    Invoke :: [JSValue]                                          -> Action (JSFunction a) a
    -- Basically, this is special form of call, to assign to a field
    (:=)   :: (Sunroof a) => String -> a                         -> Action JSObject ()
@@ -196,11 +230,32 @@ method str args = (! str) `Map` with args
 object :: String -> JSObject
 object = JSObject . Lit
 
-function :: String -> JSFunction a
-function = JSFunction . Lit
+-- perhaps call this invoke
+call :: String -> JSFunction a
+call = JSFunction . Lit
 
 with :: [JSValue] -> Action (JSFunction a) a
 with = Invoke
+
+new :: JS JSObject
+new = eval $ object "new Object()"
+
+--vector :: [JSValue] -> JSVector
+--vector = ...
+
+---------------------------------------------------------------
+
+eval :: (Sunroof a) => a -> JS a
+eval a  = singleton (JS_Eval a)
+
+loop :: JS () -> JS ()
+loop = singleton . JS_Loop
+
+-- This can be build out of primitives
+wait :: Template event -> (JSObject -> JS ()) -> JS ()
+wait tmpl k = do
+        o <- function k
+        call "$.kc.waitFor" <$> with [cast (object (show (map fst (extract tmpl)))), cast o]
 
 ---------------------------------------------------------------
 
@@ -217,15 +272,32 @@ data JSI a where
     JS_Eval   :: (Sunroof a) => a                               -> JSI a
 
     -- special primitives
-    JS_Wait   :: Template a                                     -> JSI JSObject
+--    JS_Wait   :: Template a -> (JSObject -> JS ())              -> JSI ()
     JS_Loop :: JS ()                                            -> JSI ()
-
+    JS_Function :: (Sunroof a) => (a -> JS ())                  -> JSI (JSFunction ())
 
 ---------------------------------------------------------------
 
---(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
---(<$>) o s = singleton $ o `JS_App` s
+-- We only can compile functions that do not have interesting return
+-- values, so we can assume they are continuation-like things.
+function :: (Sunroof a) => (a -> JS ()) -> JS (JSFunction ())
+function = singleton . JS_Function
 
+infixl 4 <$>
+
+(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
+(<$>) o s = singleton $ o `JS_App` s
+
+cond :: JS JSBool -> JS () -> JS () -> JS ()
+cond i h e = do
+      b <- i
+      h_f <- function $ \ () -> h
+      e_f <- function $ \ () -> e
+      o <- new
+      o <$> "true" := h_f
+      o <$> "false" := e_f
+      o ! (label (cast b) :: JSSelector (JSFunction ())) <$> with []
+      return ()
 
 ---------------------------------------------------------------
 

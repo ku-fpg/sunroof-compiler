@@ -18,6 +18,8 @@ import Data.Monoid
 import Data.List as L
 import Control.Monad.IO.Class
 import Network.Wai.Middleware.Static
+import Data.Boolean
+
 -- import Network.Wai      -- TMP for debug
 
 import qualified Web.KansasComet as KC
@@ -35,6 +37,8 @@ test = do
 --         jsSelect $ JSS_Call "foo1" [cast (1 :: JSNumber)] :: JS ()
 --         (n :: JSNumber) <- jsSelect $ JSS_Call "foo2" [cast (2 :: JSNumber)]
          alert("Hello")
+         v <- function $ \ (x::JSNumber) -> return ()
+         return ()
 --         waitForS "FOO"
 --         jsSelect $ JSS_Call "foo3" [cast (3 :: JSNumber), cast n] :: JS ()
 
@@ -83,7 +87,12 @@ web_app doc = do
 
         sync doc $ do
                 alert "Gello!"
-                c <- wait click
+                wait (slide <> click) $ \ event -> do
+                        alert "Hello"
+                        nm <- eval (event ! "eventname" :: JSString)
+                        alert ("eventname = " <> (ifB (nm ==* "click") "CLICK" "NO CLICK"))
+{-
+
 --              foo <$> "c" <$> "d" := c
 
 --                let v = c ! "pageX" :: JSNumber
@@ -91,6 +100,7 @@ web_app doc = do
                 nm <- eval (c ! "eventname" :: JSString)
                 alert ("you clicked" <> cast v)
                 alert ("you clicked" <> cast c)
+-}
 {-
                 switch  [ (nm .==. "click", ...)
                         ]
