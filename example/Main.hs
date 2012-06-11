@@ -68,6 +68,8 @@ main = do
 opts :: KC.Options
 opts = def { prefix = "/example", verbose = 0 }
 
+default(JSNumber, JSString, String)
+
 -- This is run each time the page is first accessed
 web_app :: Document -> IO ()
 web_app doc = do
@@ -77,20 +79,37 @@ web_app doc = do
 
         sync doc $ do
                 obj <- new
+                obj <$> "model" := (0 :: JSNumber)
 
                 -- This is using the imperative update to enable the
-                let control :: JSNumber -> JS ()
-                    control m = obj ! "control" <$> with [cast m]
+                let control :: () -> JS ()
+                    control () = obj ! "control" <$> with []
 
-                    view :: JSNumber -> JS ()
-                    view m = obj ! "view" <$> with [cast m]
+                    view :: () -> JS ()
+                    view () = obj ! "view" <$> with []
 
                     set :: (Sunroof a, Sunroof b) => String -> (a -> JS b) -> JS ()
                     set nm f = do n <- function f
                                   obj <$> nm := n
 
-                set "control" $ \ (model :: JSNumber) -> wait (slide <> click) $ \ event -> do
-                        model' <- ifB ((event ! "eventname" :: JSString) ==* "slide")
+                    eventname :: JSSelector JSString
+                    eventname = label "eventname"
+
+                    jQuery :: JSString -> JS JSObject
+                    jQuery nm = call "$" <$> with [cast nm]
+
+                    slider :: JSValue -> Action JSObject JSObject
+                    slider nm = method "slider"  ["value", cast nm]
+
+                    html :: JSString -> Action JSObject JSObject
+                    html nm = method "html"  [cast nm]
+
+--                    slider :: JSString -> JS (JFunction ())
+--                    slider nm = call "$" with [cast nm]
+
+                set "control" $ \ () -> wait (slide <> click) $ \ event -> do
+                        model <- eval (obj ! "model") :: JS JSNumber
+                        model' <- ifB ((event ! eventname) ==* "slide")
                                         (return (event ! "value" :: JSNumber))
                                 $ ifB ((event ! "id" :: JSString) ==* "up")
                                         (return (model + 1))
@@ -99,15 +118,17 @@ web_app doc = do
                                 $ ifB ((event ! "id" :: JSString) ==* "reset")
                                         (return 0)
                                 $ (return model)
-                        view model'
+                        obj <$> "model" := model'
+                        view ()
 
-                set "view" $ \ (model :: JSNumber) -> do
-                        () <- call "$('#slider').slider" <$> with [cast ("value" :: JSString), cast model]
-                        () <- call "$('#fib-out').html" <$> with [cast $ ("fib " :: JSString) <> cast model]
-                        control model
+                set "view" $ \ () -> do
+                        model <- eval (obj ! "model") :: JS JSNumber
+                        jQuery "#slider"  <*> slider (cast model)
+                        jQuery "#fib-out" <*> html (cast $ ("fib " :: JSString) <> cast model)
+                        control ()
 
                 -- call control
-                control 0
+                control ()
 
 
 {-
