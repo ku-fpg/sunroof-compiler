@@ -10,6 +10,7 @@ import Data.Monoid
 import Control.Monad.Operational
 import Web.KansasComet (Template(..), extract)
 import Data.Boolean
+import Web.KansasComet hiding ((:=))
 
 type Uniq = Int         -- used as a unique label
 
@@ -267,10 +268,12 @@ loop :: a -> (a -> JS a) -> JS ()
 loop a f = singleton (JS_Loop a f)
 
 -- This can be build out of primitives
-wait :: Template event -> (JSObject -> JS ()) -> JS ()
-wait tmpl k = do
+wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
+wait scope tmpl k = do
         o <- function k
-        call "$.kc.waitFor" <$> with [cast (object (show (map fst (extract tmpl)))), cast o]
+        call "$.kc.waitFor" <$> with [ cast (fromString scope :: JSString)
+                                     , cast (object (show (map fst (extract tmpl))))
+                                     , cast o]
 
 ---------------------------------------------------------------
 

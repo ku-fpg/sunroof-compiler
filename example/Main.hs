@@ -75,7 +75,7 @@ web_app :: Document -> IO ()
 web_app doc = do
         print "web_app"
 
-        registerEvents doc (slide <> click)
+        registerEvents doc "body" (slide <> click)
 
         sync doc $ do
                 obj <- new
@@ -115,7 +115,7 @@ web_app doc = do
                                 (return 1)
                                 (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
 
-                set "control" $ \ () -> wait (slide <> click) $ \ event -> do
+                set "control" $ \ () -> wait "body" (slide <> click) $ \ event -> do
                         model <- eval (obj ! "model") :: JS JSNumber
                         model' <- ifB ((event ! eventname) ==* "slide")
                                         (return (event ! "value" :: JSNumber))
