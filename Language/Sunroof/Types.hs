@@ -319,6 +319,9 @@ instance forall a . (Sunroof a) => IfB (Program JSI a) where
       o ! (label (cast i) :: JSSelector (JSFunction a)) <$> with []
 --      return ()
 
+switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b) => a -> [(a,JS b)] -> JS b
+switch a [] = return (cast (object "undefined"))
+switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
 
 ---------------------------------------------------------------
