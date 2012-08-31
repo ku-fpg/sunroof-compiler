@@ -93,9 +93,9 @@ web_app doc = do
                         model <- eval (obj ! "model") :: JS JSNumber
                         model' <- ifB ((event ! eventname) ==* "slide")
                                         (return (event ! "value" :: JSNumber))
-                                $ ifB ((event ! "id" :: JSString) ==* "up")
+                                $ ifB ((event ! "id" :: JSString) ==* "up" &&* model <* 25)
                                         (return (model + 1))
-                                $ ifB ((event ! "id" :: JSString) ==* "down")
+                                $ ifB ((event ! "id" :: JSString) ==* "down" &&* model >* 0)
                                         (return (model - 1))
                                 $ ifB ((event ! "id" :: JSString) ==* "reset")
                                         (return 0)
