@@ -243,6 +243,9 @@ data Action :: * -> * -> * where
 method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 method str args = (! str) `Map` with args
 
+string :: String -> JSString
+string = JSString . Lit . show
+
 object :: String -> JSObject
 object = JSObject . Lit
 
@@ -266,14 +269,6 @@ eval a  = singleton (JS_Eval a)
 
 loop :: a -> (a -> JS a) -> JS ()
 loop a f = singleton (JS_Loop a f)
-
--- This can be build out of primitives
-wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
-wait scope tmpl k = do
-        o <- function k
-        call "$.kc.waitFor" <$> with [ cast (fromString scope :: JSString)
-                                     , cast (object (show (map fst (extract tmpl))))
-                                     , cast o]
 
 ---------------------------------------------------------------
 

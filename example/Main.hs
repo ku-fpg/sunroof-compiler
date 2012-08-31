@@ -18,16 +18,12 @@ import Data.Boolean
 import Web.KansasComet hiding ((:=))
 import qualified Web.KansasComet as KC
 
+import Language.Sunroof
 import Language.Sunroof.Compiler
 import Language.Sunroof.Types
 
--- Sync requests that something be done, *and* waits for a reply.
-sync :: (Sunroof a) => Document -> JS a -> IO a
-sync doc jsm = do
-        let (res,ret) = compileJS jsm
-        print (res,ret)
-        send doc $ res
-        return $ undefined
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text      as T
 
 main :: IO ()
 main = do
