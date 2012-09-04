@@ -10,7 +10,7 @@ import Data.Monoid
 import Control.Monad.Operational
 import Web.KansasComet (Template(..), extract)
 import Data.Boolean
-import Web.KansasComet hiding ((:=))
+import Web.KansasComet
 
 type Uniq = Int         -- used as a unique label
 
@@ -30,6 +30,7 @@ instance Show Expr where
         show (Var uq) = "v" ++ show uq
         show (Op "[]" [a,x]) = "(" ++ show a ++ ")[" ++ show x ++ "]"
         show (Op "?:" [a,x,y]) = "((" ++ show a ++ ")?(" ++ show x ++ "):(" ++ show y ++ "))"
+--        show (Op "(,)" [x,y]) = "[" ++ show x ++ "," ++ show y ++ "]"
         show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")" ++ x ++ "(" ++ show b ++ ")"
 --        show (Cast e) = show e
 
@@ -53,6 +54,19 @@ instance Sunroof () where
         assignVar _ = ""
         box _ = ()
         unbox () = Lit ""
+
+{-
+instance (Sunroof a, Sunroof b) => Sunroof (a,b) where
+    mkVar u = let (x,u') = mkVar u
+                  (y,u'') = mkVar u'
+              in ((x,y), u'')
+    box (Op o [x,y]) | o == "(,)" = (box x, box y)
+    unbox (x,y) = Op "(,)" [unbox x, unbox y]
+    showVar (x,y) = showVar x ++ "," ++ showVar y -- tuples get flattened into sep arguments
+
+    -- javascript's crazy scoping actually comes in handy
+    assignVar (x,y) = "var " ++ show x ++ "; var " ++ show y ++ "; function(a1,a2){" ++ show x ++ "=a1;" ++ show y ++ "=a2})"
+-}
 
 ---------------------------------------------------------------
 
