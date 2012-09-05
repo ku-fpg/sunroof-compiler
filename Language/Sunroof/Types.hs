@@ -32,6 +32,7 @@ instance Show Expr where
         show (Op "?:" [a,x,y]) = "((" ++ show a ++ ")?(" ++ show x ++ "):(" ++ show y ++ "))"
 --        show (Op "(,)" [x,y]) = "[" ++ show x ++ "," ++ show y ++ "]"
         show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")" ++ x ++ "(" ++ show b ++ ")"
+        show (Op fn args) = fn ++ "(" ++ intercalate "," (map show args) ++ ")"
 --        show (Cast e) = show e
 
 ---------------------------------------------------------------
@@ -162,6 +163,7 @@ instance Fractional JSNumber where
 
 instance Floating JSNumber where
         pi = JSNumber $ Lit $ "Math.PI"
+        sin (JSNumber e) = JSNumber $ Op "Math.sin" [e]
 
 instance IfB JSNumber where
     type BooleanOf JSNumber = JSBool
