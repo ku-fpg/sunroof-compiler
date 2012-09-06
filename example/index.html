@@ -1,39 +1,25 @@
 <html>
     <head>
-        <title>Kansas Comet Example</title>
+        <title>Kansas Comet + Sunroof Example</title>
         <script type="text/javascript" src="js/jquery.js"></script>
         <script type="text/javascript" src="js/jquery-json.js"></script>
         <script type="text/javascript" src="js/kansas-comet.js"></script>
-        <link type="text/css" href="css/ui-lightness/jquery-ui.css" rel="Stylesheet" />	
+        <link type="text/css" href="css/ui-lightness/jquery-ui.css" rel="Stylesheet" />
         <script type="text/javascript" src="js/jquery-ui.js"></script>
     </head>
     <body>
 
-
-<table border="0" style="border: 1px solid black">
-  <tr>
-    <td align="center">
+    <div align="center" style="border: 1px solid; padding: 10px; display: inline-block; line-height: 3em;">
       <button id="reset" class="click">Reset</button>
       <button id="down" class="click">-1</button>
-      <button width="" id="up" class="click">+1</button>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" style="padding: 10px">
-      <span id="fib-out" style="border: 5px; font-size: x-large" class="click">fib 0 = 1</span>
-    </td>
-  </tr>        
-  <tr>
-    <td align="center" style="padding: 10px">
-      <div id="slider" style="width: 200px" class="slide"></div>        
-    </td>
-  </tr>        
-</table>
-
-
+      <button id="up" class="click">+1</button>
+      <br/>
+      <span id="fib-out" style="font-size: x-large;" class="click">fib 0 = 1</span>
+      <br/>
+      <div id="slider" style="width: 200px" class="slide"></div>
+    </div>
 
         <div id="log"></div>
-
 
         <script type="text/javascript">
             $(document).ready(function() {
@@ -41,12 +27,12 @@
 
                 $("button").button();
 
-		$( "#slider" ).slider({
-			range: "min",
-			value: 0,
-			min: 0,
-			max: 25
-		});
+                $( "#slider" ).slider({
+                        range: "min",
+                        value: 0,
+                        min: 0,
+                        max: 25
+                });
             });
         </script>
     </body>
