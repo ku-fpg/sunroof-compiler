@@ -22,7 +22,7 @@ main = scotty 3000 $ do
 
     let pol = only [("","index.html")
                    ,("js/kansas-comet.js", kcomet)]
-              <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase ".")
+              <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase "..")
 
     middleware $ staticPolicy pol
 
