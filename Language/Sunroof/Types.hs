@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 import Data.Monoid
 import Control.Monad.Operational
 import Web.KansasComet (Template(..), extract)
-import Data.Boolean
+import Control.Boolean
 import Web.KansasComet
 
 type Uniq = Int         -- used as a unique label
