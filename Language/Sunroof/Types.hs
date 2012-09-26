@@ -112,9 +112,8 @@ instance Boolean JSBool where
   (||*) (JSBool e1)
         (JSBool e2) = JSBool $ Op "||" [e1,e2]
 
-
+type instance BooleanOf JSBool = JSBool
 instance IfB JSBool where
-    type BooleanOf JSBool = JSBool
     ifB = js_ifB
 
 js_ifB (JSBool c) t e = box $ Op "?:" [c,unbox t,unbox e]
@@ -132,9 +131,8 @@ instance Sunroof (JSFunction a) where
         box = JSFunction
         unbox (JSFunction e) = e
 
-
+type instance BooleanOf (JSFunction a) = JSBool
 instance IfB (JSFunction a) where
-    type BooleanOf (JSFunction a) = JSBool
     ifB = js_ifB
 
 ---------------------------------------------------------------
@@ -165,8 +163,8 @@ instance Floating JSNumber where
         pi = JSNumber $ Lit $ "Math.PI"
         sin (JSNumber e) = JSNumber $ Op "Math.sin" [e]
 
+type instance BooleanOf JSNumber = JSBool
 instance IfB JSNumber where
-    type BooleanOf JSNumber = JSBool
     ifB = js_ifB
 
 instance EqB JSNumber where
@@ -200,8 +198,8 @@ instance Monoid JSString where
 instance IsString JSString where
     fromString = JSString . Lit . show
 
+type instance BooleanOf JSString = JSBool
 instance IfB JSString where
-    type BooleanOf JSString = JSBool
     ifB = js_ifB
 
 instance EqB JSString where
@@ -220,8 +218,8 @@ instance Sunroof JSObject where
         box = JSObject
         unbox (JSObject o) = o
 
+type instance BooleanOf JSObject = JSBool
 instance IfB JSObject where
-    type BooleanOf JSObject = JSBool
     ifB = js_ifB
 
 ---------------------------------------------------------------
@@ -320,9 +318,8 @@ infixl 4 <$>
 (<*>) :: (Sunroof a, Sunroof b) => JS a -> Action a b -> JS b
 (<*>) m s = m >>= \ o -> singleton $ o `JS_App` s
 
-
+type instance BooleanOf (Program JSI a) = JSBool
 instance forall a . (Sunroof a) => IfB (Program JSI a) where
-    type BooleanOf (Program JSI a) = JSBool
     -- I expect this should be a JS primitive, but we *can* do it without the prim
     ifB i h e = do
       h_f <- function $ \ () -> h
