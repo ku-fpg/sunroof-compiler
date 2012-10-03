@@ -8,7 +8,7 @@ import Control.Monad
 import Data.Monoid
 import Control.Monad.IO.Class
 import Network.Wai.Middleware.Static
-import Control.Boolean
+import Data.Boolean
 
 import Web.KansasComet
 import qualified Web.KansasComet as KC

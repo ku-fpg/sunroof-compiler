@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 import Data.Monoid
 import Control.Monad.Operational
 import Web.KansasComet (Template(..), extract)
-import Control.Boolean
+import Data.Boolean
 import Web.KansasComet
 
 type Uniq = Int         -- used as a unique label
@@ -113,6 +113,7 @@ instance Boolean JSBool where
         (JSBool e2) = JSBool $ Op "||" [e1,e2]
 
 type instance BooleanOf JSBool = JSBool
+
 instance IfB JSBool where
     ifB = js_ifB
 
@@ -132,6 +133,7 @@ instance Sunroof (JSFunction a) where
         unbox (JSFunction e) = e
 
 type instance BooleanOf (JSFunction a) = JSBool
+
 instance IfB (JSFunction a) where
     ifB = js_ifB
 
@@ -164,6 +166,7 @@ instance Floating JSNumber where
         sin (JSNumber e) = JSNumber $ Op "Math.sin" [e]
 
 type instance BooleanOf JSNumber = JSBool
+
 instance IfB JSNumber where
     ifB = js_ifB
 
@@ -199,6 +202,7 @@ instance IsString JSString where
     fromString = JSString . Lit . show
 
 type instance BooleanOf JSString = JSBool
+
 instance IfB JSString where
     ifB = js_ifB
 
@@ -219,6 +223,7 @@ instance Sunroof JSObject where
         unbox (JSObject o) = o
 
 type instance BooleanOf JSObject = JSBool
+
 instance IfB JSObject where
     ifB = js_ifB
 
@@ -319,6 +324,7 @@ infixl 4 <$>
 (<*>) m s = m >>= \ o -> singleton $ o `JS_App` s
 
 type instance BooleanOf (Program JSI a) = JSBool
+
 instance forall a . (Sunroof a) => IfB (Program JSI a) where
     -- I expect this should be a JS primitive, but we *can* do it without the prim
     ifB i h e = do
