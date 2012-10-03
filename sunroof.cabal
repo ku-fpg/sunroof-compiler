@@ -29,15 +29,15 @@ Library
   default-language:    Haskell2010
   build-depends:       aeson            >= 0.5,
                        base             >= 4.3.1 && < 5,
-                       containers       == 0.4.*,
-                       data-default     == 0.4.*,
                        Boolean          >= 0.1.0,
+                       containers       >= 0.5,
+                       data-default     == 0.5.*,
                        kansas-comet,
                        mtl,
                        operational      >= 0.2.0.3 && < 0.3,
                        scotty           >= 0.4.2 && < 0.5,
                        stm              == 2.2.*,
-                       transformers     == 0.2.*,
+                       transformers     == 0.3.*,
                        text             == 0.11.*
 
 -- text is needed just for scotty's literal
