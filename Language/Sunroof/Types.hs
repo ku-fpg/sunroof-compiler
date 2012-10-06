@@ -269,6 +269,7 @@ instance Monad (Action a) where
 
 ---------------------------------------------------------------
 
+-- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 method :: String -> [JSValue] -> Action JSObject a
 method str args = (!  label (fromString str)) `Map` with args
