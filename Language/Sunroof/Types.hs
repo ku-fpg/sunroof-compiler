@@ -257,6 +257,16 @@ data Action :: * -> * -> * where
    -- This is the fmap-like function, an effect-free modifier on the first argument
    Map :: (Sunroof b) => (a -> b) -> Action b c                 -> Action a c
 
+{- Is confusing, I think
+   NoAction :: b                                                -> Action a b
+   BindAction :: Action a b -> (b -> Action a c)                -> Action a c
+
+instance Monad (Action a) where
+        return = NoAction
+        (>>=)  = BindAction
+-}
+
+
 ---------------------------------------------------------------
 
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
