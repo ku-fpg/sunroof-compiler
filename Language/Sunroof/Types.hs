@@ -259,8 +259,9 @@ data Action :: * -> * -> * where
 
 ---------------------------------------------------------------
 
-method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
-method str args = (! str) `Map` with args
+--method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
+method :: String -> [JSValue] -> Action JSObject a
+method str args = (!  label (fromString str)) `Map` with args
 
 string :: String -> JSString
 string = JSString . Lit . show
