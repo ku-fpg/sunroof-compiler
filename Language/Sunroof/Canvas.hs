@@ -4,7 +4,12 @@ module Language.Sunroof.Canvas where
 
 import Language.Sunroof.Types
 
--- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
+--
+
+getContext :: JSString -> Action JSObject JSObject
+getContext nm = method "getContext" [cast nm]
+
+-----------------------------------------------------------------------------------
 
 arc :: (JSValue,JSValue,JSValue,JSValue,JSValue,JSBool) -> Action JSObject ()
 arc (a,b,c,d,e,f) = method "arc" [cast a,cast b,cast c, cast d, cast e,cast f]
