@@ -46,7 +46,7 @@ web_app doc = do
         canvas <- object "document" <$> getElementById "canvas"
         context <- canvas <$> getContext "2d"
         context <$> fillStyle "rgba(0, 0, 255, .5)"
-        context <$> fillRect(25, 25, 125, 125)
+        context <$> fillRect (25, 25) (125, 125)
 
         alert (cast context)
 
