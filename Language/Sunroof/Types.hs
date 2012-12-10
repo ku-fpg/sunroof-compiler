@@ -164,6 +164,17 @@ instance Fractional JSNumber where
 instance Floating JSNumber where
         pi = JSNumber $ Lit $ "Math.PI"
         sin (JSNumber e) = JSNumber $ Op "Math.sin" [e]
+        cos (JSNumber e) = JSNumber $ Op "Math.cos" [e]
+        asin (JSNumber e) = JSNumber $ Op "Math.asin" [e]
+        acos (JSNumber e) = JSNumber $ Op "Math.acos" [e]
+        atan (JSNumber e) = JSNumber $ Op "Math.atan" [e]
+        sinh (JSNumber e) = JSNumber $ Op "Math.sinh" [e]
+        cosh (JSNumber e) = JSNumber $ Op "Math.cosh" [e]
+        asinh (JSNumber e) = JSNumber $ Op "Math.asinh" [e]
+        acosh (JSNumber e) = JSNumber $ Op "Math.acosh" [e]
+        atanh (JSNumber e) = JSNumber $ Op "Math.atanh" [e]
+        exp (JSNumber e) = JSNumber $ Op "Math.exp" [e]
+        log (JSNumber e) = JSNumber $ Op "Math.log" [e]
 
 type instance BooleanOf JSNumber = JSBool
 
@@ -290,6 +301,9 @@ with = Invoke
 new :: JS JSObject
 new = eval $ object "new Object()"
 
+attribute :: String -> JSSelector a
+attribute attr = label $ string attr
+
 --vector :: [JSValue] -> JSVector
 --vector = ...
 
@@ -328,6 +342,9 @@ function :: (Sunroof a, Sunroof b) => (a -> JS b) -> JS (JSFunction b)
 function = singleton . JS_Function
 
 infixl 4 <$>
+
+(<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
+(<!>) o s = return $ o ! s
 
 (<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
 (<$>) o s = singleton $ o `JS_App` s
