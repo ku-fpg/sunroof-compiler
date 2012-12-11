@@ -32,8 +32,4 @@ wait scope tmpl k = do
                                      , cast (object (show (map fst (extract tmpl))))
                                      , cast o]
 
--- The API of Javascript, reflected
-
-alert :: JSString -> JS ()
-alert msg = call "alert" <$> with [cast msg]
 
