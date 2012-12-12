@@ -43,23 +43,33 @@ jQuery nm = call "$" <$> with [cast nm]
 web_app :: Document -> IO ()
 web_app doc = do
   registerEvents doc "body" click
-  sync doc $ waitForClick $ examples
+  sequence_ $ map (\ex -> whenEvent doc "body" click $ sync doc $ onClick $ ex) 
+                  (cycle examples)
+  --whenEvent doc "body" click 
+  --  $ sync doc $ onClick $ examples !! 0
   --sequence_ $ map (sync doc) $ map waitForClick $ examples
-  return ()
+  --return ()
+  
+whenEvent :: Document -> Scope -> Template event -> IO a -> IO a
+whenEvent doc scope event m = do
+  e <- waitForEvent doc scope event
+  case e of
+    Nothing -> whenEvent doc scope event m
+    Just e  -> m
 
-waitForClick :: [(JSObject -> JSObject -> JS (), JSString)] -> JS ()
-waitForClick ((js, msg):jss) = do
+onClick :: (JSObject -> JSObject -> JS (), JSString) -> JS ()
+onClick (js, msg) = do
+  canvas <- document <$> getElementById "canvas" 
+  c <- canvas <$> getContext "2d"
+  c <$> clearRect (0,0) (canvas ! width, canvas ! height)
+  js canvas c
+  message canvas c msg
+    {-  
   wait "body" click $ \ res -> do
     ifB ((res ! "id" :: JSString) ==* "canvas")
-      (do canvas <- document <$> getElementById "canvas" 
-          c <- canvas <$> getContext "2d"
-          c <$> clearRect (0,0) (canvas ! width, canvas ! height)
-          js canvas c
-          message canvas c msg
-          waitForClick jss
-      )
+      (do )
       (return ())
-waitForClick [] = return ()
+      waitForClick [] = return ()-}
 
 data Event = Click String Int Int
     deriving (Show)
@@ -86,21 +96,27 @@ examples =
 
 example_1_2_1 :: JSObject -> JSObject -> JS ()
 example_1_2_1 canvas c = do
+  c <$> beginPath
   c <$> moveTo (100,150)
   c <$> lineTo (450,50)
+  c <$> closePath
   c <$> stroke
 
 example_1_2_2 :: JSObject -> JSObject -> JS ()
 example_1_2_2 canvas c = do
+  c <$> beginPath
   c <$> moveTo (100,150)
   c <$> lineTo (450,50)
+  c <$> closePath
   c <$> setLineWidth 15
   c <$> stroke
 
 example_1_2_3 :: JSObject -> JSObject -> JS ()
 example_1_2_3 canvas c = do
+  c <$> beginPath
   c <$> moveTo (100,150)
   c <$> lineTo (450,50)
+  c <$> closePath
   c <$> setLineWidth 5
   c <$> setStrokeStyle "#ff0000"
   c <$> stroke
