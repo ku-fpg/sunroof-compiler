@@ -5,3 +5,4 @@ dist/*
 *.swp
 *.swo
 .DS_Store
+sunroof-example
