@@ -21,8 +21,20 @@ sync :: (Sunroof a) => Document -> JS a -> IO a
 sync doc jsm = do
         let (res,ret) = compileJS jsm
         print (res,ret)
-        send doc $ res
-        return $ undefined
+        case ret of
+          "" -> return $ undefined
+          ret -> do
+            send doc $ concat [ res
+                              , "$.kc.reply(" 
+                              , show 93272353275 -- Should be: (secret doc)
+                              , "," 
+                              , ret 
+                              , ");"
+                              ]
+            -- val <- getReply doc (secret doc) -- Not possible because privat.
+            -- TODO: Convert: Value -> JSValue
+            -- TODO: Return the value.
+            return $ undefined
 
 -- This can be build out of primitives
 wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
