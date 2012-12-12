@@ -342,6 +342,7 @@ function :: (Sunroof a, Sunroof b) => (a -> JS b) -> JS (JSFunction b)
 function = singleton . JS_Function
 
 infixl 4 <$>
+infixl 4 <*>
 
 (<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
 (<!>) o s = return $ o ! s

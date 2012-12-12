@@ -18,9 +18,17 @@ getContext nm = method "getContext" [cast nm]
 arc :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
     -> JSNumber            -- ^ The radius.
     -> (JSNumber,JSNumber) -- ^ The angle to start and the angle to stop drawing.
+    -> Action JSObject ()
+arc (cx,cy) r (sa,ea) = 
+  method "arc" [cast cx, cast cy, cast r, cast sa, cast ea]
+
+-- | Draws a circular arc.
+arc' :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
+    -> JSNumber            -- ^ The radius.
+    -> (JSNumber,JSNumber) -- ^ The angle to start and the angle to stop drawing.
     -> JSBool              -- ^ If the arc shall be drawn counterclockwise.
     -> Action JSObject ()
-arc (cx,cy) r (sa,ea) cc = 
+arc' (cx,cy) r (sa,ea) cc = 
   method "arc" [cast cx, cast cy, cast r, cast sa, cast ea, cast cc]
 
 -- | Creates an arc between two tangents on the canvas.
@@ -108,9 +116,9 @@ fillRect (x,y) (w,h) = method "fillRect" [cast x, cast y, cast w, cast h]
 
 -- | Sets the fill style of the context. A color value of the form "#XXXXXX" 
 --   is expected.
-fillStyle :: JSString -> Action JSObject ()
+setFillStyle :: JSString -> Action JSObject ()
 -- TODO: Add support for gradients and patterns.
-fillStyle a = "fillStyle" := a
+setFillStyle fs = "fillStyle" := fs
 
 -- | Fills a text with the current fill style.
 fillText :: JSString            -- ^ The text to fill.

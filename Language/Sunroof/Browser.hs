@@ -5,9 +5,52 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Language.Sunroof.Browser where
+module Language.Sunroof.Browser 
+  -- Top level functions
+  ( alert
+  , decodeURI
+  , encodeURI
+  , decodeURIComponent
+  , encodeURIComponent
+  , eval
+  , isFinite
+  , isNaN
+  , parseFloat
+  , parseInt
+  -- Document functions
+  , document
+  , getElementById
+  , getElementsByName
+  , getElementsByTagName
+  , createAttribute
+  , createElement
+  , createTextNode
+  , open
+  , close
+  , write
+  , writeln
+  , setCookie
+  , cookie
+  , referrer
+  , setTitle
+  , title
+  , url
+  ) where
+
+import Prelude hiding (isNaN)
 
 import Language.Sunroof.Types 
+  ( JSString, JSNumber, JSObject, JSBool, JSValue
+  , JS, JSSelector
+  , Action(..)
+  , call
+  , with
+  , cast
+  , method
+  , object
+  , attribute
+  , (<$>)
+  )
 
 -- -----------------------------------------------------------------------
 -- Object Independent Functions
@@ -122,7 +165,7 @@ writeln str = method "writeln" [cast str]
 -- | Sets the value of the cookie.
 --   For use with 'document'.
 setCookie :: JSString -> Action JSObject ()
-setCookie cookie = "cookie" := cookie
+setCookie c = "cookie" := c
 
 -- | Returns the value of the cookie.
 --   For use with 'document'.
@@ -137,7 +180,7 @@ referrer = attribute "referrer"
 -- | Sets the title of the document.
 --   For use with 'document'.
 setTitle :: JSString -> Action JSObject ()
-setTitle title = "title" := title
+setTitle t = "title" := t
 
 -- | Returns the title of the document.
 --   For use with 'document'.
