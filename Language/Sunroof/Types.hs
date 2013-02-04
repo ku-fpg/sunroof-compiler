@@ -335,6 +335,8 @@ data JSI a where
 --    JS_Wait   :: Template a -> (JSObject -> JS ())              -> JSI ()
     JS_Loop :: a -> (a -> JS a)                                 -> JSI ()
     JS_Function :: (Sunroof a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction b)
+    -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
+    JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> JSI a
 
 ---------------------------------------------------------------
 
@@ -359,13 +361,14 @@ type instance BooleanOf (Program JSI a) = JSBool
 
 instance forall a . (Sunroof a) => IfB (Program JSI a) where
     -- I expect this should be a JS primitive, but we *can* do it without the prim
-    ifB i h e = do
+    -- :: BooleanOf a -> a -> a -> a
+    ifB i h e = singleton $ JS_Branch i h e {- do
       h_f <- function $ \ () -> h
       e_f <- function $ \ () -> e
       o <- new
       o <$> "true" := h_f
       o <$> "false" := e_f
-      o ! (label (cast i) :: JSSelector (JSFunction a)) <$> with []
+      o ! (label (cast i) :: JSSelector (JSFunction a)) <$> with [] -}
 --      return ()
 
 switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b) => a -> [(a,JS b)] -> JS b

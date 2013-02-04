@@ -38,6 +38,9 @@ compile = eval . view
           eval (JS_Function fun :>>= g) = do
             txt1 <- compileFunction fun
             compileBind txt1 g
+          eval (JS_Branch b c1 c2 :>>= g) = do
+            branch <- compileBranch b c1 c2
+            compileCommand branch g
 {-
           eval (JS_Loop body :>>= g) = do -- note, we do nothing with g, as it's unreachable
             -- create a new name for our loop
@@ -66,13 +69,32 @@ compileBind txt1 m2 = do
     (txt2,ret) <- compile (m2 a)
     return (assignVar a ++ txt1 ++ ";" ++ txt2,ret)
 
+-- Does the same as 'compileBind' but does not bind the result of the passed in
+-- JavaScript source to a variable. Like this control flow constructs like
+-- branches can be translated.
+compileCommand :: (Sunroof a, Sunroof b) => (String, a) -> (a -> JS b) -> CompM (String, String)
+compileCommand (src1, comRes) f = do
+    (src2,ret) <- compile (f comRes)
+    return (src1 ++ ";" ++ src2, ret)
+
+compileBranch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> CompM (String, a)
+compileBranch b c1 c2 = do
+  res <- newVar
+  (src1, res1) <- compile c1
+  (src2, res2) <- compile c2
+  return $ (concat [ "if(", showVar b, ") {" 
+                   , src1, assignVar res, res1, ";"
+                   , "} else {" 
+                   , src2, assignVar res, res2, ";"
+                   , "}" ]
+           , res)
+
 compileFunction :: (Sunroof a, Sunroof b) => (a -> JS b) -> CompM String
 compileFunction m2 = do
     a <- newVar
     (txt2,ret) <- compile (m2 a)
     -- continuation problem (if you have a continuation, then this will go wrong)
     return $ "(function (" ++ showVar a ++ "){" ++ txt2 ++ "; return " ++ ret ++ ";})"
-
 
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?
