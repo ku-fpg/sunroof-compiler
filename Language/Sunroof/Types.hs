@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies #-}
+ {-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies #-}
 
 module Language.Sunroof.Types where
 
@@ -117,6 +117,10 @@ type instance BooleanOf JSBool = JSBool
 instance IfB JSBool where
     ifB = js_ifB
 
+instance EqB JSBool where
+  (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
+  (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
+
 js_ifB (JSBool c) t e = box $ Op "?:" [c,unbox t,unbox e]
 
 ---------------------------------------------------------------
@@ -154,7 +158,7 @@ instance Num JSNumber where
         (JSNumber e1) - (JSNumber e2) = JSNumber $ Op "-" [e1,e2]
         (JSNumber e1) * (JSNumber e2) = JSNumber $ Op "*" [e1,e2]
         abs (JSNumber e1) = JSNumber $ Op "Math.abs" [e1]
-        signum (JSNumber e1) = JSNumber $ Op "" [e1]
+        signum (JSNumber e1) = JSNumber $ Op "" [e1] -- TODO
         fromInteger = JSNumber . Lit . show . fromInteger
 
 instance Fractional JSNumber where
@@ -179,19 +183,17 @@ instance Floating JSNumber where
 type instance BooleanOf JSNumber = JSBool
 
 instance IfB JSNumber where
-    ifB = js_ifB
+  ifB = js_ifB
 
 instance EqB JSNumber where
-    (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
-    (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
+  (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
+  (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
 
 instance OrdB JSNumber where
-    (>*)  e1 e2 = JSBool $ Op ">"  [unbox e1,unbox e2]
-    (>=*) e1 e2 = JSBool $ Op ">=" [unbox e1,unbox e2]
-    (<*)  e1 e2 = JSBool $ Op "<"  [unbox e1,unbox e2]
-    (<=*) e1 e2 = JSBool $ Op "<=" [unbox e1,unbox e2]
-
-
+  (>*)  e1 e2 = JSBool $ Op ">"  [unbox e1,unbox e2]
+  (>=*) e1 e2 = JSBool $ Op ">=" [unbox e1,unbox e2]
+  (<*)  e1 e2 = JSBool $ Op "<"  [unbox e1,unbox e2]
+  (<=*) e1 e2 = JSBool $ Op "<=" [unbox e1,unbox e2]
 
 ---------------------------------------------------------------
 
