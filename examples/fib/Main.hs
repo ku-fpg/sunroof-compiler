@@ -16,6 +16,7 @@ import qualified Web.KansasComet as KC
 import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.Canvas
+import Language.Sunroof.Browser (alert)
 
 main :: IO ()
 main = scotty 3000 $ do
@@ -38,21 +39,21 @@ default(JSNumber, JSString, String)
 web_app :: Document -> IO ()
 web_app doc = do
     registerEvents doc "body" (slide <> click)
-
+    {- Playing with canvas...
     let getElementById :: JSString -> Action JSObject JSObject
         getElementById a = method "getElementById" [cast a]
 
     sync doc $ do
         canvas <- object "document" <$> getElementById "canvas"
         context <- canvas <$> getContext "2d"
-        context <$> fillStyle "rgba(0, 0, 255, .5)"
+        context <$> setFillStyle "rgba(0, 0, 255, .5)"
         context <$> fillRect (25, 25) (125, 125)
 
         alert (cast context)
 
         return ()
-
-    sync doc $ do
+        -}
+    async doc $ do
         obj <- new
         obj <$> "model" := (0 :: JSNumber)
 
