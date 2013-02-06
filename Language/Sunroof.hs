@@ -28,23 +28,32 @@ import Web.KansasComet
 -- Async requests that something be done, without waiting for any reply
 async :: Document -> JS () -> IO ()
 async doc jsm = do
-        let (res,_) = compileJS jsm
-        send doc $ res  -- send it, and forget it
-        return ()
+  let (res,_) = compileJS jsm
+  --print res
+  send doc $ res  -- send it, and forget it
+  return ()
+
+sync' :: (Sunroof a) => Document -> JS a -> IO Value
+sync' doc jsm = do 
+  let (res,retVar) = compileJS jsm
+  --print (res,retVar)
+  case retVar of
+    "" -> do
+      -- A good solution for this case should be discussed.
+      -- Possible approach:
+      -- async doc jsm
+      -- return $ Null
+      return $ undefined
+    ret -> queryGlobal doc (res,ret)
+      --send doc $ concat [ res, "; $.kc.reply(", documentId doc, ",", ret, ");"]
+      --val <- getReply doc (documentId doc) -- Not possible because privat.
+      -- return $ jsonToJS val
 
 -- Sync requests that something be done, *and* waits for a reply.
 sync :: (Sunroof a) => Document -> JS a -> IO a
 sync doc jsm = do
-        let (res,retVar) = compileJS jsm
-        print (res,retVar)
-        case retVar of
-          "" -> return $ undefined
-          ret -> do
-            value <- queryGlobal doc (res,ret)
-            return $ (cast . jsonToJS) value
-            --send doc $ concat [ res, "; $.kc.reply(", documentId doc, ",", ret, ");"]
-            --val <- getReply doc (documentId doc) -- Not possible because privat.
-            -- return $ jsonToJS val
+  value <- sync' doc jsm
+  return $ (cast . jsonToJS) value
 
 -- This can be build out of primitives
 wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
