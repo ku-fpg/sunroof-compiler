@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <title>Kansas Comet + Sunroof Example = Browser Info</title>
+        <script type="text/javascript" src="js/jquery.js"></script>
+        <script type="text/javascript" src="js/jquery-json.js"></script>
+        <script type="text/javascript" src="js/kansas-comet.js"></script>
+        <link type="text/css" href="css/ui-lightness/jquery-ui.css" rel="Stylesheet" />
+        <script type="text/javascript" src="js/jquery-ui.js"></script>
+    </head>
+    <body>
+        <dl id="output"></dl>
+        <div id="no-debug-log"></div>
+        <script type="text/javascript">
+            $(document).ready(function() {
+                $.kc.connect("/example");
+            });
+        </script>
+    </body>
+</html>
