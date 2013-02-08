@@ -44,7 +44,10 @@ module Language.Sunroof.Browser
 import Prelude hiding (isNaN)
 
 import Language.Sunroof.Types 
-  ( JSString, JSNumber, JSObject, JSBool, JSValue
+  ( JSString, JSNumber
+  , JSObject, JSBool
+  , JSFunction
+  , JSValue
   , JS, JSSelector
   , Action(..)
   , call
