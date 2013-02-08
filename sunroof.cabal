@@ -6,7 +6,7 @@ Bug-reports:         https://github.com/kufpg/sunroof/
 License:             BSD3
 License-file:        LICENSE
 Author:              Andrew Gill <andygill@ku.edu>
-Maintainer:          Andrew Gill <andygill@ku.edu>
+Maintainer:          Jan Bracker <jbra@informatik.uni-kiel.de>
 Copyright:           (c) 2012 The University of Kansas
 Category:            Web
 Stability:           experimental
@@ -49,6 +49,6 @@ Library
 
   GHC-options: -Wall -fno-warn-orphans
 
---source-repository head
---  type:     git
---  location: git://github.com/kufpg/sunroof.git
+source-repository head
+  type:     git
+  location: git://github.com/ku-fpg/sunroof.git
