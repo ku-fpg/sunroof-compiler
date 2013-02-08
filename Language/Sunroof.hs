@@ -33,27 +33,22 @@ async doc jsm = do
   send doc $ res  -- send it, and forget it
   return ()
 
-sync' :: (Sunroof a) => Document -> JS a -> IO Value
+sync' :: (Sunroof a) => Document -> JS a -> IO (Maybe Value)
 sync' doc jsm = do 
   let (res,retVar) = compileJS jsm
   --print (res,retVar)
   case retVar of
+    -- This is async:
     "" -> do
-      -- A good solution for this case should be discussed.
-      -- Possible approach:
-      -- async doc jsm
-      -- return $ Null
-      return $ undefined
-    ret -> queryGlobal doc (res,ret)
-      --send doc $ concat [ res, "; $.kc.reply(", documentId doc, ",", ret, ");"]
-      --val <- getReply doc (documentId doc) -- Not possible because privat.
-      -- return $ jsonToJS val
+      send doc $ res -- send it, and forget it
+      return $ Nothing
+    ret -> Just `fmap` queryGlobal doc (res,ret)
 
 -- Sync requests that something be done, *and* waits for a reply.
-sync :: (Sunroof a) => Document -> JS a -> IO a
+sync :: (Sunroof a) => Document -> JS a -> IO (Maybe a)
 sync doc jsm = do
   value <- sync' doc jsm
-  return $ (cast . jsonToJS) value
+  return $ fmap (cast . jsonToJS) value
 
 -- This can be build out of primitives
 wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
