@@ -43,7 +43,7 @@ jQuery nm = call "$" <$> with [cast nm]
 web_app :: Document -> IO ()
 web_app doc = do
   registerEvents doc "body" click
-  sequence_ $ map (\ex -> whenEvent doc "body" click $ sync doc $ onClick $ ex) 
+  sequence_ $ map (\ex -> whenEvent doc "body" click $ async doc $ onClick $ ex) 
                   (cycle examples)
   --whenEvent doc "body" click 
   --  $ sync doc $ onClick $ examples !! 0

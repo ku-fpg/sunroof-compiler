@@ -2,14 +2,16 @@
 
 module Main where
 
-import Web.Scotty (scotty, middleware)
 import Data.Default
-import Control.Monad
 import Data.Monoid
-import Control.Monad.IO.Class
-import Network.Wai.Middleware.Static
 import Data.Boolean
+import Data.Maybe ( fromJust )
 
+import Control.Monad
+import Control.Monad.IO.Class
+
+import Network.Wai.Middleware.Static
+import Web.Scotty (scotty, middleware)
 import Web.KansasComet
 import qualified Web.KansasComet as KC
 
@@ -40,31 +42,43 @@ web_app :: Document -> IO ()
 web_app doc = do
     registerEvents doc "body" mempty
     
-    theCookie <- sync doc $ document <!> cookie
+    theCookie <- fmap fromJust $ sync doc $ document <!> cookie
     putStrLn $ "Cookie:     " ++ show theCookie
     
-    theTitle <- sync doc $ document <!> title
+    theTitle <- fmap fromJust $ sync doc $ document <!> title
     putStrLn $ "Title:      " ++ show theTitle
     
-    theReferrer <- sync doc $ document <!> referrer
+    theReferrer <- fmap fromJust $ sync doc $ document <!> referrer
     putStrLn $ "Referrer:   " ++ show theReferrer
     
-    theUrl <- sync doc $ document <!> url
+    theUrl <- fmap fromJust $ sync doc $ document <!> url
     putStrLn $ "URL:        " ++ show theUrl
     
-    theUserAgent <- sync doc $ object "navigator" <!> attribute "userAgent"
+    theUserAgent <- fmap fromJust $ sync doc $ object "navigator" <!> attribute "userAgent"
     putStrLn $ "User Agent: " ++ show theUserAgent
     
-    theWidth <- sync doc $ screen <!> attribute "width" :: IO JSNumber
-    theHeight <- sync doc $ screen <!> attribute "height" :: IO JSNumber
+    theWidth  <- fmap fromJust 
+               $ sync doc 
+               $ screen <!> attribute "width" :: IO JSNumber
+    theHeight <- fmap fromJust
+               $ sync doc 
+               $ screen <!> attribute "height" :: IO JSNumber
     putStrLn $ "Screen Size:   " ++ show theWidth ++ " x " ++ show theHeight
     
-    theOuterWidth <- sync doc $ window <!> attribute "outerWidth" :: IO JSNumber
-    theOuterHeight <- sync doc $ window <!> attribute "outerHeight" :: IO JSNumber
+    theOuterWidth  <- fmap fromJust 
+                    $ sync doc 
+                    $ window <!> attribute "outerWidth" :: IO JSNumber
+    theOuterHeight <- fmap fromJust 
+                    $ sync doc 
+                    $ window <!> attribute "outerHeight" :: IO JSNumber
     putStrLn $ "Window Size:   " ++ show theOuterWidth ++ " x " ++ show theOuterHeight
     
-    theInnerWidth <- sync doc $ window <!> attribute "innerWidth" :: IO JSNumber
-    theInnerHeight <- sync doc $ window <!> attribute "innerHeight" :: IO JSNumber
+    theInnerWidth  <- fmap fromJust 
+                    $ sync doc 
+                    $ window <!> attribute "innerWidth" :: IO JSNumber
+    theInnerHeight <- fmap fromJust 
+                    $ sync doc 
+                    $ window <!> attribute "innerHeight" :: IO JSNumber
     putStrLn $ "Viewport Size: " ++ show theInnerWidth ++ " x " ++ show theInnerHeight
       
     async doc $ do

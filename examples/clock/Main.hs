@@ -150,6 +150,8 @@ clockJS = do
   
   renderClock <$> with [cast ()]
   window <$> setInterval renderClock 1000
+  
+  return ()
 
 -- TODO: Move this into a new JQuery module of sunroof.
 jQuery :: JSString -> JS JSObject
