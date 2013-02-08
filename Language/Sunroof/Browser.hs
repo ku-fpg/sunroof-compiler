@@ -17,6 +17,10 @@ module Language.Sunroof.Browser
   , isNaN
   , parseFloat
   , parseInt
+  -- Window functions
+  , window
+  , setInterval
+  , clearInterval
   -- Document functions
   , document
   , getElementById
@@ -97,6 +101,24 @@ parseFloat str = call "parseFloat" <$> with [cast str]
 -- | Parse the given string to a number.
 parseInt :: JSString -> JS JSNumber
 parseInt str = call "parseInt" <$> with [cast str]
+
+-- -----------------------------------------------------------------------
+-- Window API
+-- -----------------------------------------------------------------------
+
+-- | The window object.
+window :: JSObject
+window = object "window"
+
+-- | Calls a function at specified intervals in milliseconds.
+--   It will continue calling the function until 'clearInterval' is called, 
+--   or the window is closed. The returned number is needed for 'clearInterval'.
+setInterval :: JSFunction a -> JSNumber -> Action JSObject JSNumber
+setInterval f interval = method "setInterval" [cast f, cast interval]
+
+-- | Clears a timer set with the 'setInterval' method.
+clearInterval :: JSNumber -> Action JSObject ()
+clearInterval ident = method "clearInterval" [cast ident]
 
 -- -----------------------------------------------------------------------
 -- Document API

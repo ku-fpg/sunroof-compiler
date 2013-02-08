@@ -80,9 +80,6 @@ web_app doc = do
 screen :: JSObject
 screen = object "screen"
 
-window :: JSObject
-window = object "window"
-
 jQuery :: JSString -> JS JSObject
 jQuery nm = call "$" <$> with [cast nm]
 

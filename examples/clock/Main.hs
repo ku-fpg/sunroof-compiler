@@ -161,18 +161,10 @@ canvas = document <$> getElementById "canvas"
 context :: JS JSObject
 context = canvas <*> getContext "2d"
 
--- TODO: Move this into the Browser module of sunroof.
-window :: JSObject
-window = object "window"
-
 clockUnit :: JS JSNumber
 clockUnit = do
   (w, h) <- canvasSize
   return $ (maxB w h) / 2
-
--- TODO: Move this into the Browser module of sunroof.
-setInterval :: JSFunction () -> JSNumber -> Action JSObject ()
-setInterval f interval = method "setInterval" [cast f, cast interval]
 
 canvasSize :: JS (JSNumber, JSNumber)
 canvasSize = do
