@@ -2,15 +2,15 @@
 
 module Language.Sunroof.Types where
 
+import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
 import GHC.Exts
 import Data.Char
 import Data.List (intercalate)
 import qualified Data.Map as Map
 import Data.Monoid
 import Control.Monad.Operational
-import Web.KansasComet (Template(..), extract)
 import Data.Boolean
-import Web.KansasComet
+import Data.Boolean.Numbers
 
 type Uniq = Int         -- used as a unique label
 
@@ -161,24 +161,49 @@ instance Num JSNumber where
         signum (JSNumber e1) = JSNumber $ Op "" [e1] -- TODO
         fromInteger = JSNumber . Lit . show . fromInteger
 
+instance IntegralB JSNumber where
+  quot a b = ifB ((a / b) <* 0) 
+                 (JSNumber $ Op "Math.ceil" [let JSNumber res = a / b in res]) 
+                 (a `div` b)
+  rem a b = a - (a `quot` b)*b
+  div a b = JSNumber $ Op "Math.floor" [let JSNumber res = a / b in res]
+  mod (JSNumber a) (JSNumber b) = JSNumber $ Op "%" [a, b]
+
 instance Fractional JSNumber where
         (JSNumber e1) / (JSNumber e2) = JSNumber $ Op "/" [e1,e2]
         fromRational = JSNumber . Lit . show . fromRational
 
 instance Floating JSNumber where
         pi = JSNumber $ Lit $ "Math.PI"
-        sin (JSNumber e) = JSNumber $ Op "Math.sin" [e]
-        cos (JSNumber e) = JSNumber $ Op "Math.cos" [e]
-        asin (JSNumber e) = JSNumber $ Op "Math.asin" [e]
-        acos (JSNumber e) = JSNumber $ Op "Math.acos" [e]
-        atan (JSNumber e) = JSNumber $ Op "Math.atan" [e]
-        sinh (JSNumber e) = JSNumber $ Op "Math.sinh" [e]
-        cosh (JSNumber e) = JSNumber $ Op "Math.cosh" [e]
+        sin   (JSNumber e) = JSNumber $ Op "Math.sin"   [e]
+        cos   (JSNumber e) = JSNumber $ Op "Math.cos"   [e]
+        asin  (JSNumber e) = JSNumber $ Op "Math.asin"  [e]
+        acos  (JSNumber e) = JSNumber $ Op "Math.acos"  [e]
+        atan  (JSNumber e) = JSNumber $ Op "Math.atan"  [e]
+        sinh  (JSNumber e) = JSNumber $ Op "Math.sinh"  [e]
+        cosh  (JSNumber e) = JSNumber $ Op "Math.cosh"  [e]
         asinh (JSNumber e) = JSNumber $ Op "Math.asinh" [e]
         acosh (JSNumber e) = JSNumber $ Op "Math.acosh" [e]
         atanh (JSNumber e) = JSNumber $ Op "Math.atanh" [e]
-        exp (JSNumber e) = JSNumber $ Op "Math.exp" [e]
-        log (JSNumber e) = JSNumber $ Op "Math.log" [e]
+        exp   (JSNumber e) = JSNumber $ Op "Math.exp"   [e]
+        log   (JSNumber e) = JSNumber $ Op "Math.log"   [e]
+
+instance RealFracB JSNumber where
+  properFraction n = 
+    ( ifB (n >=* 0) (floor n) (ceiling n)
+    , ifB (n >=* 0) (n - floor n) (n - ceiling n) 
+    )
+  round   (JSNumber e) = JSNumber $ Op "Math.round" [e]
+  ceiling (JSNumber e) = JSNumber $ Op "Math.ceil"  [e]
+  floor   (JSNumber e) = JSNumber $ Op "Math.floor" [e]
+
+instance RealFloatB JSNumber where
+  isNaN (JSNumber a) = JSBool $ Op "isNaN" [a]
+  isInfinite n = notB (isFinite n) &&* notB (isNaN n)
+    where isFinite (JSNumber a) = JSBool $ Op "isFinite" [a]
+  isNegativeZero n = isInfinite n &&* n <* 0
+  isIEEE _ = true -- AFAIK
+  atan2 (JSNumber a) (JSNumber b) = JSNumber $ Op "Math.atan2" [a, b]
 
 type instance BooleanOf JSNumber = JSBool
 
