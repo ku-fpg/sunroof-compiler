@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, RankNTypes, KindSignatures #-}
+{-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables #-}
 module Language.Sunroof.Compiler where
 
 import qualified Control.Applicative as App
@@ -13,12 +13,14 @@ compileJS :: (Sunroof a) => JS a -> (String,String)
 compileJS = flip evalState 0 . compile
 
 -- compile an existing expression
-compile :: Sunroof c => JS c -> CompM (String,String)
-compile = eval . view
+compile :: forall c . Sunroof c => JS c -> CompM (String,String)
+-- ProgramT JSI (State Uniq) c
+-- viewT --> State Uniq (ProgramViewT JSI (State Uniq) c)
+compile js = eval $ evalState (viewT js) 0
     -- since the type  Program  is abstract (for efficiency),
     -- we have to apply the  view  function first,
     -- to get something we can pattern match on
-    where eval :: Sunroof b => ProgramView JSI b -> CompM (String,String)
+    where eval :: Sunroof c => ProgramViewT JSI (State Uniq) c -> CompM (String,String)
           -- either we call a primitive JavaScript function
 --          eval (JS_Select jss :>>= g) = do
 --            txt1 <- compileJSS jss
@@ -35,8 +37,8 @@ compile = eval . view
 --          eval (JS_Invoke args :>>= g) = do
 --            compileBind ("(function(o) { return o.(" ++ intercalate "," (map show args) ++ ");}") g
 
-          eval (JS_Function fun :>>= g) = do
-            txt1 <- compileFunction fun
+          eval (JS_Function params body :>>= g) = do
+            txt1 <- compileFunction params body
             compileBind txt1 g
           eval (JS_Branch b c1 c2 :>>= g) = do
             branch <- compileBranch b c1 c2
@@ -89,12 +91,12 @@ compileBranch b c1 c2 = do
                    , "}" ]
            , res)
 
-compileFunction :: (Sunroof a, Sunroof b) => (a -> JS b) -> CompM String
-compileFunction m2 = do
-    a <- newVar
-    (txt2,ret) <- compile (m2 a)
+compileFunction :: (Sunroof b) => [JSValue] -> JS b -> CompM String
+compileFunction params body = do
+    (source,ret) <- compile body
+    let paramsStr = intercalate "," (fmap showVar params)
     -- continuation problem (if you have a continuation, then this will go wrong)
-    return $ "(function (" ++ showVar a ++ "){" ++ txt2 ++ "; return " ++ ret ++ ";})"
+    return $ "(function (" ++ paramsStr ++ "){" ++ source ++ "; return " ++ ret ++ ";})"
 
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?

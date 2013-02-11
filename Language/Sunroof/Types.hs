@@ -9,6 +9,7 @@ import Data.List (intercalate)
 import qualified Data.Map as Map
 import Data.Monoid
 import Control.Monad.Operational
+import Control.Monad.State
 import Data.Boolean
 import Data.Boolean.Numbers
 
@@ -73,15 +74,15 @@ instance (Sunroof a, Sunroof b) => Sunroof (a,b) where
 
 data JSValue where
   JSValue :: Expr -> JSValue
-  JSValueVar :: Uniq -> JSValue         -- so the typing does not throw a fit
+--  JSValueVar :: Uniq -> JSValue         -- so the typing does not throw a fit
 
 instance Show JSValue where
         show (JSValue v)  = show v
 --        show (JSValueVar uq) = "v" ++ show uq
 
 instance Sunroof JSValue where
-        mkVar = JSValueVar
-        showVar (JSValueVar u) = error "not sure this should happen" -- "v" ++ show u
+        mkVar = JSValue . Var
+--        showVar (JSValueVar u) = error "not sure this should happen" -- "v" ++ show u
         box = JSValue
         unbox (JSValue e) = e
 
@@ -345,7 +346,7 @@ loop a f = singleton (JS_Loop a f)
 ---------------------------------------------------------------
 
 -- Control.Monad.Operational makes a monad out of JS for us
-type JS a = Program JSI a
+type JS a = ProgramT JSI (State Uniq) a
 
 -- define primitive effects / "instructions" for the JS monad
 data JSI a where
@@ -359,16 +360,44 @@ data JSI a where
     -- special primitives
 --    JS_Wait   :: Template a -> (JSObject -> JS ())              -> JSI ()
     JS_Loop :: a -> (a -> JS a)                                 -> JSI ()
-    JS_Function :: (Sunroof a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction b)
+    JS_Function :: (Sunroof b) => [JSValue] -> JS b -> JSI (JSFunction b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
     JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> JSI a
 
 ---------------------------------------------------------------
 
+-- This seems like a hack to get frash parameters.
+-- Is there a nicer way to do this without mixing up the compiler and the 
+-- types module?
+newFVar :: JS JSValue
+newFVar = do
+  uq <- lift $ get
+  lift $ put $ uq + 1
+  return $ box $ Lit $ "p" ++ show uq
+
+class JSFunctionC b where
+  type JSFunctionCRet b :: *
+  functionC :: (Sunroof a) => (a -> b) -> JS (JSI (JSFunction (JSFunctionCRet b)))
+
+instance (Sunroof b) => JSFunctionC (JS b) where
+  type JSFunctionCRet (JS b) = b
+  functionC f = do
+    var <- newFVar
+    return $ JS_Function [var] (f $ cast var)
+
+instance (Sunroof b, JSFunctionC c) => JSFunctionC (b -> c) where
+  type JSFunctionCRet (b -> c) = JSFunctionCRet c
+  functionC f = do
+    var <- newFVar
+    JS_Function params body <- functionC (f $ cast var)
+    return $ JS_Function (var : params) body
+
 -- We only can compile functions that do not have interesting return
 -- values, so we can assume they are continuation-like things.
-function :: (Sunroof a, Sunroof b) => (a -> JS b) -> JS (JSFunction b)
-function = singleton . JS_Function
+function :: (Sunroof a, JSFunctionC b) => (a -> b) -> JS (JSFunction (JSFunctionCRet b))
+function f = do
+  jsF <- functionC f
+  singleton jsF
 
 infixl 4 <$>
 infixl 4 <*>
@@ -382,9 +411,9 @@ infixl 4 <*>
 (<*>) :: (Sunroof a, Sunroof b) => JS a -> Action a b -> JS b
 (<*>) m s = m >>= \ o -> singleton $ o `JS_App` s
 
-type instance BooleanOf (Program JSI a) = JSBool
+type instance BooleanOf (ProgramT JSI (State Uniq) a) = JSBool
 
-instance forall a . (Sunroof a) => IfB (Program JSI a) where
+instance forall a . (Sunroof a) => IfB (ProgramT JSI (State Uniq) a) where
     -- I expect this should be a JS primitive, but we *can* do it without the prim
     -- :: BooleanOf a -> a -> a -> a
     ifB i h e = singleton $ JS_Branch i h e {- do
