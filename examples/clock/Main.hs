@@ -49,9 +49,7 @@ web_app doc = async doc clockJS
 clockJS :: JS ()
 clockJS = do
   -- Renders a single line (with number) of the clock face.
-  renderClockFaceLine <- function $ \n -> do
-    u <- clockUnit
-    c <- context
+  renderClockFaceLine <- function $ \c u n -> do
     c <$> save
     -- Draw one of the indicator lines
     c <$> beginPath
@@ -73,57 +71,56 @@ clockJS = do
         ) (return ())
     c <$> restore
   
-  -- Renders the clocks pointers for hours, minutes and seconds.
-  renderClockPointers <- function $ \() -> do
-    (h, m, s) <- currentTime
-    u <- clockUnit
-    c <- context
+  renderClockPointer <- function $ \c u angle width len -> do
     c <$> save
     c <$> setLineCap "round"
+    c <$> rotate angle
+    c <$> setLineWidth width
+    c <$> beginPath
+    c <$> moveTo (0, u * 0.1)
+    c <$> lineTo (0, -u * len)
+    c <$> stroke
+    c <$> closePath
+    c <$> restore
+  
+  -- Renders the clocks pointers for hours, minutes and seconds.
+  renderClockPointers <- function $ \c u -> do
+    (h, m, s) <- currentTime
+    c <$> save
     -- Hour pointer
-    c <$> save
-    c <$> rotate ((2 * pi / 12) * (h `mod` 12))
-    c <$> setLineWidth 15
-    c <$> beginPath
-    c <$> moveTo (0, u * 0.1)
-    c <$> lineTo (0, -u * 0.4)
-    c <$> stroke
-    c <$> closePath
-    c <$> restore
+    renderClockPointer <$> with 
+      [ cast c
+      , cast (u :: JSNumber)
+      , cast $ (2 * pi / 12 :: JSNumber) * (h `mod` 12)
+      , cast (15 :: JSNumber)
+      , cast (0.4 :: JSNumber) ]
     -- Minute pointer
-    c <$> save
-    c <$> rotate ((2 * pi / 60) * (m `mod` 60))
-    c <$> setLineWidth 10
-    c <$> beginPath
-    c <$> moveTo (0, u * 0.1)
-    c <$> lineTo (0, -u * 0.7)
-    c <$> stroke
-    c <$> closePath
-    c <$> restore
+    renderClockPointer <$> with 
+      [ cast c
+      , cast u
+      , cast $ (2 * pi / 60 :: JSNumber) * (m `mod` 60)
+      , cast (10 :: JSNumber)
+      , cast (0.7 :: JSNumber) ]
     -- Second pointer
-    c <$> save
-    c <$> rotate ((2 * pi / 60) * (s `mod` 60))
     c <$> setStrokeStyle "red"
-    c <$> setLineWidth 4
-    c <$> beginPath
-    c <$> moveTo (0, u * 0.1)
-    c <$> lineTo (0, -u * 0.9)
-    c <$> stroke
-    c <$> closePath
-    c <$> restore
+    renderClockPointer <$> with 
+      [ cast c
+      , cast u
+      , cast $ (2 * pi / 60 :: JSNumber) * (s `mod` 60)
+      , cast (4 :: JSNumber)
+      , cast (0.9 :: JSNumber) ]
     -- Restore everything
     c <$> restore
   
   -- Renders the complete face of the clock, without pointers.
-  renderClockFace <- function $ \() -> do
-    c <- context
+  renderClockFace <- function $ \c u -> do
     c <$> save
     c <$> rotate (2 * pi / 4) -- 0 degrees is at the top
     -- Draw all hour lines.
     -- TODO: This repeats the call 60 times. Would be neat to have loops.
     sequence_ $ (flip fmap) (fmap fromInteger [1..60] :: [JSNumber]) $ \n -> do
       c <$> rotate (2 * pi / 60)
-      renderClockFaceLine <$> with [cast n]
+      renderClockFaceLine <$> with [cast c, cast (u :: JSNumber), cast n]
     c <$> restore -- Undo all the rotation.
     
   -- Renders the complete clock.
@@ -142,9 +139,9 @@ clockJS = do
     c <$> clearRect (0,0) (w,h)
     c <$> translate (w / 2, h / 2)
     -- Draw all hour lines.
-    renderClockFace <$> with [cast ()]
+    renderClockFace <$> with [cast c, cast u]
     -- Draw the clock pointers
-    renderClockPointers <$> with [cast ()]
+    renderClockPointers <$> with [cast c, cast u]
     c <$> restore
     return ()
   
