@@ -41,7 +41,7 @@ Library
                        mtl,
                        operational      >= 0.2.0.3 && < 0.3,
                        scotty           >= 0.4.2 && < 0.5,
-                       stm              == 2.2.*,
+                       stm              >= 2.2,
                        transformers     == 0.3.*,
                        text             == 0.11.*
 

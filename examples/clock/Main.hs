@@ -91,14 +91,14 @@ clockJS = do
     renderClockPointer <$> with 
       [ cast c
       , cast (u :: JSNumber)
-      , cast $ (2 * pi / 12 :: JSNumber) * (h `mod` 12)
+      , cast $ (2 * pi / 12 :: JSNumber) * ((h `mod` 12) + (m `mod` 60) / 60))
       , cast (15 :: JSNumber)
       , cast (0.4 :: JSNumber) ]
     -- Minute pointer
     renderClockPointer <$> with 
       [ cast c
       , cast u
-      , cast $ (2 * pi / 60 :: JSNumber) * (m `mod` 60)
+      , cast $ (2 * pi / 60 :: JSNumber) * ((m `mod` 60) + (s `mod` 60) / 60))
       , cast (10 :: JSNumber)
       , cast (0.7 :: JSNumber) ]
     -- Second pointer
