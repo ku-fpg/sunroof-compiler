@@ -9,8 +9,15 @@ import Data.List (intercalate)
 import Language.Sunroof.Types
 import Web.KansasComet (Template(..), extract)
 
-compileJS :: (Sunroof a) => JS a -> (String,String)
-compileJS = flip evalState 0 . compile
+import qualified Data.Map as M
+import System.Mem.StableName
+
+import Debug.Trace
+
+intialState = CompMS { unique = 0, functionBindings = M.empty }
+
+compileJS :: (Sunroof a) => JS a -> IO (String,String)
+compileJS = flip evalStateT intialState . compile
 
 -- compile an existing expression
 compile :: forall c . Sunroof c => JS c -> CompM (String,String)
@@ -38,8 +45,8 @@ compile js = eval $ evalState (viewT js) 0
 --            compileBind ("(function(o) { return o.(" ++ intercalate "," (map show args) ++ ");}") g
 
           eval (JS_Function params body :>>= g) = do
-            txt1 <- compileFunction params body
-            compileBind txt1 g
+            f <- compileFunction params body
+            compileBind f g
           eval (JS_Branch b c1 c2 :>>= g) = do
             branch <- compileBranch b c1 c2
             compileCommand branch g
@@ -93,10 +100,18 @@ compileBranch b c1 c2 = do
 
 compileFunction :: (Sunroof b) => [JSValue] -> JS b -> CompM String
 compileFunction params body = do
-    (source,ret) <- compile body
-    let paramsStr = intercalate "," (fmap showVar params)
-    -- continuation problem (if you have a continuation, then this will go wrong)
-    return $ "(function (" ++ paramsStr ++ "){" ++ source ++ "; return " ++ ret ++ ";})"
+    name <- liftIO $ makeStableName body
+    bindings <- functionBindings `fmap` get
+    let hash = hashStableName name
+    case M.lookup hash bindings of
+      Just uq -> 
+        return $ showVar (mkVar uq :: JSValue)
+      Nothing -> do
+        uq <- uniqM
+        modify $ \cms -> cms { functionBindings = M.insert hash uq bindings }
+        let paramsStr = intercalate "," $ map showVar params
+        (source, ret) <- compile body
+        return $ "(function (" ++ paramsStr ++ "){" ++ source ++ "; return " ++ ret ++ ";})"
 
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?
@@ -111,12 +126,14 @@ compileAction o (Map f act) =
 
 
 
-type CompM a = State Uniq a
+type CompM a = StateT CompMState IO a
+
+data CompMState = CompMS { unique :: Uniq, functionBindings :: M.Map Int Uniq }
 
 uniqM :: CompM Uniq
 uniqM = do
-    n <- get
-    modify (+1)
+    n <- unique `fmap` get
+    modify (\cms -> cms { unique = n + 1 })
     return n
 
 newVar :: (Sunroof a) => CompM a

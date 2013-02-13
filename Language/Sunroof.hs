@@ -28,14 +28,14 @@ import Web.KansasComet
 -- Async requests that something be done, without waiting for any reply
 async :: Document -> JS () -> IO ()
 async doc jsm = do
-  let (res,_) = compileJS jsm
+  (res,_) <- compileJS jsm
   --print res
   send doc $ res  -- send it, and forget it
   return ()
 
 sync' :: (Sunroof a) => Document -> JS a -> IO (Maybe Value)
 sync' doc jsm = do 
-  let (res,retVar) = compileJS jsm
+  (res,retVar) <- compileJS jsm
   --print (res,retVar)
   case retVar of
     -- This is async:
