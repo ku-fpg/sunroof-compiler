@@ -73,15 +73,15 @@ instance (Sunroof a, Sunroof b) => Sunroof (a,b) where
 
 data JSValue where
   JSValue :: Expr -> JSValue
-  JSValueVar :: Uniq -> JSValue         -- so the typing does not throw a fit
+  --JSValueVar :: Uniq -> JSValue         -- so the typing does not throw a fit
 
 instance Show JSValue where
         show (JSValue v)  = show v
 --        show (JSValueVar uq) = "v" ++ show uq
 
 instance Sunroof JSValue where
-        mkVar = JSValueVar
-        showVar (JSValueVar u) = error "not sure this should happen" -- "v" ++ show u
+        mkVar = JSValue . Var
+        showVar (JSValue e) = show e
         box = JSValue
         unbox (JSValue e) = e
 
