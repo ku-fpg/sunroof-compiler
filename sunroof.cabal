@@ -27,6 +27,7 @@ Library
                        Language.Sunroof.Types
                        Language.Sunroof.Canvas
                        Language.Sunroof.Browser
+                       Language.Sunroof.KansasComet
 --  other-modules:       Paths_kansas-comet
   default-language:    Haskell2010
   build-depends:       aeson            >= 0.5,
