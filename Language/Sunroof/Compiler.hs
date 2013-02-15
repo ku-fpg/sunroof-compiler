@@ -100,7 +100,7 @@ compileBranch b c1 c2 = do
 
 compileFunction :: (Sunroof b) => [JSValue] -> JS b -> CompM String
 compileFunction params body = do
-    name <- liftIO $ makeStableName body
+    name <- liftIO $ makeStableName $! body
     bindings <- functionBindings `fmap` get
     let hash = hashStableName name
     case M.lookup hash bindings of
