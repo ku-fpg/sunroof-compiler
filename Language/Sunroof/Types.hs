@@ -1,4 +1,4 @@
- {-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies #-}
+ {-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
 
 module Language.Sunroof.Types where
 
@@ -71,7 +71,7 @@ instance (Sunroof a, Sunroof b) => Sunroof (a,b) where
 
 ---------------------------------------------------------------
 
-data JSValue where
+data JSValue where   -- This may go away
   JSValue :: Expr -> JSValue
   --JSValueVar :: Uniq -> JSValue         -- so the typing does not throw a fit
 
@@ -94,8 +94,40 @@ class JSArgument args where
 instance JSArgument () where
         jsArgs () = []
 
---class (Sunroof a, Sunroof b) e val where
---    jsValue :: val -> JSValue
+instance JSArgument JSBool where
+      jsArgs a = [cast a]
+
+instance JSArgument JSNumber where
+      jsArgs a = [cast a]
+
+instance JSArgument JSString where
+      jsArgs a = [cast a]
+
+instance JSArgument JSObject where
+      jsArgs a = [cast a]
+
+instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
+      jsArgs (a,b) = [cast a, cast b]
+
+instance (Sunroof a, Sunroof b, Sunroof c) => JSArgument (a,b,c) where
+      jsArgs (a,b,c) = [cast a, cast b, cast c]
+
+instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d) => JSArgument (a,b,c,d) where
+      jsArgs (a,b,c,d) = [cast a, cast b, cast c, cast d]
+
+instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e) => JSArgument (a,b,c,d,e) where
+      jsArgs (a,b,c,d,e) = [cast a, cast b, cast c, cast d, cast e]
+
+instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f) => JSArgument (a,b,c,d,e,f) where
+      jsArgs (a,b,c,d,e,f) = [cast a, cast b, cast c, cast d, cast e, cast f]
+
+-- Need to add the 7 & 8 tuple (not used in this package - yet)
+
+instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunroof g, Sunroof h, Sunroof i) => JSArgument (a,b,c,d,e,f,g,h,i) where
+      jsArgs (a,b,c,d,e,f,g,h,i) = [cast a, cast b, cast c, cast d, cast e, cast f, cast g, cast h, cast i]
+
+
+----    jsValue :: val -> JSValue
 
 --instance JSType JSBool where
 --    jsValue (JSBool expr) = JSValue expr
@@ -324,7 +356,8 @@ instance Monad (Action a) where
 
 -- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
-method :: String -> [JSValue] -> Action JSObject a
+
+method :: JSArgument a => String -> a -> Action JSObject r
 method str args = (!  label (fromString str)) `Map` with args
 
 string :: String -> JSString
@@ -337,8 +370,8 @@ object = JSObject . Lit
 call :: String -> JSFunction a r
 call = JSFunction . Lit
 
-with :: [JSValue] -> Action (JSFunction a r) r
-with = Invoke
+with :: JSArgument a => a -> Action (JSFunction a r) r
+with = Invoke . jsArgs
 
 new :: JS JSObject
 new = eval $ object "new Object()"
