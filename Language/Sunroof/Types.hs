@@ -88,6 +88,20 @@ instance Sunroof JSValue where
 instance IsString JSValue where
     fromString = JSValue . Lit . show
 
+class JSArgument args where
+        jsArgs :: args -> [JSValue]
+
+instance JSArgument () where
+        jsArgs () = []
+
+--class (Sunroof a, Sunroof b) e val where
+--    jsValue :: val -> JSValue
+
+--instance JSType JSBool where
+--    jsValue (JSBool expr) = JSValue expr
+
+--instance JSPrimitive a => JSArgument a where
+
 ---------------------------------------------------------------
 
 data JSBool = JSBool Expr
@@ -125,20 +139,21 @@ js_ifB (JSBool c) t e = box $ Op "?:" [c,unbox t,unbox e]
 
 ---------------------------------------------------------------
 
--- The type argument of JSFunction is what the function returns.
-data JSFunction ret = JSFunction Expr
+-- The first type argument is the type of function argument;
+-- The second type argument of JSFunction is what the function returns.
+data JSFunction args ret = JSFunction Expr
 
-instance Show (JSFunction a) where
+instance Show (JSFunction a r) where
         show (JSFunction v) = show v
 
-instance Sunroof (JSFunction a) where
+instance Sunroof (JSFunction a r) where
         mkVar = JSFunction . Var
         box = JSFunction
         unbox (JSFunction e) = e
 
-type instance BooleanOf (JSFunction a) = JSBool
+type instance BooleanOf (JSFunction a r) = JSBool
 
-instance IfB (JSFunction a) where
+instance IfB (JSFunction a r) where
     ifB = js_ifB
 
 ---------------------------------------------------------------
@@ -162,8 +177,8 @@ instance Num JSNumber where
         fromInteger = JSNumber . Lit . show . fromInteger
 
 instance IntegralB JSNumber where
-  quot a b = ifB ((a / b) <* 0) 
-                 (JSNumber $ Op "Math.ceil" [let JSNumber res = a / b in res]) 
+  quot a b = ifB ((a / b) <* 0)
+                 (JSNumber $ Op "Math.ceil" [let JSNumber res = a / b in res])
                  (a `div` b)
   rem a b = a - (a `quot` b)*b
   div a b = JSNumber $ Op "Math.floor" [let JSNumber res = a / b in res]
@@ -189,9 +204,9 @@ instance Floating JSNumber where
         log   (JSNumber e) = JSNumber $ Op "Math.log"   [e]
 
 instance RealFracB JSNumber where
-  properFraction n = 
+  properFraction n =
     ( ifB (n >=* 0) (floor n) (ceiling n)
-    , ifB (n >=* 0) (n - floor n) (n - ceiling n) 
+    , ifB (n >=* 0) (n - floor n) (n - ceiling n)
     )
   round   (JSNumber e) = JSNumber $ Op "Math.round" [e]
   ceiling (JSNumber e) = JSNumber $ Op "Math.ceil"  [e]
@@ -289,7 +304,7 @@ infix  5 :=
 
 data Action :: * -> * -> * where
    -- Invoke is not quite right
-   Invoke :: [JSValue]                                          -> Action (JSFunction a) a
+   Invoke :: [JSValue]                                          -> Action (JSFunction a r) r
    -- Basically, this is special form of call, to assign to a field
    (:=)   :: (Sunroof a) => String -> a                         -> Action JSObject ()
    -- This is the fmap-like function, an effect-free modifier on the first argument
@@ -319,10 +334,10 @@ object :: String -> JSObject
 object = JSObject . Lit
 
 -- perhaps call this invoke
-call :: String -> JSFunction a
+call :: String -> JSFunction a r
 call = JSFunction . Lit
 
-with :: [JSValue] -> Action (JSFunction a) a
+with :: [JSValue] -> Action (JSFunction a r) r
 with = Invoke
 
 new :: JS JSObject
@@ -359,7 +374,7 @@ data JSI a where
     -- special primitives
 --    JS_Wait   :: Template a -> (JSObject -> JS ())              -> JSI ()
     JS_Loop :: a -> (a -> JS a)                                 -> JSI ()
-    JS_Function :: (Sunroof a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction b)
+    JS_Function :: (Sunroof a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
     JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> JSI a
 
@@ -367,7 +382,7 @@ data JSI a where
 
 -- We only can compile functions that do not have interesting return
 -- values, so we can assume they are continuation-like things.
-function :: (Sunroof a, Sunroof b) => (a -> JS b) -> JS (JSFunction b)
+function :: (Sunroof a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
 function = singleton . JS_Function
 
 infixl 4 <$>
