@@ -58,19 +58,6 @@ instance Sunroof () where
         box _ = ()
         unbox () = Lit ""
 
-{-
-instance (Sunroof a, Sunroof b) => Sunroof (a,b) where
-    mkVar u = let (x,u') = mkVar u
-                  (y,u'') = mkVar u'
-              in ((x,y), u'')
-    box (Op o [x,y]) | o == "(,)" = (box x, box y)
-    unbox (x,y) = Op "(,)" [unbox x, unbox y]
-    showVar (x,y) = showVar x ++ "," ++ showVar y -- tuples get flattened into sep arguments
-
-    -- javascript's crazy scoping actually comes in handy
-    assignVar (x,y) = "var " ++ show x ++ "; var " ++ show y ++ "; function(a1,a2){" ++ show x ++ "=a1;" ++ show y ++ "=a2})"
--}
-
 ---------------------------------------------------------------
 
 class Monad m => UniqM m where
