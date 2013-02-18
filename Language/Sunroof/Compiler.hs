@@ -14,7 +14,7 @@ compileJS = flip evalState 0 . compile
 
 -- compile an existing expression
 compile :: Sunroof c => JS c -> CompM (String,String)
-compile (JS m) = eval (view m)
+compile = eval . view . unJS
     -- since the type  Program  is abstract (for efficiency),
     -- we have to apply the  view  function first,
     -- to get something we can pattern match on
@@ -28,9 +28,35 @@ compile (JS m) = eval (view m)
 --            compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
           eval (JS_Eval o :>>= g) = do
             compileBind "" ("(" ++ showVar o ++ ")") (JS . g)
+          eval (JS_Assign sel a obj :>>= g) = do
+            compileBind "" ("(" ++ showVar obj ++ ")[" ++ show sel ++ "] = (" ++ show (unbox a) ++ ");") (JS . g)
+          eval (JS_Select sel obj :>>= g) = do
+             -- if a function, then wrap with
+             -- function(v){return document.getElementById(v);}
+            compileBind "" ("(" ++ showVar obj ++ ")[" ++ show sel ++ "]") (JS . g)
+          eval (JS_Invoke args fn :>>= g) = do
+            compileBind "" ("(" ++ showVar fn ++ ")(" ++ intercalate "," (map show args) ++ ")") (JS . g)
+{-
+compileAction o (Invoke args) =
+        return ("","(" ++ showVar o ++ ")(" ++ intercalate "," (map show args) ++ ")")
+compileAction o (JSSelector nm := val) =
+                                -- this is a total hack, (pres. is wrong), but works
+        return ("","(" ++ showVar o ++ ")[" ++ show nm ++ "] = (" ++ show (unbox val) ++ ")")
+
+
           eval (JS_App o jss :>>= g) = do
             (pre,act) <- compileAction o jss
             compileBind pre act (JS . g)
+
+    JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject  -> JSI ()
+
+    JS_Select  :: (Sunroof a) => JSSelector a -> JSObject      -> JSI a
+
+    JS_Invoke :: (Sunroof r) => [Expr] -> JSFunction a r        -> JSI r        -- Perhaps take the overloaded vs [Expr]
+                                                                                -- and use jsArgs in the compiler?
+
+
+-}
 --            ("(" ++ showVar o ++ ")" ++ sel_txt) g
 --          eval (JS_Invoke args :>>= g) = do
 --            compileBind ("(function(o) { return o.(" ++ intercalate "," (map show args) ++ ");}") g
@@ -67,7 +93,7 @@ compileBind :: (Sunroof a, Sunroof b) => String -> String -> (a -> JS b) -> Comp
 compileBind txt0 txt1 m2 = do
     a <- newVar
     (txt2,ret) <- compile (m2 a)
-    return (txt0 ++ assignVar a ++ txt1 ++ ";" ++ txt2,ret)
+    return (txt0 ++ assignVar a txt1 ++ txt2,ret)
 
 -- Does the same as 'compileBind' but does not bind the result of the passed in
 -- JavaScript source to a variable. Like this control flow constructs like
@@ -83,9 +109,9 @@ compileBranch b c1 c2 = do
   (src1, res1) <- compile c1
   (src2, res2) <- compile c2
   return $ (concat [ "if(", showVar b, ") {"
-                   , src1, assignVar res, res1, ";"
+                   , src1, assignVar res res1
                    , "} else {"
-                   , src2, assignVar res, res2, ";"
+                   , src2, assignVar res res2
                    , "}" ]
            , res)
 
@@ -103,7 +129,7 @@ compileFunction m2 = do
 
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?
-
+{-
 compileAction :: (Sunroof a, Sunroof b) => a -> Action a b -> CompM (String,String)
 compileAction o (Invoke args) =
         return ("","(" ++ showVar o ++ ")(" ++ intercalate "," (map show args) ++ ")")
@@ -129,7 +155,7 @@ compileAction' o m k = do
 
 --        return $ showVar b
 --   BindAction :: Action a b -> (b -> Action a c)                -> Action a c
-
+-}
 {-
 compileAction o (Multi many) = do
         patches <- mapM (compileAction o) many

@@ -48,13 +48,13 @@ class Show a => Sunroof a where
         showVar :: a -> String -- needed because show instance for unit is problematic
         showVar = show
 
-        assignVar :: a -> String
-        assignVar a = "var " ++ show a ++ "="
+        assignVar :: a -> String -> String
+        assignVar a rhs = "var " ++ show a ++ "=" ++ rhs ++ ";"
 
 -- unit is the oddball
 instance Sunroof () where
         showVar _ = ""
-        assignVar _ = ""
+        assignVar _ rhs = rhs ++ ";"
         box _ = ()
         unbox () = Lit ""
 
@@ -177,13 +177,22 @@ data JSFunction args ret = JSFunction Expr
 instance Show (JSFunction a r) where
         show (JSFunction v) = show v
 
-instance Sunroof (JSFunction a r) where
+instance forall a r . (JSArgument a) => Sunroof (JSFunction a r) where
         box = JSFunction
         unbox (JSFunction e) = e
 
+
+--        assignVar :: a -> String -> String
+        assignVar a rhs = "var " ++ show a ++ "= function(" ++ args ++ "){ return (" ++ rhs ++ "(" ++ args ++ "));};"
+           where args = intercalate ","
+                         [ "a" ++ show (i :: Int)
+                         | (i,_) <- zip [1..] (jsArgs (error "" :: a))
+                         ]
+
+
 type instance BooleanOf (JSFunction a r) = JSBool
 
-instance IfB (JSFunction a r) where
+instance (JSArgument a) => IfB (JSFunction a r) where
     ifB = js_ifB
 
 ---------------------------------------------------------------
@@ -317,6 +326,10 @@ data JSSelector :: * -> * where
 instance IsString (JSSelector a) where
     fromString = JSSelector . fromString
 
+instance Show (JSSelector a) where
+    show (JSSelector str) = show str
+
+
 label :: JSString -> JSSelector a
 label = JSSelector
 
@@ -329,29 +342,49 @@ label = JSSelector
 
 infix  5 :=
 
+
+type Action a r = a -> JS r
+{-
 data Action :: * -> * -> * where
    -- Invoke is not quite right
-   Invoke :: (Sunroof r) => [Expr]                                             -> Action (JSFunction a r) r
+   Invoke :: (Sunroof r) => [Expr]                              -> Action (JSFunction a r) r
    -- Basically, this is special form of call, to assign to a field
    (:=)   :: (Sunroof a) => JSSelector a -> a                   -> Action JSObject ()
    -- This is the fmap-like function, an effect-free modifier on the first argument
+   -- TODO: revisit Map and Invoke. Does not feel right.
    Map :: (Sunroof b, a ~ JSObject, b ~ JSFunction x y, Sunroof c) => (a -> b) -> Action b c                 -> Action a c
+   Field :: JSSelector a                                        -> Action JSObject a
+
+   Dot :: Action a b -> Action b c                              -> Action a c
 
    NoAction :: b                                                -> Action a b
    BindAction :: Action a b -> (b -> Action a c)                -> Action a c
 
+-- There is
+--  Action JSObject a                           -- Return a             JSObject -> JS a
+--  Action (JSFunction a r) r                   -- Function a r         JSFunction a r -> a -> JS r
+-}
+-- method :: String             -> a -> JSObject -> JS r
+-- with :: a                    -> JSFunction a r -> JS r
+-- (:=) :: JSSelector a -> a    -> JSObject -> JS ()
+
+-- type Action a = JSObject -> JS a     ??? But we have the reader monad built in anyway???
+
+-- (a -> JS b) -> (b -> JS c)
+-- method :: String -> a -> Return r
+-- with :: Return (JSFunction a b) -> a -> Return a
+{-
 instance Monad (Action a) where
         return = NoAction
         (>>=)  = BindAction
-
-
+-}
 ---------------------------------------------------------------
 
 -- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 
 method :: (JSArgument a, Sunroof r) => String -> a -> Action JSObject r
-method str args = (!  label (fromString str)) `Map` with args
+method str args obj = select (attribute str) obj >>= with args
 
 string :: String -> JSString
 string = JSString . Lit . show
@@ -364,7 +397,7 @@ call :: String -> JSFunction a r
 call = JSFunction . Lit
 
 with :: (JSArgument a, Sunroof r) => a -> Action (JSFunction a r) r
-with = Invoke . jsArgs
+with a fn = JS $ singleton $ JS_Invoke (jsArgs a) fn
 
 new :: JS JSObject
 new = evaluate $ object "new Object()"
@@ -374,6 +407,10 @@ attribute attr = label $ string attr
 
 --vector :: [JSValue] -> JSVector
 --vector = ...
+---------------------------------------------------------------
+
+select :: (Sunroof a) => JSSelector a -> JSObject -> JS a
+select sel obj = JS $ singleton $ JS_Select sel obj
 
 ---------------------------------------------------------------
 
@@ -385,18 +422,30 @@ evaluate a  = JS $ singleton (JS_Eval a)
 ---------------------------------------------------------------
 
 -- Control.Monad.Operational makes a monad out of JS for us
-data JS a = JS (Program JSI a)
+data JS a where
+    JS   :: Program JSI a                                             -> JS a
+    (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject              -> JS ()
+
+unJS :: JS a -> Program JSI a
+unJS (JS m) = m
+unJS ((:=) sel a obj) = singleton $ JS_Assign sel a obj
 
 instance Monad JS where
         return a = JS (return a)
-        JS m >>= k = JS (m >>= \ r -> case k r of
-                                        JS q -> q)
+        m >>= k = JS (unJS m >>= \ r -> unJS (k r))
 
 -- define primitive effects / "instructions" for the JS monad
 data JSI a where
 
     -- apply an action to an 'a', and compute a b
-    JS_App    :: (Sunroof a, Sunroof b) => a -> Action a b      -> JSI b
+--    JS_App    :: (Sunroof a, Sunroof b) => a -> Action a b      -> JSI b
+
+    JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject  -> JSI ()
+
+    JS_Select  :: (Sunroof a) => JSSelector a -> JSObject      -> JSI a
+
+    JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r        -> JSI r        -- Perhaps take the overloaded vs [Expr]
+                                                                                -- and use jsArgs in the compiler?
 
     -- Not the same as return; does evaluation of argument
     JS_Eval   :: (Sunroof a) => a                               -> JSI a
@@ -418,8 +467,9 @@ infixl 4 <*>
 (<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
 (<!>) o s = return $ o ! s
 
-(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
-(<$>) o s = JS $ singleton $ o `JS_App` s
+--(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
+(<$>) :: a -> (a -> JS b) -> JS b
+(<$>) o s = s o--  JS $ singleton $ o `JS_App` s
 
 (<*>) :: (Sunroof a, Sunroof b) => JS a -> Action a b -> JS b
 (<*>) m s = m >>= \ o -> o <$> s

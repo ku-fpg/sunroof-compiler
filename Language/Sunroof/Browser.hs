@@ -50,6 +50,7 @@ import Language.Sunroof.Types
   , JSFunction
   , JS, JSSelector
   , Action(..)
+  , JS ( (:=) )
   , call
   , with
   , cast
