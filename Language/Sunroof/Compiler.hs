@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables #-}
+{-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
 module Language.Sunroof.Compiler where
 
 import qualified Control.Applicative as App
@@ -91,27 +91,16 @@ compileBranch b c1 c2 = do
 
 compileFunction :: forall a b . (JSArgument a, Sunroof b) => (a -> JS b) -> CompM String
 compileFunction m2 = do
-    vars <- sequence [ uniqM
-                     | _ <- jsArgs (undefined :: a)   -- get # of arguments
-                     ]
-    let arg :: a = jsValue vars
+    start    <- get
+    arg :: a <- jsValue
+    end      <- get
 
     (txt2,ret) <- compile (m2 arg)
 
-    let interleave _ [] = []
-        interleave s xs = foldr1 (\ x y -> x ++ s ++ y) xs
-
-    let arg_list = intercalate "," $ map (showVar :: JSObject -> String) $ map mkVar vars
+    let arg_list = intercalate "," $ map (show . Var) $ [start..(end - 1)]
 
     return $ "(function (" ++ arg_list ++ "){" ++ txt2 ++ "; return " ++ ret ++ ";})"
 
---   jsValue vars
-
-{-
-    a <- newVar
-
-    -- continuation problem (if you have a continuation, then this will go wrong)
--}
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?
 
@@ -125,16 +114,16 @@ compileAction o (Map f act) =
 
 
 
-type CompM a = State Uniq a
+type CompM = State Uniq
 
-uniqM :: CompM Uniq
-uniqM = do
+instance UniqM CompM where
+  uniqM = do
     n <- get
     modify (+1)
     return n
 
 newVar :: (Sunroof a) => CompM a
-newVar = mkVar App.<$> uniqM
+newVar = jsVar
 
 newLoop :: CompM String
 newLoop = do

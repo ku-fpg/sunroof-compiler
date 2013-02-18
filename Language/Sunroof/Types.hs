@@ -11,6 +11,7 @@ import Data.Monoid
 import Control.Monad.Operational
 import Data.Boolean
 import Data.Boolean.Numbers
+import Control.Monad
 
 type Uniq = Int         -- used as a unique label
 
@@ -37,8 +38,10 @@ instance Show Expr where
 
 ---------------------------------------------------------------
 
+mkVar :: Sunroof a => Uniq -> a
+mkVar = box . Var
+
 class Show a => Sunroof a where
-        mkVar :: Uniq -> a
         box :: Expr -> a
         unbox :: a -> Expr
 
@@ -50,7 +53,6 @@ class Show a => Sunroof a where
 
 -- unit is the oddball
 instance Sunroof () where
-        mkVar _ = ()
         showVar _ = ""
         assignVar _ = ""
         box _ = ()
@@ -70,70 +72,73 @@ instance (Sunroof a, Sunroof b) => Sunroof (a,b) where
 -}
 
 ---------------------------------------------------------------
-{-
-data JSValue where   -- This may go away
-  JSValue :: Expr -> JSValue
-  --JSValueVar :: Uniq -> JSValue         -- so the typing does not throw a fit
 
-instance Show JSValue where
-        show (JSValue v)  = show v
---        show (JSValueVar uq) = "v" ++ show uq
+class Monad m => UniqM m where
+        uniqM :: m Uniq
 
-instance Sunroof JSValue where
-        mkVar = JSValue . Var
-        showVar (JSValue e) = show e
-        box = JSValue
-        unbox (JSValue e) = e
+jsVar :: (Sunroof a, UniqM m) => m a
+jsVar = uniqM >>= return . mkVar
 
-instance IsString JSValue where
-    fromString = JSValue . Lit . show
--}
+---------------------------------------------------------------
 
 class JSArgument args where
-        jsArgs :: args -> [Expr]
-        jsValue  :: [Uniq] -> args
+        jsArgs   :: args -> [Expr]        -- turn a value into a list of expressions
+        jsValue  :: (UniqM m) => m args
 
 instance JSArgument () where
         jsArgs _ = []
-        jsValue _ = ()
+        jsValue = return ()
 
 instance JSArgument JSBool where
       jsArgs a = [unbox a]
+      jsValue = jsVar
 
 instance JSArgument JSNumber where
       jsArgs a = [unbox a]
-      jsValue [u] = mkVar u
+      jsValue = jsVar
 
 instance JSArgument JSString where
       jsArgs a = [unbox a]
-      jsValue [u] = mkVar u
+      jsValue = jsVar
 
 instance JSArgument JSObject where
       jsArgs a = [unbox a]
-      jsValue [u] = mkVar u
+      jsValue = jsVar
 
 instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
       jsArgs ~(a,b) = [unbox a, unbox b]
-      jsValue [u1,u2] = (mkVar u1,mkVar u2)
+      jsValue = liftM2 (,) jsVar jsVar
 
 instance (Sunroof a, Sunroof b, Sunroof c) => JSArgument (a,b,c) where
       jsArgs ~(a,b,c) = [unbox a, unbox b, unbox c]
-      jsValue [u1,u2,u3] = (mkVar u1,mkVar u2,mkVar u3)
+      jsValue = liftM3 (,,) jsVar jsVar jsVar
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d) => JSArgument (a,b,c,d) where
       jsArgs ~(a,b,c,d) = [unbox a, unbox b, unbox c, unbox d]
+      jsValue = liftM4 (,,,) jsVar jsVar jsVar jsVar
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e) => JSArgument (a,b,c,d,e) where
       jsArgs ~(a,b,c,d,e) = [unbox a, unbox b, unbox c, unbox d, unbox e]
+      jsValue = liftM5 (,,,,) jsVar jsVar jsVar jsVar jsVar
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f) => JSArgument (a,b,c,d,e,f) where
       jsArgs ~(a,b,c,d,e,f) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f]
+      jsValue = return (,,,,,) `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar
 
 -- Need to add the 7 & 8 tuple (not used in this package - yet)
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunroof g, Sunroof h, Sunroof i) => JSArgument (a,b,c,d,e,f,g,h,i) where
       jsArgs ~(a,b,c,d,e,f,g,h,i) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f, unbox g, unbox h, unbox i]
-
+      jsValue = return (,,,,,,,,)
+                        `ap` jsVar
+                        `ap` jsVar
+                        `ap` jsVar
+                        `ap` jsVar
+                        `ap` jsVar
+                        `ap` jsVar
+                        `ap` jsVar
+                        `ap` jsVar
+                        `ap` jsVar
 
 ----    jsValue :: val -> JSValue
 
@@ -150,7 +155,6 @@ instance Show JSBool where
         show (JSBool e) = show e
 
 instance Sunroof JSBool where
-        mkVar = JSBool . Var
         box = JSBool
         unbox (JSBool v)  = v
 
@@ -187,7 +191,6 @@ instance Show (JSFunction a r) where
         show (JSFunction v) = show v
 
 instance Sunroof (JSFunction a r) where
-        mkVar = JSFunction . Var
         box = JSFunction
         unbox (JSFunction e) = e
 
@@ -204,7 +207,6 @@ instance Show JSNumber where
         show (JSNumber v) = show v
 
 instance Sunroof JSNumber where
-        mkVar = JSNumber . Var
         box = JSNumber
         unbox (JSNumber e) = e
 
@@ -283,7 +285,6 @@ instance Show JSString where
         show (JSString v) = show v
 
 instance Sunroof JSString where
-        mkVar = JSString . Var
         box = JSString
         unbox (JSString e) = e
 
@@ -311,7 +312,6 @@ instance Show JSObject where
         show (JSObject v) = show v
 
 instance Sunroof JSObject where
-        mkVar = JSObject . Var
         box = JSObject
         unbox (JSObject o) = o
 
