@@ -333,7 +333,7 @@ data Action :: * -> * -> * where
    -- Invoke is not quite right
    Invoke :: [Expr]                                             -> Action (JSFunction a r) r
    -- Basically, this is special form of call, to assign to a field
-   (:=)   :: (Sunroof a) => String -> a                         -> Action JSObject ()
+   (:=)   :: (Sunroof a) => JSSelector a -> a                   -> Action JSObject ()
    -- This is the fmap-like function, an effect-free modifier on the first argument
    Map :: (Sunroof b) => (a -> b) -> Action b c                 -> Action a c
 

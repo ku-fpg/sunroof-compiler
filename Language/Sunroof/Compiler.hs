@@ -107,7 +107,7 @@ compileFunction m2 = do
 compileAction :: (Sunroof a) => a -> Action a b -> CompM String
 compileAction o (Invoke args) =
         return $ "(" ++ showVar o ++ ")(" ++ intercalate "," (map show args) ++ ")"
-compileAction o (nm := val) =
+compileAction o (JSSelector nm := val) =
         return $ "(" ++ showVar o ++ ")[" ++ show nm ++ "] = (" ++ show (unbox val) ++ ")" -- this is a total hack, (pres. is wrong), but works
 compileAction o (Map f act) =
         compileAction (f o) act
