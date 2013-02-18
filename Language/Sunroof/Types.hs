@@ -90,41 +90,48 @@ instance IsString JSValue where
 
 class JSArgument args where
         jsArgs :: args -> [JSValue]
+        jsValue  :: [Uniq] -> args
 
 instance JSArgument () where
-        jsArgs () = []
+        jsArgs _ = []
+        jsValue _ = ()
 
 instance JSArgument JSBool where
       jsArgs a = [cast a]
 
 instance JSArgument JSNumber where
       jsArgs a = [cast a]
+      jsValue [u] = mkVar u
 
 instance JSArgument JSString where
       jsArgs a = [cast a]
+      jsValue [u] = mkVar u
 
 instance JSArgument JSObject where
       jsArgs a = [cast a]
+      jsValue [u] = mkVar u
 
 instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
-      jsArgs (a,b) = [cast a, cast b]
+      jsArgs ~(a,b) = [cast a, cast b]
+      jsValue [u1,u2] = (mkVar u1,mkVar u2)
 
 instance (Sunroof a, Sunroof b, Sunroof c) => JSArgument (a,b,c) where
-      jsArgs (a,b,c) = [cast a, cast b, cast c]
+      jsArgs ~(a,b,c) = [cast a, cast b, cast c]
+      jsValue [u1,u2,u3] = (mkVar u1,mkVar u2,mkVar u3)
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d) => JSArgument (a,b,c,d) where
-      jsArgs (a,b,c,d) = [cast a, cast b, cast c, cast d]
+      jsArgs ~(a,b,c,d) = [cast a, cast b, cast c, cast d]
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e) => JSArgument (a,b,c,d,e) where
-      jsArgs (a,b,c,d,e) = [cast a, cast b, cast c, cast d, cast e]
+      jsArgs ~(a,b,c,d,e) = [cast a, cast b, cast c, cast d, cast e]
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f) => JSArgument (a,b,c,d,e,f) where
-      jsArgs (a,b,c,d,e,f) = [cast a, cast b, cast c, cast d, cast e, cast f]
+      jsArgs ~(a,b,c,d,e,f) = [cast a, cast b, cast c, cast d, cast e, cast f]
 
 -- Need to add the 7 & 8 tuple (not used in this package - yet)
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunroof g, Sunroof h, Sunroof i) => JSArgument (a,b,c,d,e,f,g,h,i) where
-      jsArgs (a,b,c,d,e,f,g,h,i) = [cast a, cast b, cast c, cast d, cast e, cast f, cast g, cast h, cast i]
+      jsArgs ~(a,b,c,d,e,f,g,h,i) = [cast a, cast b, cast c, cast d, cast e, cast f, cast g, cast h, cast i]
 
 
 ----    jsValue :: val -> JSValue
@@ -407,7 +414,7 @@ data JSI a where
     -- special primitives
 --    JS_Wait   :: Template a -> (JSObject -> JS ())              -> JSI ()
     JS_Loop :: a -> (a -> JS a)                                 -> JSI ()
-    JS_Function :: (Sunroof a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction a b)
+    JS_Function :: (JSArgument a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
     JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> JSI a
 
@@ -415,7 +422,7 @@ data JSI a where
 
 -- We only can compile functions that do not have interesting return
 -- values, so we can assume they are continuation-like things.
-function :: (Sunroof a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
+function :: (JSArgument a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
 function = singleton . JS_Function
 
 infixl 4 <$>

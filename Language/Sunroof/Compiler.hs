@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, RankNTypes, KindSignatures #-}
+{-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables #-}
 module Language.Sunroof.Compiler where
 
 import qualified Control.Applicative as App
@@ -82,20 +82,36 @@ compileBranch b c1 c2 = do
   res <- newVar
   (src1, res1) <- compile c1
   (src2, res2) <- compile c2
-  return $ (concat [ "if(", showVar b, ") {" 
+  return $ (concat [ "if(", showVar b, ") {"
                    , src1, assignVar res, res1, ";"
-                   , "} else {" 
+                   , "} else {"
                    , src2, assignVar res, res2, ";"
                    , "}" ]
            , res)
 
-compileFunction :: (Sunroof a, Sunroof b) => (a -> JS b) -> CompM String
+compileFunction :: forall a b . (JSArgument a, Sunroof b) => (a -> JS b) -> CompM String
 compileFunction m2 = do
-    a <- newVar
-    (txt2,ret) <- compile (m2 a)
-    -- continuation problem (if you have a continuation, then this will go wrong)
-    return $ "(function (" ++ showVar a ++ "){" ++ txt2 ++ "; return " ++ ret ++ ";})"
+    vars <- sequence [ uniqM
+                     | _ <- jsArgs (undefined :: a)   -- get # of arguments
+                     ]
+    let arg :: a = jsValue vars
 
+    (txt2,ret) <- compile (m2 arg)
+
+    let interleave _ [] = []
+        interleave s xs = foldr1 (\ x y -> x ++ s ++ y) xs
+
+    let arg_list = interleave "," $ map (showVar :: JSValue -> String) $ map mkVar vars
+
+    return $ "(function (" ++ arg_list ++ "){" ++ txt2 ++ "; return " ++ ret ++ ";})"
+
+--   jsValue vars
+
+{-
+    a <- newVar
+
+    -- continuation problem (if you have a continuation, then this will go wrong)
+-}
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?
 
