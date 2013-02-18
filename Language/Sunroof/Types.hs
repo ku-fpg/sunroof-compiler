@@ -466,10 +466,14 @@ infixl 4 <$>
 (<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
 (<!>) o s = evaluate $ o ! s
 
---(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
-(<$>) :: a -> (a -> JS b) -> JS b
-(<$>) o s = s o--  JS $ singleton $ o `JS_App` s
+(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
+(<$>) = (#)
 
+-- We should use this operator for the obj.label concept.
+-- It has been used in other places (but I can not seems
+-- to find a library for it)
+(#) :: a -> (a -> JS b) -> JS b
+(#) obj act = act obj
 
 type instance BooleanOf (JS a) = JSBool
 
