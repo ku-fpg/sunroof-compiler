@@ -369,7 +369,7 @@ with :: JSArgument a => a -> Action (JSFunction a r) r
 with = Invoke . jsArgs
 
 new :: JS JSObject
-new = eval $ object "new Object()"
+new = evaluate $ object "new Object()"
 
 attribute :: String -> JSSelector a
 attribute attr = label $ string attr
@@ -379,8 +379,10 @@ attribute attr = label $ string attr
 
 ---------------------------------------------------------------
 
-eval :: (Sunroof a) => a -> JS a
-eval a  = singleton (JS_Eval a)
+-- This is not the same as return; it evaluates
+-- the argument to value form.
+evaluate :: (Sunroof a) => a -> JS a
+evaluate a  = singleton (JS_Eval a)
 
 ---------------------------------------------------------------
 
