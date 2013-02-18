@@ -91,7 +91,7 @@ web_app doc = do
 
         fib <- recfunction $ \ fib (n :: JSNumber) ->
             ifB (n <* 2)
-                (return 1)
+                (return (1 :: JSNumber))
                 (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
 
         addMethod "control" $ \ () ->
@@ -133,7 +133,7 @@ click = event "click" Click
             <&> "pageX"   .=  "event.pageX"
             <&> "pageY"   .=  "event.pageY"
 
-recfunction :: ((JSNumber -> JS JSNumber) -> (JSNumber -> JS JSNumber)) -> JS (JSFunction JSNumber JSNumber)
+recfunction :: (JSArgument a, Sunroof b) => ((a -> JS b) -> (a -> JS b)) -> JS (JSFunction a b)
 recfunction fn = do
         obj <- new
         f <- function $ fn (\ n -> (obj <!> attribute "rec") <*> with n)
