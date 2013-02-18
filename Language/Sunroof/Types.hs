@@ -6,7 +6,7 @@ import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
 import GHC.Exts
 import Data.Char
 import Data.List (intercalate)
-import qualified Data.Map as Map
+--import qualified Data.Map as Map
 import Data.Monoid
 import Control.Monad.Operational
 import Data.Boolean
@@ -166,6 +166,7 @@ instance EqB JSBool where
   (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
   (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
 
+js_ifB :: (Sunroof a) => JSBool -> a -> a -> a
 js_ifB (JSBool c) t e = box $ Op "?:" [c,unbox t,unbox e]
 
 ---------------------------------------------------------------
@@ -212,7 +213,7 @@ instance Num JSNumber where
         (JSNumber e1) * (JSNumber e2) = JSNumber $ Op "*" [e1,e2]
         abs (JSNumber e1) = JSNumber $ Op "Math.abs" [e1]
         signum (JSNumber e1) = JSNumber $ Op "" [e1] -- TODO
-        fromInteger = JSNumber . Lit . show . fromInteger
+        fromInteger = JSNumber . Lit . show
 
 instance IntegralB JSNumber where
   quot a b = ifB ((a / b) <* 0)
@@ -224,7 +225,7 @@ instance IntegralB JSNumber where
 
 instance Fractional JSNumber where
         (JSNumber e1) / (JSNumber e2) = JSNumber $ Op "/" [e1,e2]
-        fromRational = JSNumber . Lit . show . fromRational
+        fromRational = JSNumber . Lit . show . (fromRational :: Rational -> Double)
 
 instance Floating JSNumber where
         pi = JSNumber $ Lit $ "Math.PI"
@@ -480,7 +481,7 @@ instance forall a . (Sunroof a) => IfB (JS a) where
     ifB i h e = JS $ singleton $ JS_Branch i h e
 
 switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b) => a -> [(a,JS b)] -> JS b
-switch a [] = return (cast (object "undefined"))
+switch _a [] = return (cast (object "undefined"))
 switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
 

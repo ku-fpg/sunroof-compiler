@@ -1,13 +1,13 @@
 {-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
 module Language.Sunroof.Compiler where
 
-import qualified Control.Applicative as App
+--import qualified Control.Applicative as App
 import Control.Monad.Operational
 import Control.Monad.State
 import Data.List (intercalate)
 
 import Language.Sunroof.Types
-import Web.KansasComet (Template(..), extract)
+--import Web.KansasComet (Template(..), extract)
 
 compileJS :: (Sunroof a) => JS a -> (String,String)
 compileJS = flip evalState 0 . compile

@@ -49,11 +49,10 @@ import Language.Sunroof.Types
   , JSObject, JSBool
   , JSFunction
   , JS, JSSelector
-  , Action(..)
+  , Action
   , JS ( (:=) )
   , call
   , with
-  , cast
   , method
   , object
   , attribute
