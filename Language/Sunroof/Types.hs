@@ -465,7 +465,7 @@ function = JS . singleton . JS_Function
 infixl 4 <$>
 
 (<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
-(<!>) o s = return $ o ! s
+(<!>) o s = evaluate $ o ! s
 
 --(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
 (<$>) :: a -> (a -> JS b) -> JS b
