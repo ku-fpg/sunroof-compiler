@@ -59,31 +59,31 @@ web_app doc = do
 
         -- This is using the imperative update to enable the
         let control :: () -> JS ()
-            control () = obj ! "control" <$> with []
+            control () = obj ! "control" <$> with ()
 
             view :: () -> JS ()
-            view () = obj ! "view" <$> with []
+            view () = obj ! "view" <$> with ()
 
-            addMethod :: (Sunroof a, Sunroof b) => String -> (a -> JS b) -> JS ()
+            addMethod :: (JSArgument a, Sunroof a, Sunroof b) => String -> (a -> JS b) -> JS ()
             addMethod nm f = do n <- function f
-                                obj <$> nm := n
+                                obj <$> attribute nm := n
 
             jQuery :: JSString -> JS JSObject
-            jQuery nm = call "$" <$> with [cast nm]
+            jQuery nm = call "$" <$> with nm
 
-            slider :: JSValue -> Action JSObject JSObject
-            slider nm = method "slider"  ["value", cast nm]
+            slider :: JSNumber -> Action JSObject JSObject
+            slider nm = method "slider"  ("value" :: JSString, nm)
 
             html :: JSString -> Action JSObject JSObject
-            html nm = method "html"  [cast nm]
+            html nm = method "html"  nm
 
             fib :: JSNumber -> JS JSNumber
-            fib n = obj ! "fib" <$> with [cast n]
+            fib n = obj ! "fib" <$> with n
 
             update :: String -> JSNumber -> JSNumber -> JSNumber -> JS ()
             update nm val mn mx =
                 ifB ((val <=* mx) &&* (val >=* mn))
-                    (obj <$> nm := val)
+                    (obj <$> attribute nm := val)
                     (return ())
 
             switchB _   []         def = def
@@ -96,7 +96,7 @@ web_app doc = do
 
         addMethod "control" $ \ () ->
             wait "body" (slide <> click) $ \ res -> do
-                model <- eval (obj ! "model") :: JS JSNumber
+                model <- evaluate (obj ! "model") :: JS JSNumber
 
                 switchB (res ! "id" :: JSString)
                     [ ("slider", update "model" (res ! "value") 0 25)
@@ -108,7 +108,7 @@ web_app doc = do
                 view ()
 
         addMethod "view" $ \ () -> do
-            model <- eval (obj ! "model") :: JS JSNumber
+            model <- evaluate (obj ! "model") :: JS JSNumber
             jQuery "#slider"  <*> slider (cast model)
             jQuery "#fib-out" <*> html ("fib " <> cast model <> "...")
             res <- fib model

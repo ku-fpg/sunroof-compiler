@@ -41,46 +41,46 @@ default(JSNumber, JSString, String)
 web_app :: Document -> IO ()
 web_app doc = do
     registerEvents doc "body" mempty
-    
+
     theCookie <- fmap fromJust $ sync doc $ document <!> cookie
     putStrLn $ "Cookie:     " ++ show theCookie
-    
+
     theTitle <- fmap fromJust $ sync doc $ document <!> title
     putStrLn $ "Title:      " ++ show theTitle
-    
+
     theReferrer <- fmap fromJust $ sync doc $ document <!> referrer
     putStrLn $ "Referrer:   " ++ show theReferrer
-    
+
     theUrl <- fmap fromJust $ sync doc $ document <!> url
     putStrLn $ "URL:        " ++ show theUrl
-    
+
     theUserAgent <- fmap fromJust $ sync doc $ object "navigator" <!> attribute "userAgent"
     putStrLn $ "User Agent: " ++ show theUserAgent
-    
-    theWidth  <- fmap fromJust 
-               $ sync doc 
+
+    theWidth  <- fmap fromJust
+               $ sync doc
                $ screen <!> attribute "width" :: IO JSNumber
     theHeight <- fmap fromJust
-               $ sync doc 
+               $ sync doc
                $ screen <!> attribute "height" :: IO JSNumber
     putStrLn $ "Screen Size:   " ++ show theWidth ++ " x " ++ show theHeight
-    
-    theOuterWidth  <- fmap fromJust 
-                    $ sync doc 
+
+    theOuterWidth  <- fmap fromJust
+                    $ sync doc
                     $ window <!> attribute "outerWidth" :: IO JSNumber
-    theOuterHeight <- fmap fromJust 
-                    $ sync doc 
+    theOuterHeight <- fmap fromJust
+                    $ sync doc
                     $ window <!> attribute "outerHeight" :: IO JSNumber
     putStrLn $ "Window Size:   " ++ show theOuterWidth ++ " x " ++ show theOuterHeight
-    
-    theInnerWidth  <- fmap fromJust 
-                    $ sync doc 
+
+    theInnerWidth  <- fmap fromJust
+                    $ sync doc
                     $ window <!> attribute "innerWidth" :: IO JSNumber
-    theInnerHeight <- fmap fromJust 
-                    $ sync doc 
+    theInnerHeight <- fmap fromJust
+                    $ sync doc
                     $ window <!> attribute "innerHeight" :: IO JSNumber
     putStrLn $ "Viewport Size: " ++ show theInnerWidth ++ " x " ++ show theInnerHeight
-      
+
     async doc $ do
       println "Cookie" theCookie
       println "Title" theTitle
@@ -95,10 +95,10 @@ screen :: JSObject
 screen = object "screen"
 
 jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" <$> with [cast nm]
+jQuery nm = call "$" <$> with nm
 
 append :: JSString -> Action JSObject ()
-append x = method "append" [cast x]
+append x = method "append" x
 
 println :: JSString -> JSString -> JS ()
 println name val = do

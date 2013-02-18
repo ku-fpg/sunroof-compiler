@@ -7,13 +7,15 @@ import Development.Shake.FilePath
 main = shake (shakeOptions) $ do
 
 	"*/Main" *> \ out -> do
-		files <- getDirectoryFiles "../Language" ["//*.hs"]
+                need [out ++ ".hs"]
+                files <- getDirectoryFiles "../Language" ["//*.hs"]
                 need ["../Language" </> file | file <- files ]
                 need ["../sunroof.cabal"]
+                liftIO $ putStrLn $ "Building: " ++ out
                 systemCwd (takeDirectory out)
                           "ghc"
                           ["--make","Main.hs","-threaded","-fforce-recomp","-O2",
-                           "-dcore-lint","-i..:../dist/build/autogen/"]
+                           "-dcore-lint","-i../..:../../dist/build/autogen/"]
 		liftIO $ print out
 
 	action $ do

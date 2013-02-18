@@ -37,19 +37,19 @@ opts = def { prefix = "/example", verbose = 0 }
 default(JSNumber, JSString, String)
 
 jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" <$> with [cast nm]
+jQuery nm = call "$" <$> with nm
 
 -- This is run each time the page is first accessed
 web_app :: Document -> IO ()
 web_app doc = do
   registerEvents doc "body" click
-  sequence_ $ map (\ex -> whenEvent doc "body" click $ async doc $ onClick $ ex) 
+  sequence_ $ map (\ex -> whenEvent doc "body" click $ async doc $ onClick $ ex)
                   (cycle examples)
-  --whenEvent doc "body" click 
+  --whenEvent doc "body" click
   --  $ sync doc $ onClick $ examples !! 0
   --sequence_ $ map (sync doc) $ map waitForClick $ examples
   --return ()
-  
+
 whenEvent :: Document -> Scope -> Template event -> IO a -> IO a
 whenEvent doc scope event m = do
   e <- waitForEvent doc scope event
@@ -59,12 +59,12 @@ whenEvent doc scope event m = do
 
 onClick :: (JSObject -> JSObject -> JS (), JSString) -> JS ()
 onClick (js, msg) = do
-  canvas <- document <$> getElementById "canvas" 
+  canvas <- document <$> getElementById "canvas"
   c <- canvas <$> getContext "2d"
   c <$> clearRect (0,0) (canvas ! width, canvas ! height)
   js canvas c
   message canvas c msg
-    {-  
+    {-
   wait "body" click $ \ res -> do
     ifB ((res ! "id" :: JSString) ==* "canvas")
       (do )
@@ -80,7 +80,7 @@ click = event "click" Click
             <&> "pageY"   .=  "event.pageY"
 
 examples :: [(JSObject -> JSObject -> JS (), JSString)]
-examples = 
+examples =
   [ (example_1_2_1,"1.2.1 Line")
   , (example_1_2_2,"1.2.2 Line Width")
   , (example_1_2_3,"1.2.3 Line Color")

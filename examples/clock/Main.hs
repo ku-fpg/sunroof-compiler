@@ -72,7 +72,7 @@ clockJS = do
           c <$> fillText (cast $ n `div` 5) (0, 0)
         ) (return ())
     c <$> restore
-  
+
   -- Renders the clocks pointers for hours, minutes and seconds.
   renderClockPointers <- function $ \() -> do
     (h, m, s) <- currentTime
@@ -113,7 +113,7 @@ clockJS = do
     c <$> restore
     -- Restore everything
     c <$> restore
-  
+
   -- Renders the complete face of the clock, without pointers.
   renderClockFace <- function $ \() -> do
     c <- context
@@ -123,9 +123,9 @@ clockJS = do
     -- TODO: This repeats the call 60 times. Would be neat to have loops.
     sequence_ $ (flip fmap) (fmap fromInteger [1..60] :: [JSNumber]) $ \n -> do
       c <$> rotate (2 * pi / 60)
-      renderClockFaceLine <$> with [cast n]
+      renderClockFaceLine <$> with n
     c <$> restore -- Undo all the rotation.
-    
+
   -- Renders the complete clock.
   renderClock <- function $ \() -> do
     u <- clockUnit
@@ -142,20 +142,20 @@ clockJS = do
     c <$> clearRect (0,0) (w,h)
     c <$> translate (w / 2, h / 2)
     -- Draw all hour lines.
-    renderClockFace <$> with [cast ()]
+    renderClockFace <$> with ()
     -- Draw the clock pointers
-    renderClockPointers <$> with [cast ()]
+    renderClockPointers <$> with ()
     c <$> restore
     return ()
-  
-  renderClock <$> with [cast ()]
+
+  renderClock <$> with ()
   window <$> setInterval renderClock 1000
-  
+
   return ()
 
 -- TODO: Move this into a new JQuery module of sunroof.
 jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" <$> with [cast nm]
+jQuery nm = call "$" <$> with nm
 
 canvas :: JS JSObject
 canvas = document <$> getElementById "canvas"
@@ -171,14 +171,14 @@ clockUnit = do
 canvasSize :: JS (JSNumber, JSNumber)
 canvasSize = do
   c <- jQuery "#canvas"
-  w <- c <$> method "innerWidth" []
-  h <- c <$> method "innerHeight" []
+  w <- c <$> method "innerWidth" ()
+  h <- c <$> method "innerHeight" ()
   return (w, h)
 
 currentTime :: JS (JSNumber, JSNumber, JSNumber)
 currentTime = do
-  date <- eval $ object "new Date()"
-  h <- date <$> method "getHours" []
-  m <- date <$> method "getMinutes" []
-  s <- date <$> method "getSeconds" []
+  date <- evaluate $ object "new Date()"
+  h <- date <$> method "getHours" ()
+  m <- date <$> method "getMinutes" ()
+  s <- date <$> method "getSeconds" ()
   return (h, m, s)
