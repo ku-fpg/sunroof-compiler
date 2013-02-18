@@ -27,17 +27,17 @@ compile = eval . view
 --            sel_txt <- compileJSS jss
 --            compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
           eval (JS_Eval o :>>= g) = do
-            compileBind ("(" ++ showVar o ++ ")") g
+            compileBind "" ("(" ++ showVar o ++ ")") g
           eval (JS_App o jss :>>= g) = do
-            act <- compileAction o jss
-            compileBind act g
+            (pre,act) <- compileAction o jss
+            compileBind pre act g
 --            ("(" ++ showVar o ++ ")" ++ sel_txt) g
 --          eval (JS_Invoke args :>>= g) = do
 --            compileBind ("(function(o) { return o.(" ++ intercalate "," (map show args) ++ ");}") g
 
           eval (JS_Function fun :>>= g) = do
             txt1 <- compileFunction fun
-            compileBind txt1 g
+            compileBind "" txt1 g
           eval (JS_Branch b c1 c2 :>>= g) = do
             branch <- compileBranch b c1 c2
             compileCommand branch g
@@ -63,11 +63,11 @@ compile = eval . view
           -- or we're done already
           eval (Return b) = return ("",showVar b)
 
-compileBind :: (Sunroof a, Sunroof b) => String -> (a -> JS b) -> CompM (String,String)
-compileBind txt1 m2 = do
+compileBind :: (Sunroof a, Sunroof b) => String -> String -> (a -> JS b) -> CompM (String,String)
+compileBind txt0 txt1 m2 = do
     a <- newVar
     (txt2,ret) <- compile (m2 a)
-    return (assignVar a ++ txt1 ++ ";" ++ txt2,ret)
+    return (txt0 ++ assignVar a ++ txt1 ++ ";" ++ txt2,ret)
 
 -- Does the same as 'compileBind' but does not bind the result of the passed in
 -- JavaScript source to a variable. Like this control flow constructs like
@@ -104,15 +104,37 @@ compileFunction m2 = do
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?
 
-compileAction :: (Sunroof a) => a -> Action a b -> CompM String
+compileAction :: (Sunroof a, Sunroof b) => a -> Action a b -> CompM (String,String)
 compileAction o (Invoke args) =
-        return $ "(" ++ showVar o ++ ")(" ++ intercalate "," (map show args) ++ ")"
+        return ("","(" ++ showVar o ++ ")(" ++ intercalate "," (map show args) ++ ")")
 compileAction o (JSSelector nm := val) =
-        return $ "(" ++ showVar o ++ ")[" ++ show nm ++ "] = (" ++ show (unbox val) ++ ")" -- this is a total hack, (pres. is wrong), but works
+                                -- this is a total hack, (pres. is wrong), but works
+        return ("","(" ++ showVar o ++ ")[" ++ show nm ++ "] = (" ++ show (unbox val) ++ ")")
 compileAction o (Map f act) =
         compileAction (f o) act
+compileAction o (NoAction b) =
+        return ("",showVar b)
+compileAction o (BindAction (NoAction a) k) = compileAction o (k a)
+compileAction o (BindAction m@(Invoke {}) k) = compileAction' o m k
+compileAction o (BindAction m@(_ := _) k) = compileAction' o m k
+compileAction o (BindAction m@(Map {}) k) = compileAction' o m k
+compileAction o (BindAction (BindAction m k1) k2) = compileAction o (BindAction m (\ a -> BindAction (k1 a) k2))
 
+compileAction' :: (Sunroof a, Sunroof b, Sunroof c) => a -> Action a b -> (b -> Action a c) => CompM (String,String)
+compileAction' o m k = do
+        (p1,v1) <- compileAction o m
+        a <- newVar
+        (p2,v2) <- compileAction o (k a)
+        return (p1 ++ ";" ++ assignVar a ++ v1 ++ ";" ++ p2, v2)
 
+--        return $ showVar b
+--   BindAction :: Action a b -> (b -> Action a c)                -> Action a c
+
+{-
+compileAction o (Multi many) = do
+        patches <- mapM (compileAction o) many
+        return $ intercalate ";" patches
+-}
 
 type CompM = State Uniq
 

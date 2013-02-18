@@ -81,15 +81,16 @@ clockJS = do
     c <$> save
     c <$> setLineCap "round"
     -- Hour pointer
-    c <$> save
-    c <$> rotate ((2 * pi / 12) * ((h `mod` 12) + (m `mod` 60) / 60))
-    c <$> setLineWidth 15
-    c <$> beginPath
-    c <$> moveTo (0, u * 0.1)
-    c <$> lineTo (0, -u * 0.4)
-    c <$> stroke
-    c <$> closePath
-    c <$> restore
+    c <$> do
+        save
+        rotate ((2 * pi / 12) * ((h `mod` 12) + (m `mod` 60) / 60))
+        setLineWidth 15
+        beginPath
+        moveTo (0, u * 0.1)
+        lineTo (0, -u * 0.4)
+        stroke
+        closePath
+        restore
     -- Minute pointer
     c <$> save
     c <$> rotate ((2 * pi / 60) * ((m `mod` 60) + (s `mod` 60) / 60))

@@ -331,20 +331,18 @@ infix  5 :=
 
 data Action :: * -> * -> * where
    -- Invoke is not quite right
-   Invoke :: [Expr]                                             -> Action (JSFunction a r) r
+   Invoke :: (Sunroof r) => [Expr]                                             -> Action (JSFunction a r) r
    -- Basically, this is special form of call, to assign to a field
    (:=)   :: (Sunroof a) => JSSelector a -> a                   -> Action JSObject ()
    -- This is the fmap-like function, an effect-free modifier on the first argument
-   Map :: (Sunroof b) => (a -> b) -> Action b c                 -> Action a c
+   Map :: (Sunroof b, a ~ JSObject, b ~ JSFunction x y, Sunroof c) => (a -> b) -> Action b c                 -> Action a c
 
-{- Is confusing, I think
    NoAction :: b                                                -> Action a b
    BindAction :: Action a b -> (b -> Action a c)                -> Action a c
 
 instance Monad (Action a) where
         return = NoAction
         (>>=)  = BindAction
--}
 
 
 ---------------------------------------------------------------
@@ -352,7 +350,7 @@ instance Monad (Action a) where
 -- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 
-method :: JSArgument a => String -> a -> Action JSObject r
+method :: (JSArgument a, Sunroof r) => String -> a -> Action JSObject r
 method str args = (!  label (fromString str)) `Map` with args
 
 string :: String -> JSString
@@ -365,7 +363,7 @@ object = JSObject . Lit
 call :: String -> JSFunction a r
 call = JSFunction . Lit
 
-with :: JSArgument a => a -> Action (JSFunction a r) r
+with :: (JSArgument a, Sunroof r) => a -> Action (JSFunction a r) r
 with = Invoke . jsArgs
 
 new :: JS JSObject
@@ -419,7 +417,7 @@ infixl 4 <*>
 (<$>) o s = singleton $ o `JS_App` s
 
 (<*>) :: (Sunroof a, Sunroof b) => JS a -> Action a b -> JS b
-(<*>) m s = m >>= \ o -> singleton $ o `JS_App` s
+(<*>) m s = m >>= \ o -> o <$> s
 
 type instance BooleanOf (Program JSI a) = JSBool
 
