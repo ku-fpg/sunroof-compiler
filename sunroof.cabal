@@ -1,8 +1,8 @@
 Name:                sunroof
 Version:             0.1
 Synopsis:            Monadic Javascript Compiler
-Homepage:            https://github.com/kufpg/sunroof/
-Bug-reports:         https://github.com/kufpg/sunroof/
+Homepage:            https://github.com/ku-fpg/sunroof/
+Bug-reports:         https://github.com/ku-fpg/sunroof/
 License:             BSD3
 License-file:        LICENSE
 Author:              Andrew Gill <andygill@ku.edu>
