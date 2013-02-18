@@ -463,7 +463,6 @@ function :: (JSArgument a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
 function = JS . singleton . JS_Function
 
 infixl 4 <$>
-infixl 4 <*>
 
 (<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
 (<!>) o s = return $ o ! s
@@ -472,8 +471,6 @@ infixl 4 <*>
 (<$>) :: a -> (a -> JS b) -> JS b
 (<$>) o s = s o--  JS $ singleton $ o `JS_App` s
 
-(<*>) :: (Sunroof a, Sunroof b) => JS a -> Action a b -> JS b
-(<*>) m s = m >>= \ o -> o <$> s
 
 type instance BooleanOf (JS a) = JSBool
 
