@@ -101,7 +101,7 @@ compileFunction m2 = do
     let interleave _ [] = []
         interleave s xs = foldr1 (\ x y -> x ++ s ++ y) xs
 
-    let arg_list = interleave "," $ map (showVar :: JSValue -> String) $ map mkVar vars
+    let arg_list = intercalate "," $ map (showVar :: JSObject -> String) $ map mkVar vars
 
     return $ "(function (" ++ arg_list ++ "){" ++ txt2 ++ "; return " ++ ret ++ ";})"
 

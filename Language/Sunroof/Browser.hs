@@ -44,10 +44,10 @@ module Language.Sunroof.Browser
 import Prelude hiding (isNaN)
 
 import Language.Sunroof.Types
-  ( JSString, JSNumber
+  ( Sunroof
+  , JSString, JSNumber
   , JSObject, JSBool
   , JSFunction
-  , JSValue
   , JS, JSSelector
   , Action(..)
   , call
@@ -86,7 +86,8 @@ encodeURIComponent str = call "encodeURIComponent" <$> with (str)
 
 -- | Evaluate the given JavaScript string if possible. Returns
 --   the result of evaluation.
-eval :: JSString -> JS JSValue
+-- TODO: think about this a bit.
+eval :: (Sunroof a) => JSString -> JS a
 eval str = call "eval" <$> with (str)
 
 -- | Check if a given number is within the valid JavaScript number range.

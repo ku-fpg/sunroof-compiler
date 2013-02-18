@@ -70,7 +70,7 @@ instance (Sunroof a, Sunroof b) => Sunroof (a,b) where
 -}
 
 ---------------------------------------------------------------
-
+{-
 data JSValue where   -- This may go away
   JSValue :: Expr -> JSValue
   --JSValueVar :: Uniq -> JSValue         -- so the typing does not throw a fit
@@ -87,9 +87,10 @@ instance Sunroof JSValue where
 
 instance IsString JSValue where
     fromString = JSValue . Lit . show
+-}
 
 class JSArgument args where
-        jsArgs :: args -> [JSValue]
+        jsArgs :: args -> [Expr]
         jsValue  :: [Uniq] -> args
 
 instance JSArgument () where
@@ -97,41 +98,41 @@ instance JSArgument () where
         jsValue _ = ()
 
 instance JSArgument JSBool where
-      jsArgs a = [cast a]
+      jsArgs a = [unbox a]
 
 instance JSArgument JSNumber where
-      jsArgs a = [cast a]
+      jsArgs a = [unbox a]
       jsValue [u] = mkVar u
 
 instance JSArgument JSString where
-      jsArgs a = [cast a]
+      jsArgs a = [unbox a]
       jsValue [u] = mkVar u
 
 instance JSArgument JSObject where
-      jsArgs a = [cast a]
+      jsArgs a = [unbox a]
       jsValue [u] = mkVar u
 
 instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
-      jsArgs ~(a,b) = [cast a, cast b]
+      jsArgs ~(a,b) = [unbox a, unbox b]
       jsValue [u1,u2] = (mkVar u1,mkVar u2)
 
 instance (Sunroof a, Sunroof b, Sunroof c) => JSArgument (a,b,c) where
-      jsArgs ~(a,b,c) = [cast a, cast b, cast c]
+      jsArgs ~(a,b,c) = [unbox a, unbox b, unbox c]
       jsValue [u1,u2,u3] = (mkVar u1,mkVar u2,mkVar u3)
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d) => JSArgument (a,b,c,d) where
-      jsArgs ~(a,b,c,d) = [cast a, cast b, cast c, cast d]
+      jsArgs ~(a,b,c,d) = [unbox a, unbox b, unbox c, unbox d]
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e) => JSArgument (a,b,c,d,e) where
-      jsArgs ~(a,b,c,d,e) = [cast a, cast b, cast c, cast d, cast e]
+      jsArgs ~(a,b,c,d,e) = [unbox a, unbox b, unbox c, unbox d, unbox e]
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f) => JSArgument (a,b,c,d,e,f) where
-      jsArgs ~(a,b,c,d,e,f) = [cast a, cast b, cast c, cast d, cast e, cast f]
+      jsArgs ~(a,b,c,d,e,f) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f]
 
 -- Need to add the 7 & 8 tuple (not used in this package - yet)
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunroof g, Sunroof h, Sunroof i) => JSArgument (a,b,c,d,e,f,g,h,i) where
-      jsArgs ~(a,b,c,d,e,f,g,h,i) = [cast a, cast b, cast c, cast d, cast e, cast f, cast g, cast h, cast i]
+      jsArgs ~(a,b,c,d,e,f,g,h,i) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f, unbox g, unbox h, unbox i]
 
 
 ----    jsValue :: val -> JSValue
@@ -335,7 +336,7 @@ label = JSSelector
 ---------------------------------------------------------------
 
 (!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = cast $ JSValue $ Op "[]" [unbox arr,unbox idx]
+(!) arr (JSSelector idx) = box $ Op "[]" [unbox arr,unbox idx]
 
 ---------------------------------------------------------------
 
@@ -343,7 +344,7 @@ infix  5 :=
 
 data Action :: * -> * -> * where
    -- Invoke is not quite right
-   Invoke :: [JSValue]                                          -> Action (JSFunction a r) r
+   Invoke :: [Expr]                                             -> Action (JSFunction a r) r
    -- Basically, this is special form of call, to assign to a field
    (:=)   :: (Sunroof a) => String -> a                         -> Action JSObject ()
    -- This is the fmap-like function, an effect-free modifier on the first argument
