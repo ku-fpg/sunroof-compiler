@@ -89,7 +89,7 @@ web_app doc = do
             switchB _   []         def = def
             switchB tag ((a,b):xs) def = ifB (tag ==* a) b (switchB tag xs def)
 
-        addMethod "fib" $ \ (n :: JSNumber) ->
+        fib <- recfunction $ \ fib (n :: JSNumber) ->
             ifB (n <* 2)
                 (return 1)
                 (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
@@ -111,7 +111,7 @@ web_app doc = do
             model <- evaluate (obj ! "model") :: JS JSNumber
             jQuery "#slider"  <*> slider (cast model)
             jQuery "#fib-out" <*> html ("fib " <> cast model <> "...")
-            res <- fib model
+            res <- fib <$> with model
             jQuery "#fib-out" <*> html ("fib " <> cast model <> " = " <> cast res)
             control ()
 
@@ -132,4 +132,12 @@ click = event "click" Click
             <&> "id"      .= "$(widget).attr('id')"
             <&> "pageX"   .=  "event.pageX"
             <&> "pageY"   .=  "event.pageY"
+
+recfunction :: ((JSNumber -> JS JSNumber) -> (JSNumber -> JS JSNumber)) -> JS (JSFunction JSNumber JSNumber)
+recfunction fn = do
+        obj <- new
+        f <- function $ fn (\ n -> (obj <!> attribute "rec") <*> with n)
+        obj <$> attribute "rec" := f
+        return f
+
 
