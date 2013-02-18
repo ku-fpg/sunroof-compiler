@@ -14,7 +14,7 @@ compileJS = flip evalState 0 . compile
 
 -- compile an existing expression
 compile :: Sunroof c => JS c -> CompM (String,String)
-compile = eval . view
+compile (JS m) = eval (view m)
     -- since the type  Program  is abstract (for efficiency),
     -- we have to apply the  view  function first,
     -- to get something we can pattern match on
@@ -27,20 +27,20 @@ compile = eval . view
 --            sel_txt <- compileJSS jss
 --            compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
           eval (JS_Eval o :>>= g) = do
-            compileBind "" ("(" ++ showVar o ++ ")") g
+            compileBind "" ("(" ++ showVar o ++ ")") (JS . g)
           eval (JS_App o jss :>>= g) = do
             (pre,act) <- compileAction o jss
-            compileBind pre act g
+            compileBind pre act (JS . g)
 --            ("(" ++ showVar o ++ ")" ++ sel_txt) g
 --          eval (JS_Invoke args :>>= g) = do
 --            compileBind ("(function(o) { return o.(" ++ intercalate "," (map show args) ++ ");}") g
 
           eval (JS_Function fun :>>= g) = do
             txt1 <- compileFunction fun
-            compileBind "" txt1 g
+            compileBind "" txt1 (JS . g)
           eval (JS_Branch b c1 c2 :>>= g) = do
             branch <- compileBranch b c1 c2
-            compileCommand branch g
+            compileCommand branch (JS . g)
 {-
           eval (JS_Loop body :>>= g) = do -- note, we do nothing with g, as it's unreachable
             -- create a new name for our loop

@@ -380,12 +380,17 @@ attribute attr = label $ string attr
 -- This is not the same as return; it evaluates
 -- the argument to value form.
 evaluate :: (Sunroof a) => a -> JS a
-evaluate a  = singleton (JS_Eval a)
+evaluate a  = JS $ singleton (JS_Eval a)
 
 ---------------------------------------------------------------
 
 -- Control.Monad.Operational makes a monad out of JS for us
-type JS a = Program JSI a
+data JS a = JS (Program JSI a)
+
+instance Monad JS where
+        return a = JS (return a)
+        JS m >>= k = JS (m >>= \ r -> case k r of
+                                        JS q -> q)
 
 -- define primitive effects / "instructions" for the JS monad
 data JSI a where
@@ -405,7 +410,7 @@ data JSI a where
 -- We only can compile functions that do not have interesting return
 -- values, so we can assume they are continuation-like things.
 function :: (JSArgument a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
-function = singleton . JS_Function
+function = JS . singleton . JS_Function
 
 infixl 4 <$>
 infixl 4 <*>
@@ -414,15 +419,15 @@ infixl 4 <*>
 (<!>) o s = return $ o ! s
 
 (<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
-(<$>) o s = singleton $ o `JS_App` s
+(<$>) o s = JS $ singleton $ o `JS_App` s
 
 (<*>) :: (Sunroof a, Sunroof b) => JS a -> Action a b -> JS b
 (<*>) m s = m >>= \ o -> o <$> s
 
-type instance BooleanOf (Program JSI a) = JSBool
+type instance BooleanOf (JS a) = JSBool
 
-instance forall a . (Sunroof a) => IfB (Program JSI a) where
-    ifB i h e = singleton $ JS_Branch i h e
+instance forall a . (Sunroof a) => IfB (JS a) where
+    ifB i h e = JS $ singleton $ JS_Branch i h e
 
 switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b) => a -> [(a,JS b)] -> JS b
 switch a [] = return (cast (object "undefined"))
