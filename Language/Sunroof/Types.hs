@@ -382,9 +382,6 @@ attribute attr = label $ string attr
 eval :: (Sunroof a) => a -> JS a
 eval a  = singleton (JS_Eval a)
 
-loop :: a -> (a -> JS a) -> JS ()
-loop a f = singleton (JS_Loop a f)
-
 ---------------------------------------------------------------
 
 -- Control.Monad.Operational makes a monad out of JS for us
@@ -399,9 +396,6 @@ data JSI a where
     -- Not the same as return; does evaluation of argument
     JS_Eval   :: (Sunroof a) => a                               -> JSI a
 
-    -- special primitives
---    JS_Wait   :: Template a -> (JSObject -> JS ())              -> JSI ()
-    JS_Loop :: a -> (a -> JS a)                                 -> JSI ()
     JS_Function :: (JSArgument a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
     JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> JSI a
@@ -428,16 +422,7 @@ infixl 4 <*>
 type instance BooleanOf (Program JSI a) = JSBool
 
 instance forall a . (Sunroof a) => IfB (Program JSI a) where
-    -- I expect this should be a JS primitive, but we *can* do it without the prim
-    -- :: BooleanOf a -> a -> a -> a
-    ifB i h e = singleton $ JS_Branch i h e {- do
-      h_f <- function $ \ () -> h
-      e_f <- function $ \ () -> e
-      o <- new
-      o <$> "true" := h_f
-      o <$> "false" := e_f
-      o ! (label (cast i) :: JSSelector (JSFunction a)) <$> with [] -}
---      return ()
+    ifB i h e = singleton $ JS_Branch i h e
 
 switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b) => a -> [(a,JS b)] -> JS b
 switch a [] = return (cast (object "undefined"))
