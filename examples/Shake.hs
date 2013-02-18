@@ -14,7 +14,7 @@ main = shake (shakeOptions) $ do
                 liftIO $ putStrLn $ "Building: " ++ out
                 systemCwd (takeDirectory out)
                           "ghc"
-                          ["--make","Main.hs","-threaded","-fforce-recomp","-O2",
+                          ["--make","Main.hs","-threaded",
                            "-dcore-lint","-i../..:../../dist/build/autogen/"]
 		liftIO $ print out
 
