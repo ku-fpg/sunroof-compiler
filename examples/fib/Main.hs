@@ -109,10 +109,10 @@ web_app doc = do
 
         addMethod "view" $ \ () -> do
             model <- evaluate (obj ! "model") :: JS JSNumber
-            jQuery "#slider"  <*> slider (cast model)
-            jQuery "#fib-out" <*> html ("fib " <> cast model <> "...")
+            jQuery "#slider"  >>= slider (cast model)
+            jQuery "#fib-out" >>= html ("fib " <> cast model <> "...")
             res <- fib <$> with model
-            jQuery "#fib-out" <*> html ("fib " <> cast model <> " = " <> cast res)
+            jQuery "#fib-out" >>= html ("fib " <> cast model <> " = " <> cast res)
             control ()
 
         control ()
@@ -136,7 +136,7 @@ click = event "click" Click
 recfunction :: (JSArgument a, Sunroof b) => ((a -> JS b) -> (a -> JS b)) -> JS (JSFunction a b)
 recfunction fn = do
         obj <- new
-        f <- function $ fn (\ n -> (obj <!> attribute "rec") <*> with n)
+        f <- function $ fn (\ n -> (obj <!> attribute "rec") >>= with n)
         obj <$> attribute "rec" := f
         return f
 

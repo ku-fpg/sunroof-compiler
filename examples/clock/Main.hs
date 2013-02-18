@@ -162,7 +162,7 @@ canvas :: JS JSObject
 canvas = document <$> getElementById "canvas"
 
 context :: JS JSObject
-context = canvas <*> getContext "2d"
+context = canvas >>= getContext "2d"
 
 clockUnit :: JS JSNumber
 clockUnit = do

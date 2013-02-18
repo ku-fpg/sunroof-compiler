@@ -103,8 +103,8 @@ append x = method "append" x
 println :: JSString -> JSString -> JS ()
 println name val = do
   let val' = ifB (val ==* "") "&lt;EMPTY&gt;" val
-  jQuery "#output" <*> append ("<dt>" <> name <> "</dt>")
-  jQuery "#output" <*> append ("<dd>" <> val' <> "</dd>")
+  jQuery "#output" >>= append ("<dt>" <> name <> "</dt>")
+  jQuery "#output" >>= append ("<dd>" <> val' <> "</dd>")
 
 
 
