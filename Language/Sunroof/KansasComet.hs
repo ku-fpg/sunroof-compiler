@@ -8,8 +8,7 @@ module Language.Sunroof.KansasComet
   , sync'
   , async
   , wait
-  , SunroofValue 
-  , ValueOf
+  , SunroofValue(..)
   , jsonToJS
   ) where
 
@@ -36,7 +35,7 @@ import Web.KansasComet
   , Document, queryGlobal
   )
 
--- Async requests that something be done, without waiting for any reply
+-- | Executes the Javascript in the browser without waiting for a result.
 async :: Document -> JS () -> IO ()
 async doc jsm = do
   let (res,_) = compileJS jsm
@@ -44,6 +43,8 @@ async doc jsm = do
   send doc $ res  -- send it, and forget it
   return ()
 
+-- | Executes the Javascript in the browser and waits for the result value.
+--   The result is given as JSON value.
 sync' :: (Sunroof a) => Document -> JS a -> IO Value
 sync' doc jsm = do
   let (src,retVar) = compileJS jsm
@@ -55,7 +56,9 @@ sync' doc jsm = do
     ""  -> queryGlobal doc (src, "null")
     ret -> queryGlobal doc (src, ret)
 
--- Sync requests that something be done, *and* waits for a reply.
+-- | Executes the Javascript in the browser and waits for the result value.
+--   The result value is given the corresponding Haskell type,
+--   if possible (see 'SunroofValue').
 sync :: forall a. (SunroofValue a) => Document -> JS a -> IO (ValueOf a)
 sync doc jsm = do
   value <- sync' doc jsm
@@ -70,37 +73,43 @@ wait scope tmpl k = do
                                      , o
                                      )
 
+-- -----------------------------------------------------------------------
+-- JSON Value to Haskell/Sunroof conversion
+-- -----------------------------------------------------------------------
+
+-- | Provides correspondant Haskell types for certain Sunroof types.
 class (Sunroof a) => SunroofValue a where
   type ValueOf a
   jsonToValue :: Proxy a -> Value -> ValueOf a
-  toJS :: ValueOf a -> a
+  --toJS :: ValueOf a -> a
 
 instance SunroofValue () where
   type ValueOf () = ()
   jsonToValue _ (Null) = ()
   jsonToValue _ _ = error "jsonToValue: JSON value is not unit."
-  toJS () = ()
+  --toJS () = ()
 
 instance SunroofValue JSBool where
   type ValueOf JSBool = Bool
   jsonToValue _ (Bool b) = b
   jsonToValue _ _ = error "jsonToValue: JSON value is not a boolean."
-  toJS True = true
-  toJS False = false
+  --toJS True = true
+  --toJS False = false
 
 instance SunroofValue JSNumber where
   type ValueOf JSNumber = Double
   jsonToValue _ (Number (I i)) = fromInteger i
   jsonToValue _ (Number (D d)) = d
   jsonToValue _ _ = error "jsonToValue: JSON value is not a number."
-  toJS = JSNumber . Lit . show
+  --toJS = JSNumber . Lit . show
 
 instance SunroofValue JSString where
   type ValueOf JSString = String
   jsonToValue _ (String s) = unpack s
   jsonToValue _ _ = error "jsonToValue: JSON value is not a string."
-  toJS = fromString
+  --toJS = fromString
 
+-- | Converts a JSON value to a Sunroof Javascript expression.
 jsonToJS :: Value -> Expr
 jsonToJS (Bool b)       = unbox (if b then false else true :: JSBool)
 jsonToJS (Number (I i)) = unbox (fromInteger i :: JSNumber)
