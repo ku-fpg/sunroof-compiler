@@ -462,13 +462,12 @@ data JSI a where
 function :: (JSArgument a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
 function = JS . singleton . JS_Function
 
-infixl 4 <$>
+-- | Call a function with the given arguments.
+apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS ret
+apply f args = f # with args
 
 (<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
 (<!>) o s = evaluate $ o ! s
-
-(<$>) :: (Sunroof a, Sunroof b) => a -> Action a b -> JS b
-(<$>) = (#)
 
 -- We should use this operator for the obj.label concept.
 -- It has been used in other places (but I can not seems

@@ -85,10 +85,10 @@ sync doc jsm = do
 wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
 wait scope tmpl k = do
         o <- function k
-        call "$.kc.waitFor" <$> with ( string scope
-                                     , object (show (map fst (extract tmpl)))
-                                     , o
-                                     )
+        apply (call "$.kc.waitFor") ( string scope
+                                    , object (show (map fst (extract tmpl)))
+                                    , o
+                                    )
 
 -- -----------------------------------------------------------------------
 -- JSON Value to Haskell/Sunroof conversion
