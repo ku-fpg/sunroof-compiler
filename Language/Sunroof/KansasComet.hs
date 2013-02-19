@@ -7,6 +7,7 @@ module Language.Sunroof.KansasComet
   ( sync
   , sync'
   , async
+  , rsync
   , wait
   , SunroofValue(..)
   , jsonToJS
@@ -55,6 +56,22 @@ sync' doc jsm = do
     -- Right now this corresponds to a ~ ().
     ""  -> queryGlobal doc (src, "null")
     ret -> queryGlobal doc (src, ret)
+
+-- | Executes the Javascript in the browser and waits for the result.
+--   The returned value is just a reference to the computed value.
+rsync :: (Sunroof a) => Document -> JS a -> IO a
+rsync doc jsm = do
+  let (src, retVar) = compileJS jsm
+  case retVar of
+    "" -> do
+      error "rsync: Javascript does not have a return value."
+    ret -> do
+      -- No synchronous call, because this might evaluate 
+      -- to something that is not representable as JSON.
+      -- Also like this we save the bandwidth for transporting
+      -- back the value.
+      send doc $ src -- send it, and forget it
+      return $ box $ Lit ret
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result value is given the corresponding Haskell type,
