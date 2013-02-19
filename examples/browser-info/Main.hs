@@ -6,6 +6,7 @@ import Data.Default
 import Data.Monoid
 import Data.Boolean
 import Data.Maybe ( fromJust )
+import Data.String
 
 import Control.Monad
 import Control.Monad.IO.Class
@@ -42,43 +43,37 @@ web_app :: Document -> IO ()
 web_app doc = do
     registerEvents doc "body" mempty
 
-    theCookie <- fmap fromJust $ sync doc $ document <!> cookie
+    theCookie <- sync doc $ document <!> cookie
     putStrLn $ "Cookie:     " ++ show theCookie
 
-    theTitle <- fmap fromJust $ sync doc $ document <!> title
+    theTitle <- sync doc $ document <!> title
     putStrLn $ "Title:      " ++ show theTitle
 
-    theReferrer <- fmap fromJust $ sync doc $ document <!> referrer
+    theReferrer <- sync doc $ document <!> referrer
     putStrLn $ "Referrer:   " ++ show theReferrer
 
-    theUrl <- fmap fromJust $ sync doc $ document <!> url
+    theUrl <- sync doc $ document <!> url
     putStrLn $ "URL:        " ++ show theUrl
 
-    theUserAgent <- fmap fromJust $ sync doc $ object "navigator" <!> attribute "userAgent"
+    theUserAgent <- sync doc $ object "navigator" <!> (attribute "userAgent" :: JSSelector JSString)
     putStrLn $ "User Agent: " ++ show theUserAgent
 
-    theWidth  <- fmap fromJust
-               $ sync doc
-               $ screen <!> attribute "width" :: IO JSNumber
-    theHeight <- fmap fromJust
-               $ sync doc
-               $ screen <!> attribute "height" :: IO JSNumber
+    theWidth  <- sync doc
+               $ screen <!> (attribute "width" :: JSSelector JSNumber)
+    theHeight <- sync doc
+               $ screen <!> (attribute "height" :: JSSelector JSNumber)
     putStrLn $ "Screen Size:   " ++ show theWidth ++ " x " ++ show theHeight
 
-    theOuterWidth  <- fmap fromJust
-                    $ sync doc
-                    $ window <!> attribute "outerWidth" :: IO JSNumber
-    theOuterHeight <- fmap fromJust
-                    $ sync doc
-                    $ window <!> attribute "outerHeight" :: IO JSNumber
+    theOuterWidth  <- sync doc
+                    $ window <!> (attribute "outerWidth" :: JSSelector JSNumber)
+    theOuterHeight <- sync doc
+                    $ window <!> (attribute "outerHeight" :: JSSelector JSNumber)
     putStrLn $ "Window Size:   " ++ show theOuterWidth ++ " x " ++ show theOuterHeight
 
-    theInnerWidth  <- fmap fromJust
-                    $ sync doc
-                    $ window <!> attribute "innerWidth" :: IO JSNumber
-    theInnerHeight <- fmap fromJust
-                    $ sync doc
-                    $ window <!> attribute "innerHeight" :: IO JSNumber
+    theInnerWidth  <- sync doc
+                    $ window <!> (attribute "innerWidth" :: JSSelector JSNumber)
+    theInnerHeight <- sync doc
+                    $ window <!> (attribute "innerHeight" :: JSSelector JSNumber)
     putStrLn $ "Viewport Size: " ++ show theInnerWidth ++ " x " ++ show theInnerHeight
 
     async doc $ do
@@ -87,24 +82,25 @@ web_app doc = do
       println "Referrer" theReferrer
       println "URL" theUrl
       println "User Agent" theUserAgent
-      println "Screen Size" $ cast theWidth <> " x " <> cast theHeight
-      println "Window Size" $ cast theOuterWidth <> " x " <> cast theOuterHeight
-      println "Viewport Size" $ cast theInnerWidth <> " x " <> cast theInnerHeight
+      println "Screen Size" $ show theWidth <> " x " <> show theHeight
+      println "Window Size" $ show theOuterWidth <> " x " <> show theOuterHeight
+      println "Viewport Size" $ show theInnerWidth <> " x " <> show theInnerHeight
 
 screen :: JSObject
 screen = object "screen"
 
 jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" <$> with nm
+jQuery nm = call "$" `apply` nm
 
 append :: JSString -> Action JSObject ()
 append x = method "append" x
 
-println :: JSString -> JSString -> JS ()
+println :: (Show a, Eq a) => JSString -> a -> JS ()
 println name val = do
-  let val' = ifB (val ==* "") "&lt;EMPTY&gt;" val
+  let valStr = show val
+  let val' = if valStr == "" then "&lt;EMPTY&gt;" else valStr
   jQuery "#output" >>= append ("<dt>" <> name <> "</dt>")
-  jQuery "#output" >>= append ("<dd>" <> val' <> "</dd>")
+  jQuery "#output" >>= append ("<dd>" <> fromString val' <> "</dd>")
 
 
 

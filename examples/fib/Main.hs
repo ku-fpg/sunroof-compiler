@@ -44,10 +44,10 @@ web_app doc = do
         getElementById a = method "getElementById" [cast a]
 
     sync doc $ do
-        canvas <- object "document" <$> getElementById "canvas"
-        context <- canvas <$> getContext "2d"
-        context <$> setFillStyle "rgba(0, 0, 255, .5)"
-        context <$> fillRect (25, 25) (125, 125)
+        canvas <- object "document" # getElementById "canvas"
+        context <- canvas # getContext "2d"
+        context # setFillStyle "rgba(0, 0, 255, .5)"
+        context # fillRect (25, 25) (125, 125)
 
         alert (cast context)
 
@@ -55,21 +55,21 @@ web_app doc = do
         -}
     async doc $ do
         obj <- new
-        obj <$> "model" := (0 :: JSNumber)
+        obj # attribute "model" := (0 :: JSNumber)
 
         -- This is using the imperative update to enable the
         let control :: () -> JS ()
-            control () = obj ! "control" <$> with ()
+            control () = obj ! "control" `apply` ()
 
             view :: () -> JS ()
-            view () = obj ! "view" <$> with ()
+            view () = obj ! "view" `apply` ()
 
             addMethod :: (JSArgument a, Sunroof a, Sunroof b) => String -> (a -> JS b) -> JS ()
             addMethod nm f = do n <- function f
-                                obj <$> attribute nm := n
+                                obj # attribute nm := n
 
             jQuery :: JSString -> JS JSObject
-            jQuery nm = call "$" <$> with nm
+            jQuery nm = call "$" `apply` nm
 
             slider :: JSNumber -> Action JSObject JSObject
             slider nm = method "slider"  ("value" :: JSString, nm)
@@ -78,12 +78,12 @@ web_app doc = do
             html nm = method "html"  nm
 
             fib :: JSNumber -> JS JSNumber
-            fib n = obj ! "fib" <$> with n
+            fib n = obj ! "fib" `apply` n
 
             update :: String -> JSNumber -> JSNumber -> JSNumber -> JS ()
             update nm val mn mx =
                 ifB ((val <=* mx) &&* (val >=* mn))
-                    (obj <$> attribute nm := val)
+                    (obj # attribute nm := val)
                     (return ())
 
             switchB _   []         def = def
@@ -111,7 +111,7 @@ web_app doc = do
             model <- evaluate (obj ! "model") :: JS JSNumber
             jQuery "#slider"  >>= slider (cast model)
             jQuery "#fib-out" >>= html ("fib " <> cast model <> "...")
-            res <- fib <$> with model
+            res <- apply fib model
             jQuery "#fib-out" >>= html ("fib " <> cast model <> " = " <> cast res)
             control ()
 
@@ -137,7 +137,7 @@ recfunction :: (JSArgument a, Sunroof b) => ((a -> JS b) -> (a -> JS b)) -> JS (
 recfunction fn = do
         obj <- new
         f <- function $ fn (\ n -> (obj <!> attribute "rec") >>= with n)
-        obj <$> attribute "rec" := f
+        obj # attribute "rec" := f
         return f
 
 

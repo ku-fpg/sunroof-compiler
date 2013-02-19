@@ -469,6 +469,8 @@ apply f args = f # with args
 (<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
 (<!>) o s = evaluate $ o ! s
 
+infixl 2 #
+
 -- We should use this operator for the obj.label concept.
 -- It has been used in other places (but I can not seems
 -- to find a library for it)
