@@ -123,7 +123,7 @@ compileFunction m2 = do
 
     (txt2,ret) <- compile (m2 arg)
 
-    let arg_list = intercalate "," $ map (show . Var) $ [start..(end - 1)]
+    let arg_list = intercalate "," $ map (("v" ++) . show) $ [start..(end - 1)]
 
     return $ "(function (" ++ arg_list ++ "){" ++ txt2 ++ "; return " ++ ret ++ ";})"
 
