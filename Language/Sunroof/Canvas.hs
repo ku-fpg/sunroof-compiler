@@ -118,7 +118,7 @@ fillRect (x,y) (w,h) = method "fillRect" (x, y, w, h)
 --   is expected.
 setFillStyle :: JSString -> Action JSObject ()
 -- TODO: Add support for gradients and patterns.
-setFillStyle fs = "fillStyle" := fs
+setFillStyle fs = action $ "fillStyle" := fs
 
 -- | Fills a text with the current fill style.
 fillText :: JSString            -- ^ The text to fill.
@@ -137,7 +137,7 @@ fillText' s (x,y) maxW = method "fillText" (s, x, y, maxW)
 
 -- | Sets the font used by the context.
 setFont :: JSString -> Action JSObject ()
-setFont f = "font" := f
+setFont f = action $ "font" := f
 
 -- | Get the image data of the specified rectanlge of the canvas.
 getImageData :: (JSNumber, JSNumber)     -- ^ The x and y coordinate of the top left
@@ -150,7 +150,7 @@ getImageData (x,y) (w,h) =
 
 -- | Sets the global alpha value.
 setGlobalAlpha :: JSNumber -> Action JSObject ()
-setGlobalAlpha a = "globalAlpha" := a
+setGlobalAlpha a = action $ "globalAlpha" := a
 
 -- | Returns true if the given point is in the path and false otherwise.
 isPointInPath :: (JSNumber, JSNumber)   -- ^ The x and y coordinate of the point to check
@@ -160,12 +160,12 @@ isPointInPath (x,y) = method "isPointInPath" (x, y)
 -- | Sets the line cap style to use.
 --   Possible values are: "butt", "round", "square";
 setLineCap :: JSString -> Action JSObject ()
-setLineCap lc = "lineCap" := lc
+setLineCap lc = action $ "lineCap" := lc
 
 -- | Sets the line join style to use.
 --   Possible values are: "bevel", "round", "meter";
 setLineJoin :: JSString -> Action JSObject ()
-setLineJoin lj = "lineJoin" := lj
+setLineJoin lj = action $ "lineJoin" := lj
 
 -- | Create a straight line path from the current point to the given point.
 lineTo :: (JSNumber,JSNumber) -- ^ The x and y location the line is drawn to.
@@ -175,7 +175,7 @@ lineTo (x,y) = method "lineTo" (x, y)
 -- | Sets the line width used when stroking.
 setLineWidth :: JSNumber           -- ^ The line new line width in pixels.
           -> Action JSObject ()
-setLineWidth lw = "lineWidth" := lw
+setLineWidth lw = action $ "lineWidth" := lw
 
 -- | Returns the miter limit used when drawing a miter line join.
 miterLimit :: JSSelector JSNumber
@@ -184,7 +184,7 @@ miterLimit = label $ string "miterLimit"
 -- | Sets the miter limit used when drawing a miter line join.
 setMiterLimit :: JSNumber           -- ^ The new miter limit.
               -> Action JSObject ()
-setMiterLimit ml = "miterLimit" := ml
+setMiterLimit ml = action $ "miterLimit" := ml
 
 -- | Returns an object that contains the width of the specified text is pixels.
 --   See 'width' selector.
@@ -247,22 +247,22 @@ setTransform a b c d e f =
 --   color of the form '#XXXXXX'
 setShadowColor :: JSString           -- ^ The color to use as shadow color.
             -> Action JSObject ()
-setShadowColor c = "shadowColor" := c
+setShadowColor c = action $ "shadowColor" := c
 
 -- | Sets the blur level for shadows.
 setShadowBlur :: JSNumber           -- ^ The blur level for the shadow in pixels.
            -> Action JSObject ()
-setShadowBlur b = "shadowBlur" := b
+setShadowBlur b = action $ "shadowBlur" := b
 
 -- | Sets the x offset of a shadow from a shape.
 setShadowOffsetX :: JSNumber           -- ^ The x offset of the shadow in pixels.
               -> Action JSObject ()
-setShadowOffsetX x = "shadowOffsetX" := x
+setShadowOffsetX x = action $ "shadowOffsetX" := x
 
 -- | Sets the y offset of a shadow from a shape.
 setShadowOffsetY :: JSNumber           -- ^ The y offset of the shadow in pixels.
               -> Action JSObject ()
-setShadowOffsetY y = "shadowOffsetY" := y
+setShadowOffsetY y = action $ "shadowOffsetY" := y
 
 -- | Draws the current path using the current stroke style.
 stroke :: Action JSObject ()
@@ -284,17 +284,17 @@ strokeText s (x,y) = method "strokeText" (s, x, y)
 --   is expected.
 setStrokeStyle :: JSString -> Action JSObject ()
 -- TODO: Add support for patterns and gradients.
-setStrokeStyle c = "strokeStyle" := c
+setStrokeStyle c = action $ "strokeStyle" := c
 
 -- | Sets the text alignment to be used when drawing text.
 --   Possible values are: "center", "end", "left", "right", "start"
 setTextAlign :: JSString -> Action JSObject ()
-setTextAlign ta = "textAlign" := ta
+setTextAlign ta = action $ "textAlign" := ta
 
 -- | Sets the baseline to use when drawing text.
 --   Possible values are: "alphabetic", "top", "hanging", "middle", "ideographic", "bottom"
 setTextBaseline :: JSString -> Action JSObject ()
-setTextBaseline tb = "textBaseline" := tb
+setTextBaseline tb = action $ "textBaseline" := tb
 
 -- | Alters the current transformation matrix. The current one is
 --   multiplied with one of the form:

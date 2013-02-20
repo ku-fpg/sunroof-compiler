@@ -65,37 +65,39 @@ clockJS = do
     c # save
     c # setLineCap "round"
     -- Hour pointer
---    c # do
-    c # save
-    c #     rotate ((2 * pi / 12) * ((h `mod` 12) + (m `mod` 60) / 60))
-    c #         setLineWidth 15
-    c #    beginPath
-    c #         moveTo (0, u * 0.1)
-    c #   lineTo (0, -u * 0.4)
-    c #         stroke
-    c #         closePath
-    c #   restore
+    c # do
+      save
+      rotate ((2 * pi / 12) * ((h `mod` 12) + (m `mod` 60) / 60))
+      setLineWidth 15
+      beginPath
+      moveTo (0, u * 0.1)
+      lineTo (0, -u * 0.4)
+      stroke
+      closePath
+      restore
     -- Minute pointer
-    c # save
-    c # rotate ((2 * pi / 60) * ((m `mod` 60) + (s `mod` 60) / 60))
-    c # setLineWidth 10
-    c # beginPath
-    c # moveTo (0, u * 0.1)
-    c # lineTo (0, -u * 0.7)
-    c # stroke
-    c # closePath
-    c # restore
+    c # do
+      save
+      rotate ((2 * pi / 60) * ((m `mod` 60) + (s `mod` 60) / 60))
+      setLineWidth 10
+      beginPath
+      moveTo (0, u * 0.1)
+      lineTo (0, -u * 0.7)
+      stroke
+      closePath
+      restore
     -- Second pointer
-    c # save
-    c # rotate ((2 * pi / 60) * (s `mod` 60))
-    c # setStrokeStyle "red"
-    c # setLineWidth 4
-    c # beginPath
-    c # moveTo (0, u * 0.1)
-    c # lineTo (0, -u * 0.9)
-    c # stroke
-    c # closePath
-    c # restore
+    c # do
+      save
+      rotate ((2 * pi / 60) * (s `mod` 60))
+      setStrokeStyle "red"
+      setLineWidth 4
+      beginPath
+      moveTo (0, u * 0.1)
+      lineTo (0, -u * 0.9)
+      stroke
+      closePath
+      restore
     -- Restore everything
     c # restore
 
@@ -146,7 +148,9 @@ canvas :: JS JSObject
 canvas = document # getElementById "canvas"
 
 context :: JS JSObject
-context = canvas >>= getContext "2d"
+context = do
+  c <- canvas 
+  c # getContext "2d"
 
 clockUnit :: JS JSNumber
 clockUnit = do

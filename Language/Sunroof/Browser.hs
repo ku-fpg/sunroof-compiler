@@ -56,6 +56,7 @@ import Language.Sunroof.Types
   , object
   , attribute
   , apply
+  , action
   )
 
 -- -----------------------------------------------------------------------
@@ -190,7 +191,7 @@ writeln str = method "writeln" (str)
 -- | Sets the value of the cookie.
 --   For use with 'document'.
 setCookie :: JSString -> Action JSObject ()
-setCookie c = "cookie" := c
+setCookie c = action $ "cookie" := c
 
 -- | Returns the value of the cookie.
 --   For use with 'document'.
@@ -205,7 +206,7 @@ referrer = attribute "referrer"
 -- | Sets the title of the document.
 --   For use with 'document'.
 setTitle :: JSString -> Action JSObject ()
-setTitle t = "title" := t
+setTitle t = action $ "title" := t
 
 -- | Returns the title of the document.
 --   For use with 'document'.

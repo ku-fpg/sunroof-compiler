@@ -344,7 +344,15 @@ label = JSSelector
 infix  5 :=
 
 
-type Action a r = a -> JS r
+newtype Action a r = Action (a -> JS r)
+
+instance (Sunroof a) => Monad (Action a) where
+  return x = Action $ \_ -> return x
+  (Action m) >>= f = Action $ \x -> m x >>= \y -> let Action a = f y in a x
+
+action :: (a -> JS r) -> Action a r
+action = Action
+
 {-
 data Action :: * -> * -> * where
    -- Invoke is not quite right
@@ -385,7 +393,7 @@ instance Monad (Action a) where
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 
 method :: (JSArgument a, Sunroof r) => String -> a -> Action JSObject r
-method str args obj = select (attribute str) obj >>= with args
+method str args = Action $ \obj -> (obj # select (attribute str)) >>= \f -> apply f args
 
 string :: String -> JSString
 string = JSString . Lit . show
@@ -398,7 +406,7 @@ call :: String -> JSFunction a r
 call = JSFunction . Lit
 
 with :: (JSArgument a, Sunroof r) => a -> Action (JSFunction a r) r
-with a fn = JS $ singleton $ JS_Invoke (jsArgs a) fn
+with a = Action $ \fn -> JS $ singleton $ JS_Invoke (jsArgs a) fn
 
 new :: JS JSObject
 new = evaluate $ object "new Object()"
@@ -410,8 +418,8 @@ attribute attr = label $ string attr
 --vector = ...
 ---------------------------------------------------------------
 
-select :: (Sunroof a) => JSSelector a -> JSObject -> JS a
-select sel obj = JS $ singleton $ JS_Select sel obj
+select :: (Sunroof a) => JSSelector a -> Action JSObject a
+select sel = Action $ \obj -> (JS $ singleton $ JS_Select sel obj)
 
 ---------------------------------------------------------------
 
@@ -474,8 +482,8 @@ infixl 2 #
 -- We should use this operator for the obj.label concept.
 -- It has been used in other places (but I can not seems
 -- to find a library for it)
-(#) :: a -> (a -> JS b) -> JS b
-(#) obj act = act obj
+(#) :: a -> Action a b -> JS b
+(#) obj (Action act) = act obj
 
 type instance BooleanOf (JS a) = JSBool
 
