@@ -10,7 +10,10 @@ import Language.Sunroof.Types
 --import Web.KansasComet (Template(..), extract)
 
 compileJS :: (Sunroof a) => JS a -> (String,String)
-compileJS = flip evalState 0 . compile
+compileJS = fst . compileJS' 0
+
+compileJS' :: (Sunroof a) => Uniq -> JS a -> ((String, String), Uniq)
+compileJS' uq jsm = runState (compile jsm) uq
 
 -- compile an existing expression
 compile :: Sunroof c => JS c -> CompM (String,String)
