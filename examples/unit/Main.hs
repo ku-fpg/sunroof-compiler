@@ -25,17 +25,14 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser hiding ( eval )
 
 main :: IO ()
-main = defaultCometServer ".." web_app
-
-opts :: KC.Options
-opts = def { prefix = "/example", verbose = 3 }
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) web_app
 
 default(JSNumber, JSString, String)
 
 type instance BooleanOf () = JSBool
 
 -- This is run each time the page is first accessed
-web_app :: SunroofDoc -> IO ()
+web_app :: SunroofEngine -> IO ()
 web_app doc = do
 
         -- We use the lower-level waitForEvent, so we can test the JS compiler.
