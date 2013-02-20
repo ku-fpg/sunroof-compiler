@@ -126,7 +126,7 @@ rsync engine jsm = do
     "" -> do
       error "rsync: Javascript does not have a return value."
     ret -> do
-      -- No synchronous call, because this might evaluate 
+      -- No synchronous call, because this might evaluate
       -- to something that is not representable as JSON.
       -- Also like this we save the bandwidth for transporting
       -- back the value.
@@ -141,7 +141,9 @@ sync engine jsm = do
   value <- sync' engine jsm
   return $ jsonToValue (Proxy :: Proxy a) value
 
--- This can be build out of primitives
+-- | wait passes an event to a continuation, once. You need
+-- to re-register each time.
+
 wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
 wait scope tmpl k = do
         o <- function k

@@ -25,11 +25,11 @@ draw obj (Painting fn) = fn obj
 -- | Turn an action on a canvas into a painting.
 -- Often, this action will be a compound action.
 painting :: Action JSObject () -> Painting
-painting act = Painting $ \ o -> o <$> act
+painting act = Painting $ \ o -> o # act
 
 rotateP :: JSNumber -> Painting -> Painting
-rotateP by (Painting m) = Painting $ \ cxt -> do
-        cxt <$> C.save
-        cxt <$> C.rotate by
+rotateP by (Painting m) = painting $ \ cxt -> do
+        cxt # C.save
+        cxt # C.rotate by
         m cxt
-        cxt <$> C.restore
+        cxt # C.restore

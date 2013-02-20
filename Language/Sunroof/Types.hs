@@ -19,27 +19,46 @@ cast :: (Sunroof a, Sunroof b) => a -> b
 cast = box . unbox
 
 ---------------------------------------------------------------
--- Trivial expression language
+-- Trivial expression language for Java
+
+type Id = String
+
 data Expr
         = Lit String    -- a precompiled version of this literal
-        | Var Uniq
+        | Var Id
         | Op String [Expr]
---        | Cast JSValue
+
+--
+showExpr :: Bool -> Expr -> String
+showExpr _    (Lit a) = a
+showExpr _    (Var v) = v
+showExpr b e = p $ case e of
+   (Op "[]" [a,x])   -> showExpr True a ++ "[" ++ show x ++ "]"
+   (Op "?:" [a,x,y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
+   (Op x [a,b]) -> showExpr True a ++ x ++ showExpr True b
+   (Op fn args) -> fn ++ "(" ++ intercalate "," (map (showExpr False) args) ++ ")"
+ where
+   p txt = if b then "(" ++ txt ++ ")" else txt
+
+data Stmt
+        = VarStmt Id Expr
 
 instance Show Expr where
+        show = showExpr False
+{-
         show (Lit a)  = a
-        show (Var uq) = "v" ++ show uq
+        show (Var v) = v
         show (Op "[]" [a,x]) = "(" ++ show a ++ ")[" ++ show x ++ "]"
         show (Op "?:" [a,x,y]) = "((" ++ show a ++ ")?(" ++ show x ++ "):(" ++ show y ++ "))"
 --        show (Op "(,)" [x,y]) = "[" ++ show x ++ "," ++ show y ++ "]"
         show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")" ++ x ++ "(" ++ show b ++ ")"
         show (Op fn args) = fn ++ "(" ++ intercalate "," (map show args) ++ ")"
 --        show (Cast e) = show e
-
+-}
 ---------------------------------------------------------------
 
 mkVar :: Sunroof a => Uniq -> a
-mkVar = box . Var
+mkVar = box . Var . ("v" ++) . show
 
 class Show a => Sunroof a where
         box :: Expr -> a
