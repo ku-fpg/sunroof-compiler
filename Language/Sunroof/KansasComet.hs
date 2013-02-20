@@ -317,3 +317,6 @@ jsonArrayToJS :: Array -> Expr
 jsonArrayToJS arr = Lit $
   "(new Array(" ++ (intercalate "," $ V.toList $ fmap (show . jsonToJS) arr) ++ "))"
 
+instance SunroofValue Value where
+  type ValueOf Value = JSObject
+  js = js . jsonToJS
