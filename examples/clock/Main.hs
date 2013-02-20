@@ -23,7 +23,8 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser hiding ( eval )
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> async doc clockJS
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) 
+     $ \doc -> async doc clockJS
 
 default(JSNumber, JSString, String)
 
@@ -33,9 +34,7 @@ type instance BooleanOf () = JSBool
 clockJS :: JS ()
 clockJS = do
   -- Renders a single line (with number) of the clock face.
-  renderClockFaceLine <- function $ \n -> do
-    u <- clockUnit
-    c <- context
+  renderClockFaceLine <- function $ \(c, u, n) -> do
     c # save
     -- Draw one of the indicator lines
     c # beginPath
@@ -56,59 +55,48 @@ clockJS = do
           c # fillText (cast $ n `div` 5) (0, 0)
         ) (return ())
     c # restore
-
+  
+  -- Renders a single clock pointer.
+  renderClockPointer <- function $ \(c, u, angle, width, len) -> do
+    c # save
+    c # setLineCap "round"
+    c # rotate angle
+    c # setLineWidth width
+    c # beginPath
+    c # moveTo (0, u * 0.1)
+    c # lineTo (0, -u * len)
+    c # stroke
+    c # closePath
+    c # restore
   -- Renders the clocks pointers for hours, minutes and seconds.
-  renderClockPointers <- function $ \() -> do
+  renderClockPointers <- function $ \(c, u) -> do
     (h, m, s) <- currentTime
-    u <- clockUnit
-    c <- context
     c # save
     c # setLineCap "round"
     -- Hour pointer
---    c # do
-    c # save
-    c #     rotate ((2 * pi / 12) * ((h `mod` 12) + (m `mod` 60) / 60))
-    c #         setLineWidth 15
-    c #    beginPath
-    c #         moveTo (0, u * 0.1)
-    c #   lineTo (0, -u * 0.4)
-    c #         stroke
-    c #         closePath
-    c #   restore
+    apply renderClockPointer
+      (c, u, (2 * pi / 12) * ((h `mod` 12) + (m `mod` 60) / 60), 15, 0.4)
     -- Minute pointer
-    c # save
-    c # rotate ((2 * pi / 60) * ((m `mod` 60) + (s `mod` 60) / 60))
-    c # setLineWidth 10
-    c # beginPath
-    c # moveTo (0, u * 0.1)
-    c # lineTo (0, -u * 0.7)
-    c # stroke
-    c # closePath
-    c # restore
+    apply renderClockPointer
+      ( c, u, (2 * pi / 60) * ((m `mod` 60) + (s `mod` 60) / 60), 10, 0.7)
     -- Second pointer
-    c # save
-    c # rotate ((2 * pi / 60) * (s `mod` 60))
     c # setStrokeStyle "red"
-    c # setLineWidth 4
-    c # beginPath
-    c # moveTo (0, u * 0.1)
-    c # lineTo (0, -u * 0.9)
-    c # stroke
-    c # closePath
-    c # restore
+    apply renderClockPointer
+      ( c, u, (2 * pi / 60) * (s `mod` 60), 4, 0.9)
     -- Restore everything
     c # restore
 
   -- Renders the complete face of the clock, without pointers.
-  renderClockFace <- function $ \() -> do
-    c <- context
+  renderClockFace <- function $ \(c, u) -> do
     c # save
     c # rotate (2 * pi / 4) -- 0 degrees is at the top
     -- Draw all hour lines.
     -- TODO: This repeats the call 60 times. Would be neat to have loops.
     sequence_ $ (flip fmap) (fmap fromInteger [1..60] :: [JSNumber]) $ \n -> do
-      c # rotate (2 * pi / 60)
-      apply renderClockFaceLine n
+      c # save
+      c # rotate ((2 * pi / 60) * n)
+      renderClockFaceLine `apply` (c, u, n)
+      c # restore
     c # restore -- Undo all the rotation.
 
   -- Renders the complete clock.
@@ -127,13 +115,13 @@ clockJS = do
     c # clearRect (0,0) (w,h)
     c # translate (w / 2, h / 2)
     -- Draw all hour lines.
-    apply renderClockFace ()
+    renderClockFace `apply` (c, u)
     -- Draw the clock pointers
-    apply renderClockPointers ()
+    renderClockPointers `apply` (c, u)
     c # restore
     return ()
 
-  apply renderClock ()
+  renderClock `apply` ()
   window # setInterval renderClock 1000
 
   return ()
