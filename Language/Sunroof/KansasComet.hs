@@ -136,7 +136,7 @@ rsync engine jsm = do
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result value is given the corresponding Haskell type,
 --   if possible (see 'SunroofValue').
-sync :: forall a. (SunroofValue a) => SunroofEngine -> JS a -> IO (ValueOf a)
+sync :: forall a. (SunroofResult a) => SunroofEngine -> JS a -> IO (ResultOf a)
 sync engine jsm = do
   value <- sync' engine jsm
   return $ jsonToValue (Proxy :: Proxy a) value
@@ -262,33 +262,33 @@ defaultServerOpts = SunroofServerOptions
 -- -----------------------------------------------------------------------
 
 -- | Provides correspondant Haskell types for certain Sunroof types.
-class (Sunroof a) => SunroofValue a where
-  type ValueOf a
-  jsonToValue :: Proxy a -> Value -> ValueOf a
+class (Sunroof a) => SunroofResult a where
+  type ResultOf a
+  jsonToValue :: Proxy a -> Value -> ResultOf a
   --toJS :: ValueOf a -> a
 
-instance SunroofValue () where
-  type ValueOf () = ()
+instance SunroofResult () where
+  type ResultOf () = ()
   jsonToValue _ (Null) = ()
   jsonToValue _ _ = error "jsonToValue: JSON value is not unit."
   --toJS () = ()
 
-instance SunroofValue JSBool where
-  type ValueOf JSBool = Bool
+instance SunroofResult JSBool where
+  type ResultOf JSBool = Bool
   jsonToValue _ (Bool b) = b
   jsonToValue _ _ = error "jsonToValue: JSON value is not a boolean."
   --toJS True = true
   --toJS False = false
 
-instance SunroofValue JSNumber where
-  type ValueOf JSNumber = Double
+instance SunroofResult JSNumber where
+  type ResultOf JSNumber = Double
   jsonToValue _ (Number (I i)) = fromInteger i
   jsonToValue _ (Number (D d)) = d
   jsonToValue _ _ = error "jsonToValue: JSON value is not a number."
   --toJS = JSNumber . Lit . show
 
-instance SunroofValue JSString where
-  type ValueOf JSString = String
+instance SunroofResult JSString where
+  type ResultOf JSString = String
   jsonToValue _ (String s) = unpack s
   jsonToValue _ _ = error "jsonToValue: JSON value is not a string."
   --toJS = fromString
