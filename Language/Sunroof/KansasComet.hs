@@ -32,9 +32,9 @@ import qualified Data.HashMap.Strict as M
 
 import Control.Monad.IO.Class ( liftIO )
 
-import Network.Wai.Handler.Warp ( Port )
+import Network.Wai.Handler.Warp ( Port, settingsPort )
 import Network.Wai.Middleware.Static
-import Web.Scotty (scotty, middleware)
+import qualified Web.Scotty as SC
 import Web.KansasComet
   ( Template(..)
   , extract
@@ -143,7 +143,6 @@ sync engine jsm = do
 
 -- | wait passes an event to a continuation, once. You need
 -- to re-register each time.
-
 wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
 wait scope tmpl k = do
         o <- function k
@@ -218,14 +217,18 @@ data SunroofServerOptions = SunroofServerOptions
 --   
 --   Look into the example folder to see all of this in action.
 sunroofServer :: SunroofServerOptions -> SunroofApp -> IO ()
-sunroofServer opts cometApp = 
-  scotty (cometPort opts) $ do
+sunroofServer opts cometApp = do
+  let warpSettings = (SC.settings def) { settingsPort = cometPort opts }
+  -- Be quiet scotty! ... and beam me up!
+  let scottyOptions = def { SC.verbose = 0
+                          , SC.settings = warpSettings }
+  SC.scottyOpts scottyOptions $ do
     kcomet <- liftIO kCometPlugin
     let pol = only [("", cometIndexFile opts)
                    ,("js/kansas-comet.js", kcomet)]
               <|> ((hasPrefix "css/" <|> hasPrefix "js/") 
                    >-> addBase (cometResourceBaseDir opts))
-    middleware $ staticPolicy pol
+    SC.middleware $ staticPolicy pol
     connect (cometOptions opts) $ wrapDocument opts cometApp
 
 -- | Wrap the document into the sunroof engine.
