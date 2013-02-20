@@ -1,5 +1,7 @@
 {-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
-module Language.Sunroof.Compiler where
+module Language.Sunroof.Compiler 
+  ( compileJS, compileJS'
+  ) where
 
 --import qualified Control.Applicative as App
 import Control.Monad.Operational
@@ -10,7 +12,10 @@ import Language.Sunroof.Types
 --import Web.KansasComet (Template(..), extract)
 
 compileJS :: (Sunroof a) => JS a -> (String,String)
-compileJS = flip evalState 0 . compile
+compileJS = fst . compileJS' 0
+
+compileJS' :: (Sunroof a) => Uniq -> JS a -> ((String, String), Uniq)
+compileJS' uq jsm = runState (compile jsm) uq
 
 -- compile an existing expression
 compile :: Sunroof c => JS c -> CompM (String,String)
@@ -173,7 +178,9 @@ instance UniqM CompM where
 newVar :: (Sunroof a) => CompM a
 newVar = jsVar
 
+{-
 newLoop :: CompM String
 newLoop = do
     u <- uniqM
     return $ "loop" ++ show u
+-}

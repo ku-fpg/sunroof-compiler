@@ -6,3 +6,5 @@ dist/*
 *.swo
 .DS_Store
 sunroof-example
+Main
+.shake.database
