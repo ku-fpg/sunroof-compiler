@@ -17,6 +17,7 @@ import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.Canvas
 import Language.Sunroof.Browser (alert)
+import Language.Sunroof.JQuery
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
@@ -50,14 +51,8 @@ main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc 
           addMethod nm f = do n <- function f
                               obj # attribute nm := n
 
-          jQuery :: JSString -> JS JSObject
-          jQuery nm = call "$" `apply` nm
-
           slider :: JSNumber -> Action JSObject JSObject
           slider nm = method "slider"  ("value" :: JSString, nm)
-
-          html :: JSString -> Action JSObject JSObject
-          html nm = method "html"  nm
 
           fib :: JSNumber -> JS JSNumber
           fib n = obj ! "fib" `apply` n

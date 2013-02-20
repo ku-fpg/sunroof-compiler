@@ -18,6 +18,7 @@ import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.Canvas
 import Language.Sunroof.Browser
+import Language.Sunroof.JQuery
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \ doc -> do
@@ -31,9 +32,6 @@ main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \ doc
   --return ()
 
 default(JSNumber, JSString, String)
-
-jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" `apply` nm
 
 whenEvent :: Document -> Scope -> Template event -> IO a -> IO a
 whenEvent doc scope event m = do

@@ -21,6 +21,7 @@ import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.Canvas
 import Language.Sunroof.Browser hiding ( eval )
+import Language.Sunroof.JQuery
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) 
@@ -125,10 +126,6 @@ clockJS = do
   window # setInterval renderClock 1000
 
   return ()
-
--- TODO: Move this into a new JQuery module of sunroof.
-jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" `apply` nm
 
 canvas :: JS JSObject
 canvas = document # getElementById "canvas"

@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Language.Sunroof.Browser
-  -- Top level functions
+  -- Top level API
   ( alert
   , decodeURI
   , encodeURI
@@ -17,11 +17,13 @@ module Language.Sunroof.Browser
   , isNaN
   , parseFloat
   , parseInt
-  -- Window functions
+  -- Window API
   , window
   , setInterval
   , clearInterval
-  -- Document functions
+  -- Screen API
+  , screen
+  -- Document API
   , document
   , getElementById
   , getElementsByName
@@ -122,6 +124,14 @@ setInterval f interval = method "setInterval" (f, interval)
 -- | Clears a timer set with the 'setInterval' method.
 clearInterval :: JSNumber -> Action JSObject ()
 clearInterval ident = method "clearInterval" (ident)
+
+-- -----------------------------------------------------------------------
+-- Screen API
+-- -----------------------------------------------------------------------
+
+-- | The screen object.
+screen :: JSObject
+screen = object "screen"
 
 -- -----------------------------------------------------------------------
 -- Document API

@@ -20,6 +20,9 @@ import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.Canvas
 import Language.Sunroof.Browser
+import Language.Sunroof.JQuery
+
+default(JSNumber, JSString, String)
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
@@ -68,23 +71,12 @@ main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc 
     println "Window Size" $ show theOuterWidth <> " x " <> show theOuterHeight
     println "Viewport Size" $ show theInnerWidth <> " x " <> show theInnerHeight
 
-default(JSNumber, JSString, String)
-
-screen :: JSObject
-screen = object "screen"
-
-jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" `apply` nm
-
-append :: JSString -> Action JSObject ()
-append x = method "append" x
-
 println :: (Show a, Eq a) => JSString -> a -> JS ()
 println name val = do
   let valStr = show val
   let val' = if valStr == "" then "&lt;EMPTY&gt;" else valStr
-  jQuery "#output" >>= append ("<dt>" <> name <> "</dt>")
-  jQuery "#output" >>= append ("<dd>" <> js val' <> "</dd>")
+  jq "#output" >>= append (cast $ "<dt>" <> name <> "</dt>")
+  jq "#output" >>= append (cast $ "<dd>" <> js val' <> "</dd>")
 
 
 
