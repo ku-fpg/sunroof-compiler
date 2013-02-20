@@ -11,6 +11,7 @@ module Language.Sunroof.KansasComet
   , rsync
   , wait
   , SunroofValue(..)
+  , SunroofDoc(..)
   , jsonToJS
   , defaultCometIndexFile
   , defaultCometOpts
@@ -42,40 +43,50 @@ import Web.KansasComet
   , Scope
   , send
   , connect
-  , Document, queryGlobal
+  , queryGlobal
   , Options(..)
   , kCometPlugin
   )
+import qualified Web.KansasComet as KC
 
 import Language.Sunroof.Compiler
 import Language.Sunroof.Types
 
+data SunroofDoc = SunroofDoc
+  { cometDocument :: KC.Document
+  , sunroofUniq :: Uniq
+  }
+
 -- | Executes the Javascript in the browser without waiting for a result.
-async :: Document -> JS () -> IO ()
+async :: SunroofDoc -> JS () -> IO ()
 async doc jsm = do
-  let (res,_) = compileJS jsm
+  let ((res,_), _uq) = compileJS' (sunroofUniq doc) jsm
   --print res
-  send doc $ res  -- send it, and forget it
+  send (cometDocument doc) $ res  -- send it, and forget it
+  -- TODO: Carry this on somehow.
+  -- doc { sunroofUniq = uq }
   return ()
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result is given as JSON value.
-sync' :: (Sunroof a) => Document -> JS a -> IO Value
+sync' :: (Sunroof a) => SunroofDoc -> JS a -> IO Value
 sync' doc jsm = do
-  let (src,retVar) = compileJS jsm
+  let ((src,retVar), _uq) = compileJS' (sunroofUniq doc) jsm
   --print (res,retVar)
   case retVar of
     -- if there is no return value we just represent it as null.
     -- Like this we have something to wait for.
     -- Right now this corresponds to a ~ ().
-    ""  -> queryGlobal doc (src, "null")
-    ret -> queryGlobal doc (src, ret)
+    ""  -> queryGlobal (cometDocument doc) (src, "null")
+    ret -> queryGlobal (cometDocument doc) (src, ret)
+  -- TODO: Carry this on somehow.
+  -- doc { sunroofUniq = uq }
 
 -- | Executes the Javascript in the browser and waits for the result.
 --   The returned value is just a reference to the computed value.
-rsync :: (Sunroof a) => Document -> JS a -> IO a
+rsync :: (Sunroof a) => SunroofDoc -> JS a -> IO a
 rsync doc jsm = do
-  let (src, retVar) = compileJS jsm
+  let ((src, retVar), _uq) = compileJS' (sunroofUniq doc) jsm
   case retVar of
     "" -> do
       error "rsync: Javascript does not have a return value."
@@ -84,15 +95,18 @@ rsync doc jsm = do
       -- to something that is not representable as JSON.
       -- Also like this we save the bandwidth for transporting
       -- back the value.
-      send doc $ src -- send it, and forget it
+      send (cometDocument doc) $ src -- send it, and forget it
       return $ box $ Lit ret
+  -- TODO: Carry this on somehow.
+  -- doc { sunroofUniq = uq }
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result value is given the corresponding Haskell type,
 --   if possible (see 'SunroofValue').
-sync :: forall a. (SunroofValue a) => Document -> JS a -> IO (ValueOf a)
+sync :: forall a. (SunroofValue a) => SunroofDoc -> JS a -> IO (ValueOf a)
 sync doc jsm = do
   value <- sync' doc jsm
+  -- TODO: Carry on the modified sunroof document after it has been modified.
   return $ jsonToValue (Proxy :: Proxy a) value
 
 -- This can be build out of primitives
@@ -110,7 +124,7 @@ wait scope tmpl k = do
 
 -- | A comet application takes the document we are currently communicating 
 --   with and delivers the IO action to be executed as server application.
-type CometApp = Document -> IO ()
+type CometApp = SunroofDoc -> IO ()
 
 -- | Sets up a comet server ready to use with sunroof.
 --   
@@ -181,7 +195,12 @@ sunroofCometServer port resBaseDir indexFile options cometApp =
                    ,("js/kansas-comet.js", kcomet)]
               <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase resBaseDir)
     middleware $ staticPolicy pol
-    connect options cometApp
+    connect options $ wrapDocument cometApp
+
+wrapDocument :: CometApp -> (KC.Document -> IO ())
+wrapDocument cometApp doc = cometApp $ SunroofDoc { cometDocument = doc
+                                                  , sunroofUniq = 0
+                                                  }
 
 -- | Default options to use for the comet server.
 --   Uses the server path @/ajax@ for the comet JSON communication.
