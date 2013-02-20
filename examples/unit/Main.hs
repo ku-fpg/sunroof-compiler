@@ -48,7 +48,7 @@ web_app doc = do
         putStrLn "-- Check constant numbers"
         sequence_
          [ do putStrLn $ "checking : " ++ show n
-              n' <- sync doc (return (jsNumber n :: JSNumber))
+              n' <- sync doc (return $ js n)
               assert (n == n') $ "expecting " ++ show n ++ ", found " ++ show n'
          | n <- [1..10] ++ [0,-1] :: [Double]
          ]
@@ -56,7 +56,7 @@ web_app doc = do
         putStrLn "-- Check basic arithmetic"
         sequence_
          [ do putStrLn $ "checking : " ++ show n ++ " " ++ nm ++ " " ++ show m
-              r' <- sync doc (return (jsNumber n `f` jsNumber m :: JSNumber))
+              r' <- sync doc (return (js n `f` js m :: JSNumber))
               assert ((n `f` m) == r') $ "expecting " ++ show (n `f` m) ++ ", found " ++ show r'
          | Op2 f nm <- [ Op2 (+) "+"
                        , Op2 (-) "-"
@@ -69,7 +69,4 @@ web_app doc = do
         putStrLn "-- passed all tests"
 
 data Op2 = Op2 (forall a . Num a => a -> a -> a) String
-
-jsNumber :: Double -> JSNumber
-jsNumber = fromRational . toRational
 

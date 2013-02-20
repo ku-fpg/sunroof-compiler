@@ -84,7 +84,7 @@ println name val = do
   let valStr = show val
   let val' = if valStr == "" then "&lt;EMPTY&gt;" else valStr
   jQuery "#output" >>= append ("<dt>" <> name <> "</dt>")
-  jQuery "#output" >>= append ("<dd>" <> fromString val' <> "</dd>")
+  jQuery "#output" >>= append ("<dd>" <> js val' <> "</dd>")
 
 
 
