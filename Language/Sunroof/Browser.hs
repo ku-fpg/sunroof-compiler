@@ -116,7 +116,7 @@ window = object "window"
 -- | Calls a function at specified intervals in milliseconds.
 --   It will continue calling the function until 'clearInterval' is called,
 --   or the window is closed. The returned number is needed for 'clearInterval'.
-setInterval :: JSFunction () r -> JSNumber -> Action JSObject JSNumber
+setInterval :: (Sunroof r) => JSFunction () r -> JSNumber -> Action JSObject JSNumber
 setInterval f interval = method "setInterval" (f, interval)
 
 -- | Clears a timer set with the 'setInterval' method.

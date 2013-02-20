@@ -209,7 +209,7 @@ data JSFunction args ret = JSFunction Expr
 instance Show (JSFunction a r) where
         show (JSFunction v) = show v
 
-instance forall a r . (JSArgument a) => Sunroof (JSFunction a r) where
+instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
         box = JSFunction
         unbox (JSFunction e) = e
 
@@ -224,7 +224,7 @@ instance forall a r . (JSArgument a) => Sunroof (JSFunction a r) where
 
 type instance BooleanOf (JSFunction a r) = JSBool
 
-instance (JSArgument a) => IfB (JSFunction a r) where
+instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
     ifB = js_ifB
 
 instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS b) where

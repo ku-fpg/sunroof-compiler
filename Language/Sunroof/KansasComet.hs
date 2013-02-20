@@ -10,7 +10,7 @@ module Language.Sunroof.KansasComet
   , async
   , rsync
   , wait
-  , SunroofValue(..)
+  , SunroofResult(..)
   , SunroofEngine(..)
   , jsonToJS
   , defaultServerOpts
@@ -163,11 +163,15 @@ type SunroofApp = SunroofEngine -> IO ()
 --   sunroof comet server infrastructure.
 --   
 --   [@cometPort@] The port the server is reachable from.
+--   
 --   [@cometResourceBaseDir@] Will be used as base directory to 
 --     search for the @css@ and @js@ folders which will be forwarded.
+--   
 --   [@cometIndexFile@] The file to be used as index file.
+--   
 --   [@cometOptions@] Provides the kansas comet options to use. 
 --     Default options are provided with the 'defaultServerOpts'.
+--   
 --   [@sunroofVerbose@] @0@ for none, @1@ for initializations, 
 --     @2@ for commands done and @3@ for a complete log.
 --   
@@ -242,10 +246,14 @@ wrapDocument opts cometApp doc = cometApp
 -- | Default options to use for the sunroof comet server.
 --   
 --   [@cometPort@] Default port is @3000@.
+--   
 --   [@cometResourceBaseDir@] Default resource location is @"."@.
+--   
 --   [@cometIndexFile@] Default index file is @"index.html"@.
---   [@cometOptions@] Uses the server path @/ajax@ for the comet JSON communication.
---                    Sets verbosity to @0@ (quiet).
+--   
+--   [@cometOptions@] Uses the server path @/ajax@ for the 
+--     comet JSON communication. Sets verbosity to @0@ (quiet).
+--   
 --   [@sunroofVerbose@] Is set to @0@ (quiet).
 --   
 defaultServerOpts :: SunroofServerOptions
