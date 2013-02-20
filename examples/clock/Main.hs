@@ -23,27 +23,11 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser hiding ( eval )
 
 main :: IO ()
-main = scotty 3000 $ do
-    kcomet <- liftIO kCometPlugin
-
-    let pol = only [("","index.html")
-                   ,("js/kansas-comet.js", kcomet)]
-              <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase "..")
-
-    middleware $ staticPolicy pol
-
-    KC.connect opts web_app
-
-opts :: KC.Options
-opts = def { prefix = "/example", verbose = 0 }
+main = defaultCometServer ".." $ \doc -> async doc clockJS
 
 default(JSNumber, JSString, String)
 
 type instance BooleanOf () = JSBool
-
--- This is run each time the page is first accessed
-web_app :: Document -> IO ()
-web_app doc = async doc clockJS
 
 -- TODO: Would be neat to create JS functions with more then one parameter.
 clockJS :: JS ()

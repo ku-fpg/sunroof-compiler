@@ -20,28 +20,7 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser
 
 main :: IO ()
-main = scotty 3000 $ do
-    kcomet <- liftIO kCometPlugin
-
-    let pol = only [("","index.html")
-                   ,("js/kansas-comet.js", kcomet)]
-              <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase "..")
-
-    middleware $ staticPolicy pol
-
-    KC.connect opts web_app
-
-opts :: KC.Options
-opts = def { prefix = "/example", verbose = 0 }
-
-default(JSNumber, JSString, String)
-
-jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" `apply` nm
-
--- This is run each time the page is first accessed
-web_app :: Document -> IO ()
-web_app doc = do
+main = defaultCometServer ".." $ \ doc -> do
   registerEvents doc "body" click
   sequence_ $ map (\ex -> whenEvent doc "body" click $ async doc $ onClick $ ex)
                   (cycle examples)
@@ -49,6 +28,11 @@ web_app doc = do
   --  $ sync doc $ onClick $ examples !! 0
   --sequence_ $ map (sync doc) $ map waitForClick $ examples
   --return ()
+
+default(JSNumber, JSString, String)
+
+jQuery :: JSString -> JS JSObject
+jQuery nm = call "$" `apply` nm
 
 whenEvent :: Document -> Scope -> Template event -> IO a -> IO a
 whenEvent doc scope event m = do

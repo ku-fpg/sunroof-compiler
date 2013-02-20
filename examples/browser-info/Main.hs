@@ -22,69 +22,53 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser
 
 main :: IO ()
-main = scotty 3000 $ do
-    kcomet <- liftIO kCometPlugin
+main = defaultCometServer ".." $ \doc -> do
+  registerEvents doc "body" mempty
 
-    let pol = only [("","index.html")
-                   ,("js/kansas-comet.js", kcomet)]
-              <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase "..")
+  theCookie <- sync doc $ document <!> cookie
+  putStrLn $ "Cookie:     " ++ show theCookie
 
-    middleware $ staticPolicy pol
+  theTitle <- sync doc $ document <!> title
+  putStrLn $ "Title:      " ++ show theTitle
 
-    KC.connect opts web_app
+  theReferrer <- sync doc $ document <!> referrer
+  putStrLn $ "Referrer:   " ++ show theReferrer
 
-opts :: KC.Options
-opts = def { prefix = "/example", verbose = 0 }
+  theUrl <- sync doc $ document <!> url
+  putStrLn $ "URL:        " ++ show theUrl
+
+  theUserAgent <- sync doc $ object "navigator" <!> (attribute "userAgent" :: JSSelector JSString)
+  putStrLn $ "User Agent: " ++ show theUserAgent
+
+  theWidth  <- sync doc
+             $ screen <!> (attribute "width" :: JSSelector JSNumber)
+  theHeight <- sync doc
+             $ screen <!> (attribute "height" :: JSSelector JSNumber)
+  putStrLn $ "Screen Size:   " ++ show theWidth ++ " x " ++ show theHeight
+
+  theOuterWidth  <- sync doc
+                  $ window <!> (attribute "outerWidth" :: JSSelector JSNumber)
+  theOuterHeight <- sync doc
+                  $ window <!> (attribute "outerHeight" :: JSSelector JSNumber)
+  putStrLn $ "Window Size:   " ++ show theOuterWidth ++ " x " ++ show theOuterHeight
+
+  theInnerWidth  <- sync doc
+                  $ window <!> (attribute "innerWidth" :: JSSelector JSNumber)
+  theInnerHeight <- sync doc
+                  $ window <!> (attribute "innerHeight" :: JSSelector JSNumber)
+  putStrLn $ "Viewport Size: " ++ show theInnerWidth ++ " x " ++ show theInnerHeight
+
+  async doc $ do
+    println "Cookie" theCookie
+    println "Title" theTitle
+    println "Referrer" theReferrer
+    println "URL" theUrl
+    println "User Agent" theUserAgent
+    println "Screen Size" $ show theWidth <> " x " <> show theHeight
+    println "Window Size" $ show theOuterWidth <> " x " <> show theOuterHeight
+    println "Viewport Size" $ show theInnerWidth <> " x " <> show theInnerHeight
 
 default(JSNumber, JSString, String)
-
--- This is run each time the page is first accessed
-web_app :: Document -> IO ()
-web_app doc = do
-    registerEvents doc "body" mempty
-
-    theCookie <- sync doc $ document <!> cookie
-    putStrLn $ "Cookie:     " ++ show theCookie
-
-    theTitle <- sync doc $ document <!> title
-    putStrLn $ "Title:      " ++ show theTitle
-
-    theReferrer <- sync doc $ document <!> referrer
-    putStrLn $ "Referrer:   " ++ show theReferrer
-
-    theUrl <- sync doc $ document <!> url
-    putStrLn $ "URL:        " ++ show theUrl
-
-    theUserAgent <- sync doc $ object "navigator" <!> (attribute "userAgent" :: JSSelector JSString)
-    putStrLn $ "User Agent: " ++ show theUserAgent
-
-    theWidth  <- sync doc
-               $ screen <!> (attribute "width" :: JSSelector JSNumber)
-    theHeight <- sync doc
-               $ screen <!> (attribute "height" :: JSSelector JSNumber)
-    putStrLn $ "Screen Size:   " ++ show theWidth ++ " x " ++ show theHeight
-
-    theOuterWidth  <- sync doc
-                    $ window <!> (attribute "outerWidth" :: JSSelector JSNumber)
-    theOuterHeight <- sync doc
-                    $ window <!> (attribute "outerHeight" :: JSSelector JSNumber)
-    putStrLn $ "Window Size:   " ++ show theOuterWidth ++ " x " ++ show theOuterHeight
-
-    theInnerWidth  <- sync doc
-                    $ window <!> (attribute "innerWidth" :: JSSelector JSNumber)
-    theInnerHeight <- sync doc
-                    $ window <!> (attribute "innerHeight" :: JSSelector JSNumber)
-    putStrLn $ "Viewport Size: " ++ show theInnerWidth ++ " x " ++ show theInnerHeight
-
-    async doc $ do
-      println "Cookie" theCookie
-      println "Title" theTitle
-      println "Referrer" theReferrer
-      println "URL" theUrl
-      println "User Agent" theUserAgent
-      println "Screen Size" $ show theWidth <> " x " <> show theHeight
-      println "Window Size" $ show theOuterWidth <> " x " <> show theOuterHeight
-      println "Viewport Size" $ show theInnerWidth <> " x " <> show theInnerHeight
 
 screen :: JSObject
 screen = object "screen"
