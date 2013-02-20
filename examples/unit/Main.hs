@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings, TypeFamilies, ScopedTypeVariables, RankNTypes #-}
 
 module Main where
 
@@ -45,29 +45,34 @@ web_app doc = do
                 print "waited"
                 print a
 
-        let assert True = return ()
-            assert False = error "test failed: aborting"
+        let assert True msg = return ()
+            assert False msg = error $ "test failed: " ++ msg
 
         putStrLn "-- Check constant numbers"
         sequence_
          [ do putStrLn $ "checking : " ++ show n
               n' <- sync doc (return (jsNumber n :: JSNumber))
-              assert (n == n')
+              assert (n == n') $ "expecting " ++ show n ++ ", found " ++ show n'
          | n <- [1..10] ++ [0,-1] :: [Double]
          ]
 
-        putStrLn "-- Check arithmetic"
+        putStrLn "-- Check basic arithmetic"
         sequence_
          [ do putStrLn $ "checking : " ++ show n ++ " " ++ nm ++ " " ++ show m
               r' <- sync doc (return (jsNumber n `f` jsNumber m :: JSNumber))
-              assert ((n + m) == r')
-         | (f,nm) <- [((+),"+"),((-),"-"),((*),"*")]
+              assert ((n `f` m) == r') $ "expecting " ++ show (n `f` m) ++ ", found " ++ show r'
+         | Op2 f nm <- [ Op2 (+) "+"
+                       , Op2 (-) "-"
+                       , Op2 (*) "*"
+                       ]
          , n <- [-1..3]
          , m <- [-1..3]
          ]
 
         putStrLn "-- passed all tests"
 
+data Op2 = Op2 (forall a . Num a => a -> a -> a) String
+
 jsNumber :: Double -> JSNumber
-jsNumber = box . Lit . show
+jsNumber = fromRational . toRational
 
