@@ -21,10 +21,10 @@ module Language.Sunroof.KansasComet
 
 import Data.Aeson.Types ( Value(..), Object, Array )
 import Data.Attoparsec.Number ( Number(..) )
-import Data.Boolean
+--import Data.Boolean
 import Data.List ( intercalate )
-import Data.String ( IsString(..) )
-import Data.Text ( unpack )
+--import Data.String ( IsString(..) )
+import Data.Text ( Text, unpack )
 import Data.Proxy
 import Data.Default
 import qualified Data.Vector as V
@@ -295,10 +295,10 @@ instance SunroofResult JSString where
 
 -- | Converts a JSON value to a Sunroof Javascript expression.
 jsonToJS :: Value -> Expr
-jsonToJS (Bool b)       = unbox (if b then false else true :: JSBool)
-jsonToJS (Number (I i)) = unbox (fromInteger i :: JSNumber)
-jsonToJS (Number (D d)) = unbox (fromRational (toRational d) :: JSNumber)
-jsonToJS (String s)     = unbox (fromString (unpack s) :: JSString)
+jsonToJS (Bool b)       = unbox $ js b
+jsonToJS (Number (I i)) = unbox $ js i
+jsonToJS (Number (D d)) = unbox $ js d
+jsonToJS (String s)     = unbox $ js s
 -- TODO: This is only a hack. Could null be a good reprensentation for unit '()'?
 jsonToJS (Null)         = Lit "null"
 jsonToJS (Array arr)    = jsonArrayToJS arr
@@ -320,3 +320,7 @@ jsonArrayToJS arr = Lit $
 instance SunroofValue Value where
   type ValueOf Value = JSObject
   js = js . jsonToJS
+
+instance SunroofValue Text where
+  type ValueOf Text = JSString
+  js = js . unpack
