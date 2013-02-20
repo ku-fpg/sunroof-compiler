@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+
 module Language.Sunroof.KansasComet
   ( sync
   , sync'
@@ -11,6 +12,11 @@ module Language.Sunroof.KansasComet
   , wait
   , SunroofValue(..)
   , jsonToJS
+  , defaultCometIndexFile
+  , defaultCometOpts
+  , defaultCometPort
+  , defaultCometServer
+  , sunroofCometServer
   ) where
 
 import Data.Aeson.Types ( Value(..), Object, Array )
@@ -20,21 +26,29 @@ import Data.List ( intercalate )
 import Data.String ( IsString(..) )
 import Data.Text ( unpack )
 import Data.Proxy
+import Data.Default
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as M
 
-import Language.Sunroof.Compiler
-import Language.Sunroof.Types
+import Control.Monad.IO.Class ( liftIO )
 
--- export register
+import Network.Wai.Handler.Warp ( Port )
+import Network.Wai.Middleware.Static
+import Web.Scotty (scotty, middleware)
 import Web.KansasComet
   ( Template(..)
   , extract
   --, register
   , Scope
   , send
+  , connect
   , Document, queryGlobal
+  , Options(..)
+  , kCometPlugin
   )
+
+import Language.Sunroof.Compiler
+import Language.Sunroof.Types
 
 -- | Executes the Javascript in the browser without waiting for a result.
 async :: Document -> JS () -> IO ()
@@ -89,6 +103,71 @@ wait scope tmpl k = do
                                     , object (show (map fst (extract tmpl)))
                                     , o
                                     )
+
+-- -----------------------------------------------------------------------
+-- Default Server Instance
+-- -----------------------------------------------------------------------
+
+-- | A comet application takes the document we are currently communicating 
+--   with and delivers the IO action to be executed as server application.
+type CometApp = Document -> IO ()
+
+-- | Sets up a comet server ready to use with sunroof.
+--   @defaultCometServer res app@:
+--   Use @res@ as base directory to search for the @css@ and @js@
+--   folders which will be forwarded.
+--   The application to run is given by @app@. It takes the current 
+--   document as parameter. The document is needed for calls to 'sync',
+--   'async' and 'rsync'.
+--   
+--   All other option from 'sunroofCometServer' are supplied 
+--   with the default values: 'defaultCometPort', 'defaultCometIndexFile'
+--   and 'defaultCometOpts'.
+defaultCometServer :: FilePath -> CometApp -> IO ()
+defaultCometServer resBaseDir cometApp = 
+  sunroofCometServer defaultCometPort 
+                     resBaseDir 
+                     defaultCometIndexFile
+                     defaultCometOpts
+                     cometApp
+
+-- | Sets up a comet server ready to use with sunroof.
+--   @sunroofCometServer p res idx opts app@: 
+--   Starts a comet server at port @p@. 
+--   It will use @res@ as base directory to search for the @css@ and @js@
+--   folders which will be forwarded.
+--   The @idx@ file will be used as index file.
+--   @opts@ provides the kansas comet options to use. Default options
+--   are provided with 'defaultCometOpts'.
+--   The application to run is given by @app@. It takes the current 
+--   document as parameter. The document is needed for calls to 'sync',
+--   'async' and 'rsync'.
+--   
+--   The server provides the kansas comet Javascript on the path 
+--   @js/kansas-comet.js@.
+sunroofCometServer :: Port -> FilePath -> FilePath -> Options -> CometApp -> IO ()
+sunroofCometServer port resBaseDir indexFile options cometApp = 
+  scotty port $ do
+    kcomet <- liftIO kCometPlugin
+    let pol = only [("",indexFile)
+                   ,("js/kansas-comet.js", kcomet)]
+              <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase resBaseDir)
+    middleware $ staticPolicy pol
+    connect options cometApp
+
+-- | Default options to use for the comet server.
+--   Uses the server path @json/@ for the comet JSON communication.
+--   Sets verbosity to 0 (quiet).
+defaultCometOpts :: Options
+defaultCometOpts = def { prefix = "json/", verbose = 0 }
+
+-- | The default port is @3000@.
+defaultCometPort :: Port
+defaultCometPort = 3000
+
+-- | The default index file is @index.html@
+defaultCometIndexFile :: FilePath
+defaultCometIndexFile = "index.html"
 
 -- -----------------------------------------------------------------------
 -- JSON Value to Haskell/Sunroof conversion
