@@ -113,6 +113,7 @@ wait scope tmpl k = do
 type CometApp = Document -> IO ()
 
 -- | Sets up a comet server ready to use with sunroof.
+--   
 --   @defaultCometServer res app@:
 --   Use @res@ as base directory to search for the @css@ and @js@
 --   folders which will be forwarded.
@@ -123,6 +124,8 @@ type CometApp = Document -> IO ()
 --   All other option from 'sunroofCometServer' are supplied 
 --   with the default values: 'defaultCometPort', 'defaultCometIndexFile'
 --   and 'defaultCometOpts'.
+--   
+--   See 'sunroofCometServer' for further information.
 defaultCometServer :: FilePath -> CometApp -> IO ()
 defaultCometServer resBaseDir cometApp = 
   sunroofCometServer defaultCometPort 
@@ -132,6 +135,7 @@ defaultCometServer resBaseDir cometApp =
                      cometApp
 
 -- | Sets up a comet server ready to use with sunroof.
+--   
 --   @sunroofCometServer p res idx opts app@: 
 --   Starts a comet server at port @p@. 
 --   It will use @res@ as base directory to search for the @css@ and @js@
@@ -145,6 +149,25 @@ defaultCometServer resBaseDir cometApp =
 --   
 --   The server provides the kansas comet Javascript on the path 
 --   @js/kansas-comet.js@.
+--   
+--   For the index file to setup the communication correctly with the comet
+--   server it has to load the @kansas-comet.js@ inside the @head@:
+--   
+-- >   <script type="text/javascript" src="js/kansas-comet.js"></script>
+--   
+--   It also has to execute the following Javascript at the end of the
+--   index file to initialize the communication:
+--   
+-- >   <script type="text/javascript">
+-- >     $(document).ready(function() {
+-- >       $.kc.connect("/ajax");
+-- >     });
+-- >   </script>
+--   
+--   The string @/ajax@ has to be set to whatever the comet prefix 
+--   in the given 'Options' is. These snippits will work for 'defaultCometOpts'.
+--   
+--   Look into the example folder to see this in action.
 sunroofCometServer :: Port -> FilePath -> FilePath -> Options -> CometApp -> IO ()
 sunroofCometServer port resBaseDir indexFile options cometApp = 
   scotty port $ do
@@ -156,10 +179,10 @@ sunroofCometServer port resBaseDir indexFile options cometApp =
     connect options cometApp
 
 -- | Default options to use for the comet server.
---   Uses the server path @json/@ for the comet JSON communication.
+--   Uses the server path @/ajax@ for the comet JSON communication.
 --   Sets verbosity to 0 (quiet).
 defaultCometOpts :: Options
-defaultCometOpts = def { prefix = "json/", verbose = 0 }
+defaultCometOpts = def { prefix = "/ajax", verbose = 0 }
 
 -- | The default port is @3000@.
 defaultCometPort :: Port
