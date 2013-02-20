@@ -1,5 +1,7 @@
 {-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
-module Language.Sunroof.Compiler where
+module Language.Sunroof.Compiler 
+  ( compileJS, compileJS'
+  ) where
 
 --import qualified Control.Applicative as App
 import Control.Monad.Operational
@@ -176,7 +178,9 @@ instance UniqM CompM where
 newVar :: (Sunroof a) => CompM a
 newVar = jsVar
 
+{-
 newLoop :: CompM String
 newLoop = do
     u <- uniqM
     return $ "loop" ++ show u
+-}
