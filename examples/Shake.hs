@@ -4,7 +4,29 @@ import System.Process
 import System.Environment
 import Development.Shake.FilePath
 
-main = shake (shakeOptions) $ do
+main = do
+        args <- getArgs
+        main2 args
+
+
+main2 ["clean"] = do
+        system "rm ./*/Main"
+        system "rm -R ./*/cache/"
+        return ()
+
+main2 [] = shake (shakeOptions) $ do
+
+        -- Use this if you want to also compile comet with each build
+        let comet = ""
+--        let comet = ":../../../kansas-comet:../../../kansas-comet/dist/build/autogen/"
+
+        want ["unit/Main"]
+
+	action $ do
+		files <- getDirectoryFiles "" ["*/Main.hs"]
+                need [ takeDirectory file </> "Main"
+                     | file <- files
+                     ]
 
 	"*/Main" *> \ out -> do
                 need [out ++ ".hs"]
@@ -15,15 +37,7 @@ main = shake (shakeOptions) $ do
                 systemCwd (takeDirectory out)
                           "ghc"
                           ["--make","Main.hs","-threaded",
-                           "-dcore-lint","-i../..:../../dist/build/autogen/"]
+                           "-hidir","cache","-odir","cache",
+                           "-dcore-lint","-i../..:../../dist/build/autogen/" ++ comet ]
+
 		liftIO $ print out
-
-	action $ do
-		files <- getDirectoryFiles "" ["*/Main.hs"]
-                need [ takeDirectory file </> "Main"
-                     | file <- files
-                     ]
-
-
--- to clean, rm */Main
-
