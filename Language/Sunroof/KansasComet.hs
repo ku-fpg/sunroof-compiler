@@ -167,7 +167,12 @@ defaultCometServer resBaseDir cometApp =
 --   The string @/ajax@ has to be set to whatever the comet prefix 
 --   in the given 'Options' is. These snippits will work for 'defaultCometOpts'.
 --   
---   Look into the example folder to see this in action.
+--   Additional debug information can be displayed in the browser when
+--   adding the following element to the index file:
+--   
+-- >   <div id="debug-log"></div>
+--   
+--   Look into the example folder to see all of this in action.
 sunroofCometServer :: Port -> FilePath -> FilePath -> Options -> CometApp -> IO ()
 sunroofCometServer port resBaseDir indexFile options cometApp = 
   scotty port $ do
