@@ -20,7 +20,7 @@ import Language.Sunroof.Browser (alert)
 
 main :: IO ()
 main = defaultCometServer ".." $ \doc -> do
-  registerEvents doc "body" (slide <> click)
+  registerEvents (cometDocument doc) "body" (slide <> click)
   {- Playing with canvas...
   let getElementById :: JSString -> Action JSObject JSObject
       getElementById a = method "getElementById" [cast a]

@@ -23,7 +23,7 @@ import Language.Sunroof.Browser
 
 main :: IO ()
 main = defaultCometServer ".." $ \doc -> do
-  registerEvents doc "body" mempty
+  registerEvents (cometDocument doc) "body" mempty
 
   theCookie <- sync doc $ document <!> cookie
   putStrLn $ "Cookie:     " ++ show theCookie

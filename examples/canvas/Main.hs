@@ -21,8 +21,9 @@ import Language.Sunroof.Browser
 
 main :: IO ()
 main = defaultCometServer ".." $ \ doc -> do
-  registerEvents doc "body" click
-  sequence_ $ map (\ex -> whenEvent doc "body" click $ async doc $ onClick $ ex)
+  registerEvents (cometDocument doc) "body" click
+  sequence_ $ map (\ex -> whenEvent (cometDocument doc) "body" click 
+                        $ async doc $ onClick $ ex)
                   (cycle examples)
   --whenEvent doc "body" click
   --  $ sync doc $ onClick $ examples !! 0
