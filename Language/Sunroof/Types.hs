@@ -4,7 +4,7 @@ module Language.Sunroof.Types where
 
 import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
 import GHC.Exts
-import Data.Char
+--import Data.Char
 import Data.List (intercalate)
 --import qualified Data.Map as Map
 import Data.Monoid
@@ -30,15 +30,15 @@ data Expr
 
 --
 showExpr :: Bool -> Expr -> String
-showExpr _    (Lit a) = a
-showExpr _    (Var v) = v
 showExpr b e = p $ case e of
-   (Op "[]" [a,x])   -> showExpr True a ++ "[" ++ show x ++ "]"
-   (Op "?:" [a,x,y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
-   (Op x [a,b]) -> showExpr True a ++ x ++ showExpr True b
-   (Op fn args) -> fn ++ "(" ++ intercalate "," (map (showExpr False) args) ++ ")"
- where
-   p txt = if b then "(" ++ txt ++ ")" else txt
+  (Lit a) -> a
+  (Var v) -> v
+  (Op "[]" [a,x])   -> showExpr True a ++ "[" ++ show x ++ "]"
+  (Op "?:" [a,x,y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
+  (Op op [x,y]) -> showExpr True x ++ op ++ showExpr True y
+  (Op fn args) -> fn ++ "(" ++ intercalate "," (map (showExpr False) args) ++ ")"
+  where
+    p txt = if b then "(" ++ txt ++ ")" else txt
 
 data Stmt
         = VarStmt Id Expr
