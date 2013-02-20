@@ -53,6 +53,8 @@ import qualified Web.KansasComet as KC
 import Language.Sunroof.Compiler ( compileJS' )
 import Language.Sunroof.Types
 
+-- | The 'SunroofEngine' provides the verbosity level and 
+--   kansas comet document to the 'SunroofApp'.
 data SunroofEngine = SunroofEngine
   { cometDocument :: Document
   , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
@@ -61,6 +63,22 @@ data SunroofEngine = SunroofEngine
 -- | The number of uniques allocated for the first try of a compilation. 
 compileUniqAlloc :: Uniq
 compileUniqAlloc = 32
+
+-- | Log the given message on the given level
+sunroofLog :: SunroofEngine -> Int -> String -> IO ()
+sunroofLog engine level msg = 
+  if (engineVerbose engine >= level)
+    then do
+      putStr "Sunroof> "
+      putStrLn msg
+    else return ()
+
+-- | Log the compilation result and return it
+compileLog :: SunroofEngine -> (String, String) -> IO (String, String)
+compileLog engine (src, retVal) = do
+  sequence_ $ fmap (sunroofLog engine 3) $ 
+    [ "Compiled:", src, "Compiled Return: ", retVal]
+  return (src, retVal)
 
 -- | Compile js using unique variables each time.
 compile :: (Sunroof a) => SunroofEngine -> JS a -> IO (String, String)
@@ -72,19 +90,18 @@ compile engine jsm = do
   -- Check if the allocated amount was sufficient
   if (uq' < uq + compileUniqAlloc)
     -- It was sufficient we are finished
-    then return src
+    then compileLog engine src
     -- It wasn't sufficient
     else do
       -- Allocate all that are needed
       newUq <- docUniqs (uq' - uq) (cometDocument engine)
       -- Compile again
-      return $ fst $ compileJS' newUq jsm
+      compileLog engine $ fst $ compileJS' newUq jsm
 
 -- | Executes the Javascript in the browser without waiting for a result.
 async :: SunroofEngine -> JS () -> IO ()
 async engine jsm = do
   (res,_) <- compile engine jsm
-  --print res
   send (cometDocument engine) res  -- send it, and forget it
   return ()
 
@@ -93,7 +110,6 @@ async engine jsm = do
 sync' :: (Sunroof a) => SunroofEngine -> JS a -> IO Value
 sync' engine jsm = do
   (src,retVar) <- compile engine jsm
-  print (src,retVar)
   case retVar of
     -- if there is no return value we just represent it as null.
     -- Like this we have something to wait for.
