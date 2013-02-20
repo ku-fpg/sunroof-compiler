@@ -20,7 +20,7 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser
 
 main :: IO ()
-main = defaultCometServer ".." $ \ doc -> do
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \ doc -> do
   registerEvents (cometDocument doc) "body" click
   sequence_ $ map (\ex -> whenEvent (cometDocument doc) "body" click 
                         $ async doc $ onClick $ ex)

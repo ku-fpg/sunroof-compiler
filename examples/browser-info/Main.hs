@@ -22,7 +22,7 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser
 
 main :: IO ()
-main = defaultCometServer ".." $ \doc -> do
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
   registerEvents (cometDocument doc) "body" mempty
 
   theCookie <- sync doc $ document <!> cookie

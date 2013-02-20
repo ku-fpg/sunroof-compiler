@@ -19,7 +19,7 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser (alert)
 
 main :: IO ()
-main = defaultCometServer ".." $ \doc -> do
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
   registerEvents (cometDocument doc) "body" (slide <> click)
   {- Playing with canvas...
   let getElementById :: JSString -> Action JSObject JSObject

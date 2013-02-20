@@ -23,7 +23,7 @@ import Language.Sunroof.Canvas
 import Language.Sunroof.Browser hiding ( eval )
 
 main :: IO ()
-main = defaultCometServer ".." $ \doc -> async doc clockJS
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> async doc clockJS
 
 default(JSNumber, JSString, String)
 
