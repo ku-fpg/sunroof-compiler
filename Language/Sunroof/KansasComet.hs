@@ -11,7 +11,6 @@ module Language.Sunroof.KansasComet
   , rsync
   , wait
   , SunroofValue(..)
-  , SunroofDoc(..)
   , jsonToJS
   , defaultCometIndexFile
   , defaultCometOpts
@@ -44,49 +43,63 @@ import Web.KansasComet
   , send
   , connect
   , queryGlobal
+  , Document
   , Options(..)
   , kCometPlugin
+  , docUniqs
   )
-import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Compiler
+import Language.Sunroof.Compiler ( compileJS' )
 import Language.Sunroof.Types
 
-data SunroofDoc = SunroofDoc
-  { cometDocument :: KC.Document
-  , sunroofUniq :: Uniq
-  }
+-- | The number of uniques allocated for the first try of a compilation. 
+compileUniqAlloc :: Uniq
+compileUniqAlloc = 32
+
+-- | Compile js using unique variables each time.
+compile :: (Sunroof a) => Document -> JS a -> IO (String, String)
+compile doc jsm = do
+  -- Allocate a standard amount of uniq for compilation
+  uq <- docUniqs compileUniqAlloc doc
+  -- Compile
+  let (src, uq') = compileJS' uq jsm
+  -- Check if the allocated amount was sufficient
+  if (uq' < uq + compileUniqAlloc)
+    -- It was sufficient we are finished
+    then return src
+    -- It wasn't sufficient
+    else do
+      -- Allocate all that are needed
+      newUq <- docUniqs (uq' - uq) doc
+      -- Compile again
+      return $ fst $ compileJS' newUq jsm
 
 -- | Executes the Javascript in the browser without waiting for a result.
-async :: SunroofDoc -> JS () -> IO ()
+async :: Document -> JS () -> IO ()
 async doc jsm = do
-  let ((res,_), _uq) = compileJS' (sunroofUniq doc) jsm
+  (res,_) <- compile doc jsm
   --print res
-  send (cometDocument doc) $ res  -- send it, and forget it
-  -- TODO: Carry this on somehow.
-  -- doc { sunroofUniq = uq }
+  send doc res  -- send it, and forget it
   return ()
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result is given as JSON value.
-sync' :: (Sunroof a) => SunroofDoc -> JS a -> IO Value
+sync' :: (Sunroof a) => Document -> JS a -> IO Value
 sync' doc jsm = do
-  let ((src,retVar), _uq) = compileJS' (sunroofUniq doc) jsm
-  --print (res,retVar)
+  (src,retVar) <- compile doc jsm
+  print (src,retVar)
   case retVar of
     -- if there is no return value we just represent it as null.
     -- Like this we have something to wait for.
     -- Right now this corresponds to a ~ ().
-    ""  -> queryGlobal (cometDocument doc) (src, "null")
-    ret -> queryGlobal (cometDocument doc) (src, ret)
-  -- TODO: Carry this on somehow.
-  -- doc { sunroofUniq = uq }
+    ""  -> queryGlobal doc (src, "null")
+    ret -> queryGlobal doc (src, ret)
 
 -- | Executes the Javascript in the browser and waits for the result.
 --   The returned value is just a reference to the computed value.
-rsync :: (Sunroof a) => SunroofDoc -> JS a -> IO a
+rsync :: (Sunroof a) => Document -> JS a -> IO a
 rsync doc jsm = do
-  let ((src, retVar), _uq) = compileJS' (sunroofUniq doc) jsm
+  (src, retVar) <- compile doc jsm
   case retVar of
     "" -> do
       error "rsync: Javascript does not have a return value."
@@ -95,18 +108,15 @@ rsync doc jsm = do
       -- to something that is not representable as JSON.
       -- Also like this we save the bandwidth for transporting
       -- back the value.
-      send (cometDocument doc) $ src -- send it, and forget it
+      send doc $ src -- send it, and forget it
       return $ box $ Lit ret
-  -- TODO: Carry this on somehow.
-  -- doc { sunroofUniq = uq }
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result value is given the corresponding Haskell type,
 --   if possible (see 'SunroofValue').
-sync :: forall a. (SunroofValue a) => SunroofDoc -> JS a -> IO (ValueOf a)
+sync :: forall a. (SunroofValue a) => Document -> JS a -> IO (ValueOf a)
 sync doc jsm = do
   value <- sync' doc jsm
-  -- TODO: Carry on the modified sunroof document after it has been modified.
   return $ jsonToValue (Proxy :: Proxy a) value
 
 -- This can be build out of primitives
@@ -124,7 +134,7 @@ wait scope tmpl k = do
 
 -- | A comet application takes the document we are currently communicating 
 --   with and delivers the IO action to be executed as server application.
-type CometApp = SunroofDoc -> IO ()
+type CometApp = Document -> IO ()
 
 -- | Sets up a comet server ready to use with sunroof.
 --   
@@ -195,12 +205,7 @@ sunroofCometServer port resBaseDir indexFile options cometApp =
                    ,("js/kansas-comet.js", kcomet)]
               <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase resBaseDir)
     middleware $ staticPolicy pol
-    connect options $ wrapDocument cometApp
-
-wrapDocument :: CometApp -> (KC.Document -> IO ())
-wrapDocument cometApp doc = cometApp $ SunroofDoc { cometDocument = doc
-                                                  , sunroofUniq = 0
-                                                  }
+    connect options cometApp
 
 -- | Default options to use for the comet server.
 --   Uses the server path @/ajax@ for the comet JSON communication.
