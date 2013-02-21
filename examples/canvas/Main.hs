@@ -18,9 +18,10 @@ import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.Canvas
 import Language.Sunroof.Browser
+import Language.Sunroof.JQuery
 
 main :: IO ()
-main = defaultCometServer ".." $ \ doc -> do
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \ doc -> do
   registerEvents (cometDocument doc) "body" click
   sequence_ $ map (\ex -> whenEvent (cometDocument doc) "body" click 
                         $ async doc $ onClick $ ex)
@@ -31,9 +32,6 @@ main = defaultCometServer ".." $ \ doc -> do
   --return ()
 
 default(JSNumber, JSString, String)
-
-jQuery :: JSString -> JS JSObject
-jQuery nm = call "$" `apply` nm
 
 whenEvent :: Document -> Scope -> Template event -> IO a -> IO a
 whenEvent doc scope event m = do

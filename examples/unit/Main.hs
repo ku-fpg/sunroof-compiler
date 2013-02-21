@@ -31,17 +31,14 @@ import System.Random
 import Data.Ratio
 
 main :: IO ()
-main = defaultCometServer ".." web_app
-
-opts :: KC.Options
-opts = def { prefix = "/example", verbose = 3 }
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) web_app
 
 default(JSNumber, JSString, String)
 
 type instance BooleanOf () = JSBool
 
 -- This is run each time the page is first accessed
-web_app :: SunroofDoc -> IO ()
+web_app :: SunroofEngine -> IO ()
 web_app doc = do
 
         -- We use the lower-level waitForEvent, so we can test the JS compiler.
@@ -57,7 +54,7 @@ web_app doc = do
         putStrLn "-- Check constant numbers"
         sequence_
          [ do putStrLn $ "checking : " ++ show n
-              n' <- sync doc (return (jsNumber n :: JSNumber))
+              n' <- sync doc (return $ js n)
               assert (n == n') $ "expecting " ++ show n ++ ", found " ++ show n'
          | n <- [1..10] ++ [0,-1] :: [Double]
          ]
@@ -95,6 +92,7 @@ web_app doc = do
 data Op2 = Op2 (forall a . Num a => a -> a -> a) String
 op2s = [ Op2 (+) "+", Op2 (-) "-", Op2 (*) "*"]
 
+<<<<<<< HEAD
 jsNumber :: Double -> JSNumber
 jsNumber = fromRational . toRational
 
@@ -170,3 +168,5 @@ diag 6 = (
 
   -}
 
+=======
+>>>>>>> 96256192ef621baf341b903decf347d88d97c9f3

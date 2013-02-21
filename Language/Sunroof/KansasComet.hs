@@ -10,22 +10,21 @@ module Language.Sunroof.KansasComet
   , async
   , rsync
   , wait
-  , SunroofValue(..)
-  , SunroofDoc(..)
+  , SunroofResult(..)
+  , SunroofEngine(..)
   , jsonToJS
-  , defaultCometIndexFile
-  , defaultCometOpts
-  , defaultCometPort
-  , defaultCometServer
-  , sunroofCometServer
+  , defaultServerOpts
+  , sunroofServer
+  , SunroofServerOptions(..)
+  , SunroofApp
   ) where
 
 import Data.Aeson.Types ( Value(..), Object, Array )
 import Data.Attoparsec.Number ( Number(..) )
-import Data.Boolean
+--import Data.Boolean
 import Data.List ( intercalate )
-import Data.String ( IsString(..) )
-import Data.Text ( unpack )
+--import Data.String ( IsString(..) )
+import Data.Text ( Text, unpack )
 import Data.Proxy
 import Data.Default
 import qualified Data.Vector as V
@@ -33,9 +32,9 @@ import qualified Data.HashMap.Strict as M
 
 import Control.Monad.IO.Class ( liftIO )
 
-import Network.Wai.Handler.Warp ( Port )
+import Network.Wai.Handler.Warp ( Port, settingsPort )
 import Network.Wai.Middleware.Static
-import Web.Scotty (scotty, middleware)
+import qualified Web.Scotty as SC
 import Web.KansasComet
   ( Template(..)
   , extract
@@ -44,49 +43,85 @@ import Web.KansasComet
   , send
   , connect
   , queryGlobal
-  , Options(..)
+  , Document
+  , Options
   , kCometPlugin
+  , docUniqs
   )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Compiler
+import Language.Sunroof.Compiler ( compileJS' )
 import Language.Sunroof.Types
 
-data SunroofDoc = SunroofDoc
-  { cometDocument :: KC.Document
-  , sunroofUniq :: Uniq
+-- | The 'SunroofEngine' provides the verbosity level and 
+--   kansas comet document to the 'SunroofApp'.
+data SunroofEngine = SunroofEngine
+  { cometDocument :: Document
+  , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
   }
 
+-- | The number of uniques allocated for the first try of a compilation. 
+compileUniqAlloc :: Uniq
+compileUniqAlloc = 32
+
+-- | Log the given message on the given level
+sunroofLog :: SunroofEngine -> Int -> String -> IO ()
+sunroofLog engine level msg = 
+  if (engineVerbose engine >= level)
+    then do
+      putStr "Sunroof> "
+      putStrLn msg
+    else return ()
+
+-- | Log the compilation result and return it
+compileLog :: SunroofEngine -> (String, String) -> IO (String, String)
+compileLog engine (src, retVal) = do
+  sequence_ $ fmap (sunroofLog engine 3) $ 
+    [ "Compiled:", src, "Compiled Return: ", retVal]
+  return (src, retVal)
+
+-- | Compile js using unique variables each time.
+compile :: (Sunroof a) => SunroofEngine -> JS a -> IO (String, String)
+compile engine jsm = do
+  -- Allocate a standard amount of uniq for compilation
+  uq <- docUniqs compileUniqAlloc (cometDocument engine)
+  -- Compile
+  let (src, uq') = compileJS' uq jsm
+  -- Check if the allocated amount was sufficient
+  if (uq' < uq + compileUniqAlloc)
+    -- It was sufficient we are finished
+    then compileLog engine src
+    -- It wasn't sufficient
+    else do
+      -- Allocate all that are needed
+      newUq <- docUniqs (uq' - uq) (cometDocument engine)
+      -- Compile again
+      compileLog engine $ fst $ compileJS' newUq jsm
+
 -- | Executes the Javascript in the browser without waiting for a result.
-async :: SunroofDoc -> JS () -> IO ()
-async doc jsm = do
-  let ((res,_), _uq) = compileJS' (sunroofUniq doc) jsm
-  --print res
-  send (cometDocument doc) $ res  -- send it, and forget it
-  -- TODO: Carry this on somehow.
-  -- doc { sunroofUniq = uq }
+async :: SunroofEngine -> JS () -> IO ()
+async engine jsm = do
+  (res,_) <- compile engine jsm
+  send (cometDocument engine) res  -- send it, and forget it
   return ()
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result is given as JSON value.
-sync' :: (Sunroof a) => SunroofDoc -> JS a -> IO Value
-sync' doc jsm = do
-  let ((src,retVar), _uq) = compileJS' (sunroofUniq doc) jsm
-  --print (res,retVar)
+sync' :: (Sunroof a) => SunroofEngine -> JS a -> IO Value
+sync' engine jsm = do
+  (src,retVar) <- compile engine jsm
   case retVar of
     -- if there is no return value we just represent it as null.
     -- Like this we have something to wait for.
     -- Right now this corresponds to a ~ ().
-    ""  -> queryGlobal (cometDocument doc) (src, "null")
-    ret -> queryGlobal (cometDocument doc) (src, ret)
-  -- TODO: Carry this on somehow.
-  -- doc { sunroofUniq = uq }
+    ""  -> queryGlobal (cometDocument engine) (src, "null")
+    ret -> queryGlobal (cometDocument engine) (src, ret)
 
 -- | Executes the Javascript in the browser and waits for the result.
 --   The returned value is just a reference to the computed value.
-rsync :: (Sunroof a) => SunroofDoc -> JS a -> IO a
-rsync doc jsm = do
-  let ((src, retVar), _uq) = compileJS' (sunroofUniq doc) jsm
+rsync :: (Sunroof a) => SunroofEngine -> JS a -> IO a
+rsync engine jsm = do
+  (src, retVar) <- compile engine jsm
   case retVar of
     "" -> do
       error "rsync: Javascript does not have a return value."
@@ -95,23 +130,19 @@ rsync doc jsm = do
       -- to something that is not representable as JSON.
       -- Also like this we save the bandwidth for transporting
       -- back the value.
-      send (cometDocument doc) $ src -- send it, and forget it
+      send (cometDocument engine) $ src -- send it, and forget it
       return $ box $ Lit ret
-  -- TODO: Carry this on somehow.
-  -- doc { sunroofUniq = uq }
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result value is given the corresponding Haskell type,
 --   if possible (see 'SunroofValue').
-sync :: forall a. (SunroofValue a) => SunroofDoc -> JS a -> IO (ValueOf a)
-sync doc jsm = do
-  value <- sync' doc jsm
-  -- TODO: Carry on the modified sunroof document after it has been modified.
+sync :: forall a. (SunroofResult a) => SunroofEngine -> JS a -> IO (ResultOf a)
+sync engine jsm = do
+  value <- sync' engine jsm
   return $ jsonToValue (Proxy :: Proxy a) value
 
 -- | wait passes an event to a continuation, once. You need
 -- to re-register each time.
-
 wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
 wait scope tmpl k = do
         o <- function k
@@ -124,43 +155,42 @@ wait scope tmpl k = do
 -- Default Server Instance
 -- -----------------------------------------------------------------------
 
--- | A comet application takes the document we are currently communicating 
+-- | A comet application takes the engine/document we are currently communicating 
 --   with and delivers the IO action to be executed as server application.
-type CometApp = SunroofDoc -> IO ()
+type SunroofApp = SunroofEngine -> IO ()
+
+-- | The 'SunroofServerOptions' specify the configuration of the 
+--   sunroof comet server infrastructure.
+--   
+--   [@cometPort@] The port the server is reachable from.
+--   
+--   [@cometResourceBaseDir@] Will be used as base directory to 
+--     search for the @css@ and @js@ folders which will be forwarded.
+--   
+--   [@cometIndexFile@] The file to be used as index file.
+--   
+--   [@cometOptions@] Provides the kansas comet options to use. 
+--     Default options are provided with the 'defaultServerOpts'.
+--   
+--   [@sunroofVerbose@] @0@ for none, @1@ for initializations, 
+--     @2@ for commands done and @3@ for a complete log.
+--   
+--   See 'sunroofCometServer' and 'defaultServerOpts' for further information.
+data SunroofServerOptions = SunroofServerOptions
+  { cometPort :: Port
+  , cometResourceBaseDir :: FilePath
+  , cometIndexFile :: FilePath
+  , cometOptions :: Options
+  , sunroofVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
+  }
 
 -- | Sets up a comet server ready to use with sunroof.
 --   
---   @defaultCometServer res app@:
---   Use @res@ as base directory to search for the @css@ and @js@
---   folders which will be forwarded.
+--   @sunroofCometServer opts app@: 
+--   The @opts@ give various configuration for the comet server.
+--   See 'SunroofServerOptions' for further information on this.
 --   The application to run is given by @app@. It takes the current 
---   document as parameter. The document is needed for calls to 'sync',
---   'async' and 'rsync'.
---   
---   All other option from 'sunroofCometServer' are supplied 
---   with the default values: 'defaultCometPort', 'defaultCometIndexFile'
---   and 'defaultCometOpts'.
---   
---   See 'sunroofCometServer' for further information.
-defaultCometServer :: FilePath -> CometApp -> IO ()
-defaultCometServer resBaseDir cometApp = 
-  sunroofCometServer defaultCometPort 
-                     resBaseDir 
-                     defaultCometIndexFile
-                     defaultCometOpts
-                     cometApp
-
--- | Sets up a comet server ready to use with sunroof.
---   
---   @sunroofCometServer p res idx opts app@: 
---   Starts a comet server at port @p@. 
---   It will use @res@ as base directory to search for the @css@ and @js@
---   folders which will be forwarded.
---   The @idx@ file will be used as index file.
---   @opts@ provides the kansas comet options to use. Default options
---   are provided with 'defaultCometOpts'.
---   The application to run is given by @app@. It takes the current 
---   document as parameter. The document is needed for calls to 'sync',
+--   engine/document as parameter. The document is needed for calls to 'sync',
 --   'async' and 'rsync'.
 --   
 --   The server provides the kansas comet Javascript on the path 
@@ -181,7 +211,8 @@ defaultCometServer resBaseDir cometApp =
 -- >   </script>
 --   
 --   The string @/ajax@ has to be set to whatever the comet prefix 
---   in the given 'Options' is. These snippits will work for 'defaultCometOpts'.
+--   in the 'Options' provided by the 'SunroofServerOptions' is. 
+--   These snippits will work for the 'defaultServerOpts'.
 --   
 --   Additional debug information can be displayed in the browser when
 --   adding the following element to the index file:
@@ -189,77 +220,93 @@ defaultCometServer resBaseDir cometApp =
 -- >   <div id="debug-log"></div>
 --   
 --   Look into the example folder to see all of this in action.
-sunroofCometServer :: Port -> FilePath -> FilePath -> Options -> CometApp -> IO ()
-sunroofCometServer port resBaseDir indexFile options cometApp = 
-  scotty port $ do
+sunroofServer :: SunroofServerOptions -> SunroofApp -> IO ()
+sunroofServer opts cometApp = do
+  let warpSettings = (SC.settings def) { settingsPort = cometPort opts }
+  -- Be quiet scotty! ... and beam me up!
+  let scottyOptions = def { SC.verbose = 0
+                          , SC.settings = warpSettings }
+  SC.scottyOpts scottyOptions $ do
     kcomet <- liftIO kCometPlugin
-    let pol = only [("",indexFile)
+    let pol = only [("", cometIndexFile opts)
                    ,("js/kansas-comet.js", kcomet)]
-              <|> ((hasPrefix "css/" <|> hasPrefix "js/") >-> addBase resBaseDir)
-    middleware $ staticPolicy pol
-    connect options $ wrapDocument cometApp
+              <|> ((hasPrefix "css/" <|> hasPrefix "js/") 
+                   >-> addBase (cometResourceBaseDir opts))
+    SC.middleware $ staticPolicy pol
+    connect (cometOptions opts) $ wrapDocument opts cometApp
 
-wrapDocument :: CometApp -> (KC.Document -> IO ())
-wrapDocument cometApp doc = cometApp $ SunroofDoc { cometDocument = doc
-                                                  , sunroofUniq = 0
-                                                  }
+-- | Wrap the document into the sunroof engine.
+wrapDocument :: SunroofServerOptions -> SunroofApp -> (Document -> IO ())
+wrapDocument opts cometApp doc = cometApp 
+                               $ SunroofEngine 
+                               { cometDocument = doc
+                               , engineVerbose = sunroofVerbose opts
+                               }
 
--- | Default options to use for the comet server.
---   Uses the server path @/ajax@ for the comet JSON communication.
---   Sets verbosity to 0 (quiet).
-defaultCometOpts :: Options
-defaultCometOpts = def { prefix = "/ajax", verbose = 0 }
-
--- | The default port is @3000@.
-defaultCometPort :: Port
-defaultCometPort = 3000
-
--- | The default index file is @index.html@
-defaultCometIndexFile :: FilePath
-defaultCometIndexFile = "index.html"
+-- | Default options to use for the sunroof comet server.
+--   
+--   [@cometPort@] Default port is @3000@.
+--   
+--   [@cometResourceBaseDir@] Default resource location is @"."@.
+--   
+--   [@cometIndexFile@] Default index file is @"index.html"@.
+--   
+--   [@cometOptions@] Uses the server path @/ajax@ for the 
+--     comet JSON communication. Sets verbosity to @0@ (quiet).
+--   
+--   [@sunroofVerbose@] Is set to @0@ (quiet).
+--   
+defaultServerOpts :: SunroofServerOptions
+defaultServerOpts = SunroofServerOptions
+  { cometPort = 3000
+  , cometResourceBaseDir = "."
+  , cometIndexFile = "index.html"
+  , cometOptions = def { KC.prefix = "/ajax", KC.verbose = 0 }
+  , sunroofVerbose = 0
+  }
 
 -- -----------------------------------------------------------------------
 -- JSON Value to Haskell/Sunroof conversion
 -- -----------------------------------------------------------------------
 
 -- | Provides correspondant Haskell types for certain Sunroof types.
-class (Sunroof a) => SunroofValue a where
-  type ValueOf a
-  jsonToValue :: Proxy a -> Value -> ValueOf a
+class (Sunroof a) => SunroofResult a where
+  type ResultOf a
+  jsonToValue :: Proxy a -> Value -> ResultOf a
   --toJS :: ValueOf a -> a
 
-instance SunroofValue () where
-  type ValueOf () = ()
+instance SunroofResult () where
+  type ResultOf () = ()
   jsonToValue _ (Null) = ()
   jsonToValue _ _ = error "jsonToValue: JSON value is not unit."
   --toJS () = ()
 
-instance SunroofValue JSBool where
-  type ValueOf JSBool = Bool
+instance SunroofResult JSBool where
+  type ResultOf JSBool = Bool
   jsonToValue _ (Bool b) = b
   jsonToValue _ _ = error "jsonToValue: JSON value is not a boolean."
   --toJS True = true
   --toJS False = false
 
-instance SunroofValue JSNumber where
-  type ValueOf JSNumber = Double
+instance SunroofResult JSNumber where
+  type ResultOf JSNumber = Double
   jsonToValue _ (Number (I i)) = fromInteger i
   jsonToValue _ (Number (D d)) = d
   jsonToValue _ _ = error "jsonToValue: JSON value is not a number."
   --toJS = JSNumber . Lit . show
 
-instance SunroofValue JSString where
-  type ValueOf JSString = String
+instance SunroofResult JSString where
+  type ResultOf JSString = String
   jsonToValue _ (String s) = unpack s
   jsonToValue _ _ = error "jsonToValue: JSON value is not a string."
   --toJS = fromString
 
 -- | Converts a JSON value to a Sunroof Javascript expression.
 jsonToJS :: Value -> Expr
-jsonToJS (Bool b)       = unbox (if b then false else true :: JSBool)
-jsonToJS (Number (I i)) = unbox (fromInteger i :: JSNumber)
-jsonToJS (Number (D d)) = unbox (fromRational (toRational d) :: JSNumber)
-jsonToJS (String s)     = unbox (fromString (unpack s) :: JSString)
+jsonToJS (Bool b)       = unbox $ js b
+jsonToJS (Number (I i)) = unbox $ js i
+jsonToJS (Number (D d)) = unbox $ js d
+jsonToJS (String s)     = unbox $ js s
 -- TODO: This is only a hack. Could null be a good reprensentation for unit '()'?
 jsonToJS (Null)         = Lit "null"
 jsonToJS (Array arr)    = jsonArrayToJS arr
@@ -278,3 +325,10 @@ jsonArrayToJS :: Array -> Expr
 jsonArrayToJS arr = Lit $
   "(new Array(" ++ (intercalate "," $ V.toList $ fmap (show . jsonToJS) arr) ++ "))"
 
+instance SunroofValue Value where
+  type ValueOf Value = JSObject
+  js = js . jsonToJS
+
+instance SunroofValue Text where
+  type ValueOf Text = JSString
+  js = js . unpack

@@ -4,7 +4,7 @@ module Language.Sunroof.Types where
 
 import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
 import GHC.Exts
-import Data.Char
+--import Data.Char
 import Data.List (intercalate)
 --import qualified Data.Map as Map
 import Data.Monoid
@@ -33,9 +33,9 @@ instance Show Expr where
         show = showExpr False
 
 showExpr :: Bool -> Expr -> String
-showExpr _    (Lit a) = a
-showExpr _    (Var v) = v
 showExpr b e = p $ case e of
+   (Lit a) -> a
+   (Var v) -> v
    (Op "[]" [a,x])   -> showExpr True a ++ "[" ++ show x ++ "]"
    (Op "?:" [a,x,y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Op x [a,b]) -> showExpr True a ++ x ++ showExpr True b
@@ -47,7 +47,6 @@ showExpr b e = p $ case e of
                 "}"
  where
    p txt = if b then "(" ++ txt ++ ")" else txt
-
 
 indent :: Int -> String -> String
 indent n = unlines . map (take n (cycle "~") ++) . lines
@@ -119,6 +118,16 @@ class Monad m => UniqM m where
 
 jsVar :: (Sunroof a, UniqM m) => m a
 jsVar = uniqM >>= return . mkVar
+
+---------------------------------------------------------------
+
+class SunroofValue a where
+  type ValueOf a :: *
+  js :: a -> ValueOf a
+
+instance SunroofValue () where
+  type ValueOf () = ()
+  js () = ()
 
 ---------------------------------------------------------------
 
@@ -199,9 +208,6 @@ instance Sunroof JSBool where
         box = JSBool
         unbox (JSBool v)  = v
 
---true = JSBool (Lit "true")
---false = JSBool (Lit "false")
-
 instance Boolean JSBool where
   true          = JSBool (Lit "true")
   false         = JSBool (Lit "false")
@@ -223,6 +229,11 @@ instance EqB JSBool where
 js_ifB :: (Sunroof a) => JSBool -> a -> a -> a
 js_ifB (JSBool c) t e = box $ Op "?:" [c,unbox t,unbox e]
 
+instance SunroofValue Bool where
+  type ValueOf Bool = JSBool
+  js True = true
+  js False = false
+
 ---------------------------------------------------------------
 
 -- The first type argument is the type of function argument;
@@ -232,7 +243,7 @@ data JSFunction args ret = JSFunction Expr
 instance Show (JSFunction a r) where
         show (JSFunction v) = show v
 
-instance forall a r . (JSArgument a) => Sunroof (JSFunction a r) where
+instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
         box = JSFunction
         unbox (JSFunction e) = e
 
@@ -247,8 +258,12 @@ instance forall a r . (JSArgument a) => Sunroof (JSFunction a r) where
 
 type instance BooleanOf (JSFunction a r) = JSBool
 
-instance (JSArgument a) => IfB (JSFunction a r) where
+instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
     ifB = js_ifB
+
+instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS b) where
+  type ValueOf (a -> JS b) = JS (JSFunction a b)
+  js = function
 
 ---------------------------------------------------------------
 
@@ -328,6 +343,22 @@ instance OrdB JSNumber where
   (<*)  e1 e2 = JSBool $ Op "<"  [unbox e1,unbox e2]
   (<=*) e1 e2 = JSBool $ Op "<=" [unbox e1,unbox e2]
 
+instance SunroofValue Double where
+  type ValueOf Double = JSNumber
+  js = box . Lit . show
+
+instance SunroofValue Float where
+  type ValueOf Float = JSNumber
+  js = box . Lit . show
+
+instance SunroofValue Int where
+  type ValueOf Int = JSNumber
+  js = fromInteger . toInteger
+
+instance SunroofValue Integer where
+  type ValueOf Integer = JSNumber
+  js = fromInteger . toInteger
+
 ---------------------------------------------------------------
 
 data JSString = JSString Expr
@@ -355,6 +386,14 @@ instance EqB JSString where
     (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
     (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
 
+instance SunroofValue [Char] where
+  type ValueOf [Char] = JSString
+  js = fromString
+
+instance SunroofValue Char where
+  type ValueOf Char = JSString
+  js c = fromString [c]
+
 ---------------------------------------------------------------
 
 data JSObject = JSObject Expr
@@ -370,6 +409,10 @@ type instance BooleanOf JSObject = JSBool
 
 instance IfB JSObject where
     ifB = js_ifB
+
+instance SunroofValue Expr where
+  type ValueOf Expr = JSObject
+  js = box
 
 ---------------------------------------------------------------
 

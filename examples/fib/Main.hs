@@ -17,9 +17,10 @@ import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.Canvas
 import Language.Sunroof.Browser (alert)
+import Language.Sunroof.JQuery
 
 main :: IO ()
-main = defaultCometServer ".." $ \doc -> do
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
   registerEvents (cometDocument doc) "body" (slide <> click)
   {- Playing with canvas...
   let getElementById :: JSString -> Action JSObject JSObject
@@ -50,14 +51,8 @@ main = defaultCometServer ".." $ \doc -> do
           addMethod nm f = do n <- function f
                               obj # attribute nm := n
 
-          jQuery :: JSString -> JS JSObject
-          jQuery nm = call "$" `apply` nm
-
           slider :: JSNumber -> Action JSObject JSObject
           slider nm = method "slider"  ("value" :: JSString, nm)
-
-          html :: JSString -> Action JSObject JSObject
-          html nm = method "html"  nm
 
           fib :: JSNumber -> JS JSNumber
           fib n = obj ! "fib" `apply` n
