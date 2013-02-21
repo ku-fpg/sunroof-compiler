@@ -24,11 +24,14 @@ cast = box . unbox
 type Id = String
 
 data Expr
-        = Lit String    -- a precompiled version of this literal
+        = Lit String    -- a precompiled (atomic) version of this literal
         | Var Id
         | Op String [Expr]
-
+        | Function [Id] [Stmt]
 --
+instance Show Expr where
+        show = showExpr False
+
 showExpr :: Bool -> Expr -> String
 showExpr _    (Lit a) = a
 showExpr _    (Var v) = v
@@ -37,14 +40,43 @@ showExpr b e = p $ case e of
    (Op "?:" [a,x,y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Op x [a,b]) -> showExpr True a ++ x ++ showExpr True b
    (Op fn args) -> fn ++ "(" ++ intercalate "," (map (showExpr False) args) ++ ")"
+   (Function args body) ->
+                "function" ++
+                "(" ++ intercalate "," args ++ ") {\n" ++
+                   indent 2 (unlines (map showStmt body)) ++
+                "}"
  where
    p txt = if b then "(" ++ txt ++ ")" else txt
 
-data Stmt
-        = VarStmt Id Expr
 
-instance Show Expr where
-        show = showExpr False
+indent :: Int -> String -> String
+indent n = unlines . map (take n (cycle "~") ++) . lines
+
+data Stmt
+        = VarStmt Id Expr                       -- var Id = Expr;   // Id is fresh
+        | AssignStmt Expr Expr Expr             -- Expr[Expr] = Expr
+        | ExprStmt Expr                         -- Expr
+        | ReturnStmt Expr                       -- return Expr
+        | IfStmt Expr [Stmt] [Stmt]             -- if (Expr) {
+                                                --    Stmts
+                                                -- } else {
+                                                --    Stmts
+                                                -- }
+
+instance Show Stmt where
+        show = showStmt
+
+showStmt :: Stmt -> String
+showStmt (VarStmt v e) = v ++ " = " ++ showExpr False e ++ ";"
+showStmt (AssignStmt e1 e2 e3) = showExpr True e1 ++ "[" ++ showExpr False e2 ++ "] = " ++ showExpr False e3 ++ ";"
+showStmt (ExprStmt e) = showExpr False e ++ ";"
+showStmt (ReturnStmt e) = "return " ++ showExpr False e ++ ";"
+showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n" ++
+                indent 2 (unlines (map showStmt t)) ++
+        "} else {\n" ++
+                indent 2 (unlines (map showStmt e)) ++
+        "}"
+
 {-
         show (Lit a)  = a
         show (Var v) = v
@@ -56,6 +88,9 @@ instance Show Expr where
 --        show (Cast e) = show e
 -}
 ---------------------------------------------------------------
+
+litparen nm | all isDigit nm = nm
+            | otherwise      = "(" ++ nm ++ ")"
 
 mkVar :: Sunroof a => Uniq -> a
 mkVar = box . Var . ("v" ++) . show
@@ -232,7 +267,7 @@ instance Num JSNumber where
         (JSNumber e1) * (JSNumber e2) = JSNumber $ Op "*" [e1,e2]
         abs (JSNumber e1) = JSNumber $ Op "Math.abs" [e1]
         signum (JSNumber e1) = JSNumber $ Op "" [e1] -- TODO
-        fromInteger = JSNumber . Lit . show
+        fromInteger = JSNumber . Lit . litparen . show
 
 instance IntegralB JSNumber where
   quot a b = ifB ((a / b) <* 0)
@@ -244,7 +279,7 @@ instance IntegralB JSNumber where
 
 instance Fractional JSNumber where
         (JSNumber e1) / (JSNumber e2) = JSNumber $ Op "/" [e1,e2]
-        fromRational = JSNumber . Lit . show . (fromRational :: Rational -> Double)
+        fromRational = JSNumber . Lit . litparen . show . (fromRational :: Rational -> Double)
 
 instance Floating JSNumber where
         pi = JSNumber $ Lit $ "Math.PI"
