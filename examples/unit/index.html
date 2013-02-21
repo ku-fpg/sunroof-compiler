@@ -8,6 +8,8 @@
     <script type="text/javascript" src="js/jquery-ui.js"></script>
   </head>
   <body>
+    <div id="progressbar"></div>
+
     <div style="padding: 0px; margin: 20px; margin-left: auto; margin-right: auto; width: 502px;">
     <canvas 
       id="canvas" 
@@ -17,11 +19,12 @@
       class="click">
     </canvas>
     </div>
-    <div id="debug-log"></div>
+    <div id="no-debug-log"></div>
     <script type="text/javascript">
       $(document).ready(function() {
         $.kc.connect("/ajax");
-        });
+        $( "#progressbar" ).progressbar({ value: 37 });
+      });
     </script>
   </body>
 </html>
