@@ -1,11 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
 
-module Language.Sunroof.Browser
+module Language.Sunroof.JS.Browser
   -- Top level API
   ( alert
   , decodeURI

@@ -1,5 +1,5 @@
 
-module Language.Sunroof.JQuery 
+module Language.Sunroof.JS.JQuery 
   -- General JQuery API
   ( dollar
   , jQuery, jq
