@@ -34,9 +34,9 @@ instance Show Expr where
         show = showExpr False
 
 showExpr :: Bool -> Expr -> String
-showExpr _ (Lit a) = a
-showExpr _ (Var v) = v
 showExpr b e = p $ case e of
+   (Lit a) -> a
+   (Var v) -> v
    (Op "[]" [a,x])   -> showExpr True a ++ "[" ++ show x ++ "]"
    (Op "?:" [a,x,y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Op op [x,y]) -> showExpr True x ++ op ++ showExpr True y
