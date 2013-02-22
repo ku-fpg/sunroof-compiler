@@ -4,7 +4,7 @@ module Language.Sunroof.Types where
 
 import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
 import GHC.Exts
-import Data.Char ( isDigit )
+import Data.Char ( isDigit, isControl, isAscii, ord )
 import Data.List ( intercalate )
 --import qualified Data.Map as Map
 import Data.Monoid
@@ -12,6 +12,7 @@ import Control.Monad.Operational
 import Data.Boolean
 import Data.Boolean.Numbers
 import Control.Monad
+import Numeric ( showHex )
 
 type Uniq = Int         -- used as a unique label
 
@@ -376,7 +377,7 @@ instance Monoid JSString where
         mappend (JSString e1) (JSString e2) = JSString $ Op "+" [e1,e2]
 
 instance IsString JSString where
-    fromString = JSString . Lit . show
+    fromString = JSString . Lit . jsLiteralString
 
 type instance BooleanOf JSString = JSBool
 
@@ -394,6 +395,45 @@ instance SunroofValue [Char] where
 instance SunroofValue Char where
   type ValueOf Char = JSString
   js c = fromString [c]
+
+---------------------------------------------------------------
+
+-- | Transform a Haskell string into a string representing a JS string literal.
+jsLiteralString :: String -> String
+jsLiteralString = jsQuoteString . jsEscapeString
+
+-- | Add quotes to a string.
+jsQuoteString :: String -> String
+jsQuoteString s = "\"" ++ s ++ "\""
+
+-- | Transform a character to a string that represents its JS 
+--   unicode escape sequence.
+jsUnicodeChar :: Char -> String
+jsUnicodeChar c = 
+  let hex = showHex (ord c) ""
+  in ('\\':'u': replicate (4 - length hex) '0') ++ hex
+
+-- | Correctly replace Haskell characters by the JS escape sequences.
+jsEscapeString :: String -> String
+jsEscapeString [] = []
+jsEscapeString (c:cs) = case c of
+  -- Backslash has to remain backslash in JS.
+  '\\' -> '\\' : '\\' : jsEscapeString cs
+  -- Special control sequences.
+  '\0' -> jsUnicodeChar '\0' ++ jsEscapeString cs -- Ambigous with numbers
+  '\a' -> jsUnicodeChar '\a' ++ jsEscapeString cs -- Non JS
+  '\b' -> '\\' : 'b' : jsEscapeString cs
+  '\f' -> '\\' : 'f' : jsEscapeString cs
+  '\n' -> '\\' : 'n' : jsEscapeString cs
+  '\r' -> '\\' : 'r' : jsEscapeString cs
+  '\t' -> '\\' : 't' : jsEscapeString cs
+  '\v' -> '\\' : 'v' : jsEscapeString cs
+  '\"' -> '\\' : '\"' : jsEscapeString cs
+  '\'' -> '\\' : '\'' : jsEscapeString cs
+  -- Non-control ASCII characters can remain as they are.
+  c' | not (isControl c') && isAscii c' -> c' : jsEscapeString cs
+  -- All other non ASCII signs are escaped to unicode.
+  c' -> jsUnicodeChar c' ++ jsEscapeString cs
 
 ---------------------------------------------------------------
 
