@@ -1,11 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
 
-module Language.Sunroof.Canvas where
+module Language.Sunroof.JS.Canvas where
 
 import Language.Sunroof.Types
 
