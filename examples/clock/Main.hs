@@ -19,9 +19,9 @@ import qualified Web.KansasComet as KC
 
 import Language.Sunroof
 import Language.Sunroof.Types
-import Language.Sunroof.Canvas
-import Language.Sunroof.Browser hiding ( eval )
-import Language.Sunroof.JQuery
+import Language.Sunroof.JS.Canvas
+import Language.Sunroof.JS.Browser hiding ( eval )
+import Language.Sunroof.JS.JQuery
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) 
