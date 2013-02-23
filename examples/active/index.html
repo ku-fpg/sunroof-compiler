@@ -1,0 +1,26 @@
+<html>
+  <head>
+    <title>Kansas Comet + Sunroof + Canvas Example</title>
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/jquery-json.js"></script>
+    <script type="text/javascript" src="js/kansas-comet.js"></script>
+    <link type="text/css" href="css/ui-lightness/jquery-ui.css" rel="Stylesheet" />
+    <script type="text/javascript" src="js/jquery-ui.js"></script>
+  </head>
+  <body>
+    <canvas 
+      id="canvas" 
+      style="padding: 0px; margin: 0px; border: solid 1px black" 
+      width="500" 
+      height="500"
+      class="click">
+    </canvas>
+    <hr>
+    <div id="debug-log"></div>
+    <script type="text/javascript">
+      $(document).ready(function() {
+        $.kc.connect("/ajax");
+      });
+    </script>
+  </body>
+</html>
