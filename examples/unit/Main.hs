@@ -46,11 +46,13 @@ type instance BooleanOf () = JSBool
 web_app :: SunroofEngine -> IO ()
 web_app doc = do
         -- We use the lower-level waitForEvent, so we can test the JS compiler.
+        {-
         forkIO $ do
                 print "waiting"
                 a <- waitForEvent (cometDocument doc) "session" abort
                 print "waited"
                 print a
+        -}
         
         runTests doc
           [ T "Constant Numbers" (checkConstNumber doc :: Double -> Property)
@@ -167,16 +169,20 @@ runTests doc tests = do
       putStrLn name
       quickCheckWithResult (stdArgs {chatty=False}) test
     execTests :: [T] -> IO ()
-    execTests [] = putStrLn "PASSED ALL TESTS"
+    execTests [] = do
+      putStrLn "PASSED ALL TESTS"
+      progressMsg doc "PASSED ALL TESTS"
     execTests (t@(T name _):ts) = do
-      progressInc doc name
+      progressMsg doc name
       result <- runTest t
       case result of
         Success _ _ out -> do
           putStrLn out
+          progressInc doc
           execTests ts
         GaveUp _ _ out -> do
           putStrLn out
+          progressInc doc
           execTests ts
         Failure _ _ _ _ reason _ out -> do
           putStrLn out
@@ -184,6 +190,7 @@ runTests doc tests = do
           putStrLn $ "FAILED TEST: " ++ name
         NoExpectedFailure _ _ out -> do
           putStrLn out
+          progressInc doc
           execTests ts
 
 progressMax :: SunroofEngine -> Int -> IO ()
@@ -200,16 +207,19 @@ progressVal doc n = async doc $ do
                            , "value" :: JSString
                            , js n :: JSNumber)
 
-progressInc :: SunroofEngine -> String -> IO ()
-progressInc doc msg = async doc $ do
-  p <- jQuery "#progressbar" 
+progressMsg :: SunroofEngine -> String -> IO ()
+progressMsg doc msg = async doc $ do
   l <- jQuery "#plabel"
+  l # method "text" (js msg :: JSString)
+
+progressInc :: SunroofEngine -> IO ()
+progressInc doc = async doc $ do
+  p <- jQuery "#progressbar"
   n <- p # method "progressbar" ( "option" :: JSString
                                 , "value" :: JSString)
   p # method "progressbar" ( "option" :: JSString
                            , "value" :: JSString
-                           , n + 1 :: JSNumber) :: JS ()
-  l # method "text" (js msg :: JSString)
+                           , n + 1 :: JSNumber)
 
 -- -----------------------------------------------------------------------
 -- Test Utilities
