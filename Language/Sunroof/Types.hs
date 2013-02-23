@@ -352,11 +352,11 @@ instance AdditiveGroup JSNumber where
 
 instance SunroofValue Double where
   type ValueOf Double = JSNumber
-  js = box . Lit . show
+  js = box . Lit . litparen . show
 
 instance SunroofValue Float where
   type ValueOf Float = JSNumber
-  js = box . Lit . show
+  js = box . Lit . litparen . show
 
 instance SunroofValue Int where
   type ValueOf Int = JSNumber
@@ -368,7 +368,7 @@ instance SunroofValue Integer where
 
 instance SunroofValue Rational where
   type ValueOf Rational = JSNumber
-  js = box . Lit . (show :: Double -> String) . fromRational
+  js = box . Lit . litparen . (show :: Double -> String) . fromRational
 
 
 ---------------------------------------------------------------
