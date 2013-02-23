@@ -101,8 +101,8 @@ compile engine jsm = do
 -- | Executes the Javascript in the browser without waiting for a result.
 async :: SunroofEngine -> JS () -> IO ()
 async engine jsm = do
-  (res,_) <- compile engine jsm
-  send (cometDocument engine) res  -- send it, and forget it
+  (src, _) <- compile engine jsm
+  send (cometDocument engine) src  -- send it, and forget it
   return ()
 
 -- | Executes the Javascript in the browser and waits for the result value.
@@ -135,7 +135,7 @@ rsync engine jsm = do
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result value is given the corresponding Haskell type,
---   if possible (see 'SunroofValue').
+--   if possible (see 'SunroofResult').
 sync :: forall a. (SunroofResult a) => SunroofEngine -> JS a -> IO (ResultOf a)
 sync engine jsm = do
   value <- sync' engine jsm
