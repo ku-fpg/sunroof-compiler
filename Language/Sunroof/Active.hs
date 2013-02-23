@@ -58,6 +58,14 @@ instance FractionalOf JSDuration JSNumber where
 ex1 :: Active JSTime (JS JSNumber)
 ex1 = fmap return ui
 
+reifyActiveJS :: Active JSTime (JS ()) -> JS (JSNumber, JSNumber, JSFunction JSNumber ())
+reifyActiveJS = onActive (error "can not reify a constant Active (no start or end)") $ \ d -> do
+        f <- function (runDynamic d . JSTime)
+        return ( fromTime $ start $ era d
+               , fromTime $ end $ era d
+               , f
+               )
+
 compileActiveJS :: Active JSTime (JS JSNumber) -> String
 compileActiveJS act = a ++ " ; return " ++ b
   where (a,b) = compileJS $ do
