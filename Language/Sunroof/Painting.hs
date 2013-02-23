@@ -1,8 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module Language.Sunroof.Painting where
 
 import Language.Sunroof.Types
-import qualified Language.Sunroof.Canvas as C
+import qualified Language.Sunroof.JS.Canvas as C
 
 import Data.Monoid
 
