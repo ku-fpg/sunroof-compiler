@@ -22,6 +22,8 @@ import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery
 import Language.Sunroof.Active
+import Language.Sunroof.Painting
+import Data.VectorSpace (lerp)
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \ doc -> do
@@ -32,14 +34,15 @@ example :: SunroofEngine -> JS ()
 example doc = do
   canvas <- document # getElementById "canvas"
   c <- canvas # getContext "2d"
+
+  let clear :: Painting = painting $ \ c -> c # clearRect (0,0) (canvas ! width, canvas ! height)
+
+  let drawing :: Active JSTime Painting = aLineTo (100,100) (300,300)
+
+  let prog = pure clear <> (drawing ->> aLineTo (300,100) (100,300))
+
   -- Stuff
-  (s,e,f) <- reifyActiveJS $ ((\ (t :: JSNumber) -> do
-        c # clearRect (0,0) (canvas ! width, canvas ! height)
-        c # beginPath
-        c # moveTo (t * 100,150)
-        c # lineTo (450,50)
-        c # closePath
-        c # stroke) <$> ui)
+  (s,e,f) <- reifyActiveJS $ fmap (draw c) $ prog
 
   n <- new
   n # "val" := (s :: JSNumber)
@@ -54,6 +57,14 @@ example doc = do
   n # "callsign" := v
   return ()
 
+
+aLineTo :: (JSNumber,JSNumber) -> (JSNumber,JSNumber) -> Active JSTime Painting
+aLineTo (x0,y0) (x1,y1) = clamp $ (\ (t::JSNumber) ->  painting $ \ c -> do
+        c # beginPath
+        c # moveTo (x0,y0)
+        c # lineTo (lerp x0 x1 t,lerp y0 y1 t)
+        c # closePath
+        c # stroke) <$> ui
 
 default(JSNumber, JSString, String)
 
