@@ -39,6 +39,7 @@ Library
                        Boolean          >= 0.1.1,
                        containers       >= 0.4,
                        data-default     == 0.5.*,
+                       vector-space     >= 0.8.6, 
                        kansas-comet,
                        wai-middleware-static,
                        mtl,
