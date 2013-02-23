@@ -260,7 +260,6 @@ numExprGen n = frequency [(1, numGen), (2, binaryGen)]
           e2 <- numExprGen $ n - 1
           return $ e1 `op` e2
 
-{-
 data Op2 = Op2 (forall a . Num a => a -> a -> a) String
 op2s = [ Op2 (+) "+", Op2 (-) "-", Op2 (*) "*"]
 
