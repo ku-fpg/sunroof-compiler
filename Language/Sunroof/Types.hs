@@ -13,6 +13,7 @@ import Data.Boolean
 import Data.Boolean.Numbers
 import Control.Monad
 import Numeric ( showHex )
+import Data.Proxy
 
 type Uniq = Int         -- used as a unique label
 
@@ -28,6 +29,7 @@ data Expr
         = Lit String    -- a precompiled (atomic) version of this literal
         | Var Id
         | Op String [Expr]
+        | BinOp String Expr Expr
         | Function [Id] [Stmt]
 --
 instance Show Expr where
@@ -39,8 +41,8 @@ showExpr b e = p $ case e of
    (Var v) -> v
    (Op "[]" [a,x])   -> showExpr True a ++ "[" ++ show x ++ "]"
    (Op "?:" [a,x,y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
-   (Op op [x,y]) -> showExpr True x ++ op ++ showExpr True y
    (Op fn args) -> fn ++ "(" ++ intercalate "," (map (showExpr False) args) ++ ")"
+   (BinOp op x y) -> showExpr True x ++ op ++ showExpr True y
    (Function args body) ->
                 "function" ++
                 "(" ++ intercalate "," args ++ ") {\n" ++
@@ -50,7 +52,7 @@ showExpr b e = p $ case e of
    p txt = if b then "(" ++ txt ++ ")" else txt
 
 indent :: Int -> String -> String
-indent n = unlines . map (take n (cycle "~") ++) . lines
+indent n = unlines . map (take n (cycle "  ") ++) . lines
 
 data Stmt
         = VarStmt Id Expr                       -- var Id = Expr;   // Id is fresh
@@ -67,7 +69,7 @@ instance Show Stmt where
         show = showStmt
 
 showStmt :: Stmt -> String
-showStmt (VarStmt v e) = v ++ " = " ++ showExpr False e ++ ";"
+showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
 showStmt (AssignStmt e1 e2 e3) = showExpr True e1 ++ "[" ++ showExpr False e2 ++ "] = " ++ showExpr False e3 ++ ";"
 showStmt (ExprStmt e) = showExpr False e ++ ";"
 showStmt (ReturnStmt e) = "return " ++ showExpr False e ++ ";"
@@ -103,13 +105,13 @@ class Show a => Sunroof a where
         showVar :: a -> String -- needed because show instance for unit is problematic
         showVar = show
 
-        assignVar :: a -> String -> String
-        assignVar a rhs = "var " ++ show a ++ "=" ++ rhs ++ ";"
+        assignVar :: Proxy a -> Id -> Expr -> Stmt
+        assignVar _ a rhs = VarStmt a rhs
 
 -- unit is the oddball
 instance Sunroof () where
         showVar _ = ""
-        assignVar _ rhs = rhs ++ ";"
+        assignVar _ _ rhs = ExprStmt rhs
         box _ = ()
         unbox () = Lit ""
 
@@ -215,9 +217,9 @@ instance Boolean JSBool where
   false         = JSBool (Lit "false")
   notB  (JSBool e1) = JSBool $ Op "!" [e1]
   (&&*) (JSBool e1)
-        (JSBool e2) = JSBool $ Op "&&" [e1,e2]
+        (JSBool e2) = JSBool $ BinOp "&&" e1 e2
   (||*) (JSBool e1)
-        (JSBool e2) = JSBool $ Op "||" [e1,e2]
+        (JSBool e2) = JSBool $ BinOp "||" e1 e2
 
 type instance BooleanOf JSBool = JSBool
 
@@ -225,8 +227,8 @@ instance IfB JSBool where
     ifB = js_ifB
 
 instance EqB JSBool where
-  (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
-  (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
+  (==*) e1 e2 = JSBool $ BinOp "==" (unbox e1) (unbox e2)
+  (/=*) e1 e2 = JSBool $ BinOp "!=" (unbox e1) (unbox e2)
 
 js_ifB :: (Sunroof a) => JSBool -> a -> a -> a
 js_ifB (JSBool c) t e = box $ Op "?:" [c,unbox t,unbox e]
@@ -248,15 +250,12 @@ instance Show (JSFunction a r) where
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
         box = JSFunction
         unbox (JSFunction e) = e
-
-
---        assignVar :: a -> String -> String
-        assignVar a rhs = "var " ++ show a ++ "= function(" ++ args ++ "){ return (" ++ rhs ++ "(" ++ args ++ "));};"
-           where args = intercalate ","
-                         [ "a" ++ show (i :: Int)
-                         | (i,_) <- zip [1..] (jsArgs (error "" :: a))
-                         ]
-
+        assignVar _ a rhs = VarStmt a 
+                          $ Function args 
+                          [ ReturnStmt 
+                          $ Op (showExpr True rhs) (fmap Var args) ]
+          where args = [ 'a' : show (i :: Int) 
+                       | (i,_) <- zip [1..] (jsArgs (undefined :: a))]
 
 type instance BooleanOf (JSFunction a r) = JSBool
 
@@ -279,9 +278,9 @@ instance Sunroof JSNumber where
         unbox (JSNumber e) = e
 
 instance Num JSNumber where
-        (JSNumber e1) + (JSNumber e2) = JSNumber $ Op "+" [e1,e2]
-        (JSNumber e1) - (JSNumber e2) = JSNumber $ Op "-" [e1,e2]
-        (JSNumber e1) * (JSNumber e2) = JSNumber $ Op "*" [e1,e2]
+        (JSNumber e1) + (JSNumber e2) = JSNumber $ BinOp "+" e1 e2
+        (JSNumber e1) - (JSNumber e2) = JSNumber $ BinOp "-" e1 e2
+        (JSNumber e1) * (JSNumber e2) = JSNumber $ BinOp "*" e1 e2
         abs (JSNumber e1) = JSNumber $ Op "Math.abs" [e1]
         signum (JSNumber e1) = JSNumber $ Op "" [e1] -- TODO
         fromInteger = JSNumber . Lit . litparen . show
@@ -292,10 +291,10 @@ instance IntegralB JSNumber where
                  (a `div` b)
   rem a b = a - (a `quot` b)*b
   div a b = JSNumber $ Op "Math.floor" [let JSNumber res = a / b in res]
-  mod (JSNumber a) (JSNumber b) = JSNumber $ Op "%" [a, b]
+  mod (JSNumber a) (JSNumber b) = JSNumber $ BinOp "%" a b
 
 instance Fractional JSNumber where
-        (JSNumber e1) / (JSNumber e2) = JSNumber $ Op "/" [e1,e2]
+        (JSNumber e1) / (JSNumber e2) = JSNumber $ BinOp "/" e1 e2
         fromRational = JSNumber . Lit . litparen . show . (fromRational :: Rational -> Double)
 
 instance Floating JSNumber where
@@ -336,14 +335,14 @@ instance IfB JSNumber where
   ifB = js_ifB
 
 instance EqB JSNumber where
-  (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
-  (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
+  (==*) e1 e2 = JSBool $ BinOp "==" (unbox e1) (unbox e2)
+  (/=*) e1 e2 = JSBool $ BinOp "!=" (unbox e1) (unbox e2)
 
 instance OrdB JSNumber where
-  (>*)  e1 e2 = JSBool $ Op ">"  [unbox e1,unbox e2]
-  (>=*) e1 e2 = JSBool $ Op ">=" [unbox e1,unbox e2]
-  (<*)  e1 e2 = JSBool $ Op "<"  [unbox e1,unbox e2]
-  (<=*) e1 e2 = JSBool $ Op "<=" [unbox e1,unbox e2]
+  (>*)  e1 e2 = JSBool $ BinOp ">"  (unbox e1) (unbox e2)
+  (>=*) e1 e2 = JSBool $ BinOp ">=" (unbox e1) (unbox e2)
+  (<*)  e1 e2 = JSBool $ BinOp "<"  (unbox e1) (unbox e2)
+  (<=*) e1 e2 = JSBool $ BinOp "<=" (unbox e1) (unbox e2)
 
 instance SunroofValue Double where
   type ValueOf Double = JSNumber
@@ -374,7 +373,7 @@ instance Sunroof JSString where
 
 instance Monoid JSString where
         mempty = fromString ""
-        mappend (JSString e1) (JSString e2) = JSString $ Op "+" [e1,e2]
+        mappend (JSString e1) (JSString e2) = JSString $ BinOp "+" e1 e2
 
 instance IsString JSString where
     fromString = JSString . Lit . jsLiteralString
@@ -385,8 +384,8 @@ instance IfB JSString where
     ifB = js_ifB
 
 instance EqB JSString where
-    (==*) e1 e2 = JSBool $ Op "==" [unbox e1,unbox e2]
-    (/=*) e1 e2 = JSBool $ Op "!=" [unbox e1,unbox e2]
+    (==*) e1 e2 = JSBool $ BinOp "==" (unbox e1) (unbox e2)
+    (/=*) e1 e2 = JSBool $ BinOp "!=" (unbox e1) (unbox e2)
 
 instance SunroofValue [Char] where
   type ValueOf [Char] = JSString
@@ -523,7 +522,9 @@ instance Monad (Action a) where
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 
 method :: (JSArgument a, Sunroof r) => String -> a -> Action JSObject r
-method str args obj = select (attribute str) obj >>= with args
+method str args obj = do
+  f <- select (attribute str) obj 
+  f `apply` args
 
 string :: String -> JSString
 string = JSString . Lit . show

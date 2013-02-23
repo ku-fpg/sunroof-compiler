@@ -3,27 +3,33 @@ module Language.Sunroof.Compiler
   ( compileJS, compileJS'
   ) where
 
+import Data.Proxy
+
 --import qualified Control.Applicative as App
 import Control.Monad.Operational
 import Control.Monad.State
-import Data.List (intercalate)
+--import Data.List (intercalate)
 
 import Language.Sunroof.Types
 --import Web.KansasComet (Template(..), extract)
+
+compileAST :: (Sunroof a) => Uniq -> JS a -> (([Stmt], Expr), Uniq)
+compileAST uq jsm = runState (compile jsm) uq
 
 compileJS :: (Sunroof a) => JS a -> (String,String)
 compileJS = fst . compileJS' 0
 
 compileJS' :: (Sunroof a) => Uniq -> JS a -> ((String, String), Uniq)
-compileJS' uq jsm = runState (compile jsm) uq
+compileJS' uq jsm = let ((stmts, res), u) = compileAST uq jsm
+                    in ((unlines $ fmap show stmts, show res), u)
 
 -- compile an existing expression
-compile :: Sunroof c => JS c -> CompM (String,String)
+compile :: Sunroof c => JS c -> CompM ([Stmt], Expr)
 compile = eval . view . unJS
     -- since the type  Program  is abstract (for efficiency),
     -- we have to apply the  view  function first,
     -- to get something we can pattern match on
-    where eval :: Sunroof b => ProgramView JSI b -> CompM (String,String)
+    where eval :: Sunroof b => ProgramView JSI b -> CompM ([Stmt], Expr)
           -- either we call a primitive JavaScript function
 --          eval (JS_Select jss :>>= g) = do
 --            txt1 <- compileJSS jss
@@ -31,16 +37,17 @@ compile = eval . view . unJS
 --          eval (JS_Dot o jss :>>= g) = do
 --            sel_txt <- compileJSS jss
 --            compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
-          eval (JS_Eval o :>>= g) = do
-            compileBind "" ("(" ++ showVar o ++ ")") (JS . g)
-          eval (JS_Assign sel a obj :>>= g) = do
-            compileBind "" ("(" ++ showVar obj ++ ")[" ++ show sel ++ "] = (" ++ show (unbox a) ++ ");") (JS . g)
-          eval (JS_Select sel obj :>>= g) = do
-             -- if a function, then wrap with
-             -- function(v){return document.getElementById(v);}
-            compileBind "" ("(" ++ showVar obj ++ ")[" ++ show sel ++ "]") (JS . g)
+          eval (JS_Eval e :>>= g) = do
+            compileBind (unbox e) (JS . g)
+          eval (JS_Assign (JSSelector sel) a obj :>>= g) = do
+            compileStatement ( AssignStmt (unbox obj) (unbox sel) (unbox a)
+                             , Op "[]" [unbox obj, unbox sel] )
+                             (JS . g)
+          eval (JS_Select (JSSelector sel) obj :>>= g) = do
+            compileBind (Op "[]" [unbox obj, unbox sel]) (JS . g)
           eval (JS_Invoke args fn :>>= g) = do
-            compileBind "" ("(" ++ showVar fn ++ ")(" ++ intercalate "," (map show args) ++ ")") (JS . g)
+            -- Do we need paranthesis for the function? (showExpr True $ unbox fn)
+            compileBind (Op (showVar fn) args) (JS . g)
 {-
 compileAction o (Invoke args) =
         return ("","(" ++ showVar o ++ ")(" ++ intercalate "," (map show args) ++ ")")
@@ -67,11 +74,11 @@ compileAction o (JSSelector nm := val) =
 --            compileBind ("(function(o) { return o.(" ++ intercalate "," (map show args) ++ ");}") g
 
           eval (JS_Function fun :>>= g) = do
-            txt1 <- compileFunction fun
-            compileBind "" txt1 (JS . g)
+            e <- compileFunction fun
+            compileBind e (JS . g)
           eval (JS_Branch b c1 c2 :>>= g) = do
             branch <- compileBranch b c1 c2
-            compileCommand branch (JS . g)
+            compileStatement branch (JS . g)
 {-
           eval (JS_Loop body :>>= g) = do -- note, we do nothing with g, as it's unreachable
             -- create a new name for our loop
@@ -92,14 +99,22 @@ compileAction o (JSSelector nm := val) =
             return $ "$.kc.waitFor(" ++ show eventNames ++ ",function(" ++ showVar a ++ "){" ++ txt2 ++ "})"
 -}
           -- or we're done already
-          eval (Return b) = return ("",showVar b)
+          eval (Return b) = return ([], unbox b)
 
-compileBind :: (Sunroof a, Sunroof b) => String -> String -> (a -> JS b) -> CompM (String,String)
-compileBind txt0 txt1 m2 = do
+compileBind :: forall a b . (Sunroof a, Sunroof b) 
+            => Expr -> (a -> JS b) -> CompM ([Stmt], Expr)
+compileBind e m2 = do
     a <- newVar
-    (txt2,ret) <- compile (m2 a)
-    return (txt0 ++ assignVar a txt1 ++ txt2,ret)
+    (stmts,ret) <- compile (m2 a)
+    return (assignVar (Proxy::Proxy a) (varId a) e : stmts , ret)
 
+compileStatement :: (Sunroof a, Sunroof b) 
+                 => (Stmt, Expr) -> (a -> JS b) -> CompM ([Stmt], Expr)
+compileStatement (stmt, e) m2 = do
+    (stmts,ret) <- compile $ m2 (box e)
+    return (stmt : stmts , ret)
+
+{-
 -- Does the same as 'compileBind' but does not bind the result of the passed in
 -- JavaScript source to a variable. Like this control flow constructs like
 -- branches can be translated.
@@ -107,30 +122,24 @@ compileCommand :: (Sunroof a, Sunroof b) => (String, a) -> (a -> JS b) -> CompM 
 compileCommand (src1, comRes) f = do
     (src2,ret) <- compile (f comRes)
     return (src1 ++ ";" ++ src2, ret)
+-}
 
-compileBranch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> CompM (String, a)
+compileBranch :: forall a bool . (Sunroof a, Sunroof bool) 
+              => bool -> JS a -> JS a -> CompM (Stmt, Expr)
 compileBranch b c1 c2 = do
-  res <- newVar
+  (res :: a) <- newVar
   (src1, res1) <- compile c1
   (src2, res2) <- compile c2
-  return $ (concat [ "if(", showVar b, ") {"
-                   , src1, assignVar res res1
-                   , "} else {"
-                   , src2, assignVar res res2
-                   , "}" ]
-           , res)
+  return ( IfStmt (unbox b) (src1 ++ [assignVar (Proxy::Proxy a) (varId res) res1])
+                            (src2 ++ [assignVar (Proxy::Proxy a) (varId res) res2])
+         , unbox res)
 
-compileFunction :: forall a b . (JSArgument a, Sunroof b) => (a -> JS b) -> CompM String
+compileFunction :: forall a b . (JSArgument a, Sunroof b) 
+                => (a -> JS b) -> CompM Expr
 compileFunction m2 = do
-    start    <- get
-    arg :: a <- jsValue
-    end      <- get
-
-    (txt2,ret) <- compile (m2 arg)
-
-    let arg_list = intercalate "," $ map (("v" ++) . show) $ [start..(end - 1)]
-
-    return $ "(function (" ++ arg_list ++ "){" ++ txt2 ++ "; return " ++ ret ++ ";})"
+    (arg :: a) <- jsValue
+    (fStmts,ret) <- compile (m2 arg)
+    return $ Function (map varIdE $ jsArgs arg) (fStmts ++ [ReturnStmt ret])
 
 -- These are a mix of properties, methods, and assignment.
 -- What is the unifing name? JSProperty?
@@ -177,6 +186,14 @@ instance UniqM CompM where
 
 newVar :: (Sunroof a) => CompM a
 newVar = jsVar
+
+varId :: Sunroof a => a -> Id
+varId = varIdE . unbox
+
+varIdE :: Expr -> Id
+varIdE e = case e of
+  (Var v) -> v
+  v -> error $ "varId: Expressions is not a variable: " ++ show v
 
 {-
 newLoop :: CompM String
