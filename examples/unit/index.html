@@ -1,29 +1,29 @@
 <html>
   <head>
     <title>Kansas Comet + Sunroof = Clock Example</title>
+    <meta charset="utf-8">
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/jquery-json.js"></script>
     <script type="text/javascript" src="js/kansas-comet.js"></script>
     <link type="text/css" href="css/ui-lightness/jquery-ui.css" rel="Stylesheet" />
     <script type="text/javascript" src="js/jquery-ui.js"></script>
+    <style>
+      #plabel {
+        float: left;
+        margin-left: 50%;
+        margin-top: 5px;
+        font-weight: bold;
+        text-shadow: 1px 1px 0 #fff;
+      }
+    </style>
   </head>
   <body>
-    <div id="progressbar"></div>
-
-    <div style="padding: 0px; margin: 20px; margin-left: auto; margin-right: auto; width: 502px;">
-    <canvas 
-      id="canvas" 
-      style="padding: 0px; margin: 0px; border: solid 1px black" 
-      width="500" 
-      height="500"
-      class="click">
-    </canvas>
-    </div>
+    <div id="progressbar"><div id="plabel">Testing...</div></div>
     <div id="no-debug-log"></div>
     <script type="text/javascript">
       $(document).ready(function() {
         $.kc.connect("/ajax");
-        $( "#progressbar" ).progressbar({ value: 37 });
+        $( "#progressbar" ).progressbar({ max: 100, value: 0 });
       });
     </script>
   </body>

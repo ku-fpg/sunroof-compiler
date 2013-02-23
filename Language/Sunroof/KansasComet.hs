@@ -101,8 +101,8 @@ compile engine jsm = do
 -- | Executes the Javascript in the browser without waiting for a result.
 async :: SunroofEngine -> JS () -> IO ()
 async engine jsm = do
-  (res,_) <- compile engine jsm
-  send (cometDocument engine) res  -- send it, and forget it
+  (src, _) <- compile engine jsm
+  send (cometDocument engine) src  -- send it, and forget it
   return ()
 
 -- | Executes the Javascript in the browser and waits for the result value.
@@ -135,7 +135,7 @@ rsync engine jsm = do
 
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result value is given the corresponding Haskell type,
---   if possible (see 'SunroofValue').
+--   if possible (see 'SunroofResult').
 sync :: forall a. (SunroofResult a) => SunroofEngine -> JS a -> IO (ResultOf a)
 sync engine jsm = do
   value <- sync' engine jsm
@@ -278,13 +278,13 @@ class (Sunroof a) => SunroofResult a where
 instance SunroofResult () where
   type ResultOf () = ()
   jsonToValue _ (Null) = ()
-  jsonToValue _ _ = error "jsonToValue: JSON value is not unit."
+  jsonToValue _ v = error $ "jsonToValue: JSON value is not unit: " ++ show v
   --toJS () = ()
 
 instance SunroofResult JSBool where
   type ResultOf JSBool = Bool
   jsonToValue _ (Bool b) = b
-  jsonToValue _ _ = error "jsonToValue: JSON value is not a boolean."
+  jsonToValue _ v = error $ "jsonToValue: JSON value is not a boolean: " ++ show v
   --toJS True = true
   --toJS False = false
 
@@ -292,13 +292,13 @@ instance SunroofResult JSNumber where
   type ResultOf JSNumber = Double
   jsonToValue _ (Number (I i)) = fromInteger i
   jsonToValue _ (Number (D d)) = d
-  jsonToValue _ _ = error "jsonToValue: JSON value is not a number."
+  jsonToValue _ v = error $ "jsonToValue: JSON value is not a number: " ++ show v
   --toJS = JSNumber . Lit . show
 
 instance SunroofResult JSString where
   type ResultOf JSString = String
   jsonToValue _ (String s) = unpack s
-  jsonToValue _ _ = error "jsonToValue: JSON value is not a string."
+  jsonToValue _ v = error $ "jsonToValue: JSON value is not a string: " ++ show v
   --toJS = fromString
 
 -- | Converts a JSON value to a Sunroof Javascript expression.

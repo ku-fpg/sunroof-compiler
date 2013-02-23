@@ -15,9 +15,9 @@ import qualified Web.KansasComet as KC
 
 import Language.Sunroof
 import Language.Sunroof.Types
-import Language.Sunroof.Canvas
-import Language.Sunroof.Browser (alert)
-import Language.Sunroof.JQuery
+import Language.Sunroof.JS.Canvas
+import Language.Sunroof.JS.Browser (alert)
+import Language.Sunroof.JS.JQuery
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
@@ -115,7 +115,7 @@ click = event "click" Click
 recfunction :: (JSArgument a, Sunroof b) => ((a -> JS b) -> (a -> JS b)) -> JS (JSFunction a b)
 recfunction fn = do
         obj <- new
-        f <- function $ fn (\ n -> (obj <!> attribute "rec") >>= with n)
+        f <- function $ fn (\ n -> obj # method "rec" n)
         obj # attribute "rec" := f
         return f
 
