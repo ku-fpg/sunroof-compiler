@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, TypeFamilies, ScopedTypeVariables, RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ImpredicativeTypes #-}
 
 module Main where
 
@@ -13,12 +14,13 @@ import Data.Default
 import Data.List
 import Data.Char ( isControl, isAscii )
 import Data.Maybe ( isJust )
+import Data.Boolean
 
 import Control.Concurrent
 
-import Control.Monad
-import Control.Applicative
-import Control.Monad.IO.Class
+--import Control.Monad
+--import Control.Applicative
+--import Control.Monad.IO.Class
 
 import Network.Wai.Middleware.Static
 import Web.Scotty (scotty, middleware)
@@ -71,6 +73,7 @@ web_app doc = do
           , T "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
           , T "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
           , T "Arbitrary Arithmetic" (checkArbitraryArith doc)
+          , T "Arbitrary Boolean"    (checkArbitraryBool  doc)
           ]
         {-
         let assert True msg = return ()
@@ -152,12 +155,20 @@ checkBasicArith doc op x y = monadicIO $ do
 --   after sync.
 checkArbitraryArith :: SunroofEngine -> Int -> Property
 checkArbitraryArith doc seed = monadicIO $ do
-  n <- pick $ choose (1, 10)
+  let n = (abs seed `mod` 10) + 1
   (r, e) <- pick $ sameSeed (numExprGen n :: Gen Double)
                             (numExprGen n :: Gen JSNumber)
   pre $ abs r < (100000000 :: Double)
   r' <- run $ sync doc (return e)
   assert $ r `deltaEqual` r'
+
+checkArbitraryBool :: SunroofEngine -> Int -> Property
+checkArbitraryBool doc seed = monadicIO $ do
+  let n = (abs seed `mod` 10) + 1
+  (b, e) <- pick $ sameSeed (boolExprGen n :: Gen Bool)
+                            (boolExprGen n :: Gen JSBool)
+  b' <- run $ sync doc (return e)
+  assert $ b == b'
 
 -- -----------------------------------------------------------------------
 -- Test execution
@@ -266,6 +277,15 @@ sameSeed genA genB = MkGen $ \gen size -> (unGen genA gen size, unGen genB gen s
 -- Custom Generators
 -- -----------------------------------------------------------------------
 
+instance Arbitrary JSNumber where
+  arbitrary = numGen
+
+instance Arbitrary JSBool where
+  arbitrary = fmap js (arbitrary :: Gen Bool)
+
+instance Arbitrary JSString where
+  arbitrary = fmap js (arbitrary :: Gen String)
+
 numGen :: (Num b) => Gen b
 numGen = do
   n <- arbitrary :: Gen Integer
@@ -280,6 +300,47 @@ numExprGen n = frequency [(1, numGen), (2, binaryGen)]
           e1 <- numExprGen $ n - 1
           e2 <- numExprGen $ n - 1
           return $ e1 `op` e2
+
+{-
+eqExprGen :: (EqB a) => Gen a -> Gen (BooleanOf a)
+eqExprGen genA = do
+  op <- elements [(==*),(/=*)]
+  e1 <- genA
+  e2 <- genA
+  return $ e1 `op` e2
+
+ordExprGen :: (OrdB a) => Gen a -> Gen (BooleanOf a)
+ordExprGen genA = do
+  op <- elements [(<=*),(>=*),(<*),(>*)]
+  e1 <- genA
+  e2 <- genA
+  return $ e1 `op` e2
+-}
+
+boolGen :: (Boolean b) => Gen b
+boolGen = elements [true, false]
+
+boolExprGen :: (Boolean b, b ~ BooleanOf b, EqB b, IfB b) => Int -> Gen b
+boolExprGen 0 = boolGen
+boolExprGen n = frequency [(1, boolGen), (3, binaryGen), (1, ifGen), (1, unaryGen)]
+  where binaryGen :: (Boolean b, b ~ BooleanOf b, EqB b, IfB b) => Gen b
+        binaryGen = do
+          op <- elements [(&&*),(||*),(==*),(/=*)]
+          e1 <- boolExprGen $ n - 1
+          e2 <- boolExprGen $ n - 1
+          return $ e1 `op` e2
+        ifGen :: (Boolean b, b ~ BooleanOf b, EqB b, IfB b) => Gen b
+        ifGen = do
+          e1 <- boolExprGen $ n - 1
+          e2 <- boolExprGen $ n - 1
+          e3 <- boolExprGen $ n - 1
+          return $ ifB e1 e2 e3
+        unaryGen :: (Boolean b, b ~ BooleanOf b, EqB b, IfB b) => Gen b
+        unaryGen = do
+          e1 <- boolExprGen $ n - 1
+          return $ notB e1
+        
+  
 {-
 data Op2 = Op2 (forall a . Num a => a -> a -> a) String
 op2s = [ Op2 (+) "+", Op2 (-) "-", Op2 (*) "*"]
