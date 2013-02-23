@@ -41,6 +41,7 @@ import Test.QuickCheck.Property
   , Callback( PostTest )
   , CallbackKind( NotCounterexample )
   )
+import Test.QuickCheck.State ( State( numSuccessTests ) )
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) web_app
@@ -167,14 +168,16 @@ data T = forall a. Testable a => T String a
 runTests :: SunroofEngine -> [T] -> IO ()
 runTests doc tests = do
   let testCount = length tests
-  progressMax doc (testCount * 100)
+  progressMax doc (testCount * casesPerTest)
   progressVal doc 0
   execTests tests
   where
+    casesPerTest :: Int
+    casesPerTest = 100
     runTest :: T -> IO Result
     runTest (T name test) = do
       putStrLn name
-      quickCheckWithResult (stdArgs {chatty=False})
+      quickCheckWithResult (stdArgs {chatty=False,maxSuccess=casesPerTest})
         $ callback afterTestCallback
         $ test
     execTests :: [T] -> IO ()
@@ -199,12 +202,15 @@ runTests doc tests = do
           putStrLn out
           execTests ts
     afterTestCallback :: Callback
-    afterTestCallback = PostTest NotCounterexample $ \ _ result -> do
+    afterTestCallback = PostTest NotCounterexample $ \ state result -> do
       if not (abort result) && isJust (ok result)
         then do
           progressInc doc
-          putStr "."
-          hFlush stdout
+          if numSuccessTests state `mod` (casesPerTest `div` 10) == 0 
+            then do
+              putStr "."
+              hFlush stdout
+            else return ()
         else do
           return ()
 
