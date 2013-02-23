@@ -12,6 +12,7 @@ import Control.Monad.Operational
 import Data.Boolean
 import Data.Boolean.Numbers
 import Control.Monad
+import Data.AdditiveGroup
 
 type Uniq = Int         -- used as a unique label
 
@@ -343,6 +344,11 @@ instance OrdB JSNumber where
   (>=*) e1 e2 = JSBool $ Op ">=" [unbox e1,unbox e2]
   (<*)  e1 e2 = JSBool $ Op "<"  [unbox e1,unbox e2]
   (<=*) e1 e2 = JSBool $ Op "<=" [unbox e1,unbox e2]
+
+instance AdditiveGroup JSNumber where
+        zeroV = 0
+        (^+^) = (+)
+        negateV = negate
 
 instance SunroofValue Double where
   type ValueOf Double = JSNumber
