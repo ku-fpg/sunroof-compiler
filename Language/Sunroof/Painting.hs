@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, TypeFamilies #-}
 
 module Language.Sunroof.Painting where
 
@@ -6,6 +6,8 @@ import Language.Sunroof.Types
 import qualified Language.Sunroof.JS.Canvas as C
 
 import Data.Monoid
+import Data.Semigroup
+import Data.Boolean
 
 -- -----------------------------------------------------------------------
 
@@ -16,6 +18,15 @@ instance Monoid Painting where
         mappend (Painting p1) (Painting p2) = Painting $ \ cxt -> do
                         p1 cxt
                         p2 cxt
+
+instance Semigroup Painting where
+        (<>) = mappend
+
+type instance BooleanOf Painting = JSBool
+
+instance IfB Painting where
+        ifB b (Painting p1) (Painting p2) = Painting $ \ cxt -> ifB b (p1 cxt) (p2 cxt)
+
 
 -- | draw a painting onto a (canvas) object.
 draw :: JSObject -> Painting -> JS ()
