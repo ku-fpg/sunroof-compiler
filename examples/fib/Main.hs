@@ -115,7 +115,7 @@ click = event "click" Click
 recfunction :: (JSArgument a, Sunroof b) => ((a -> JS b) -> (a -> JS b)) -> JS (JSFunction a b)
 recfunction fn = do
         obj <- new
-        f <- function $ fn (\ n -> (obj <!> attribute "rec") >>= with n)
+        f <- function $ fn (\ n -> obj # method "rec" n)
         obj # attribute "rec" := f
         return f
 
