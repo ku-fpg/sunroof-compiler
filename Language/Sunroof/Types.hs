@@ -13,6 +13,7 @@ import Data.Boolean
 import Data.Boolean.Numbers
 import Control.Monad
 import Data.AdditiveGroup
+import Data.VectorSpace hiding ((<.>))
 import Numeric ( showHex )
 import Data.Proxy
 
@@ -251,11 +252,11 @@ instance Show (JSFunction a r) where
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
         box = JSFunction
         unbox (JSFunction e) = e
-        assignVar _ a rhs = VarStmt a 
-                          $ Function args 
-                          [ ReturnStmt 
+        assignVar _ a rhs = VarStmt a
+                          $ Function args
+                          [ ReturnStmt
                           $ Op (showExpr True rhs) (fmap Var args) ]
-          where args = [ 'a' : show (i :: Int) 
+          where args = [ 'a' : show (i :: Int)
                        | (i,_) <- zip [1..] (jsArgs (undefined :: a))]
 
 type instance BooleanOf (JSFunction a r) = JSBool
@@ -350,6 +351,10 @@ instance AdditiveGroup JSNumber where
         (^+^) = (+)
         negateV = negate
 
+instance VectorSpace JSNumber where
+  type Scalar JSNumber = JSNumber
+  s *^ d = s * d
+
 instance SunroofValue Double where
   type ValueOf Double = JSNumber
   js = box . Lit . litparen . show
@@ -416,10 +421,10 @@ jsLiteralString = jsQuoteString . jsEscapeString
 jsQuoteString :: String -> String
 jsQuoteString s = "\"" ++ s ++ "\""
 
--- | Transform a character to a string that represents its JS 
+-- | Transform a character to a string that represents its JS
 --   unicode escape sequence.
 jsUnicodeChar :: Char -> String
-jsUnicodeChar c = 
+jsUnicodeChar c =
   let hex = showHex (ord c) ""
   in ('\\':'u': replicate (4 - length hex) '0') ++ hex
 
@@ -534,7 +539,7 @@ instance Monad (Action a) where
 
 method :: (JSArgument a, Sunroof r) => String -> a -> Action JSObject r
 method str args obj = do
-  f <- select (attribute str) obj 
+  f <- select (attribute str) obj
   f `apply` args
 
 string :: String -> JSString
