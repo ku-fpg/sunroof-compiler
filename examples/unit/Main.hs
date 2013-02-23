@@ -12,6 +12,7 @@ import Data.Boolean.Numbers hiding (floor, round)
 import Data.Default
 import Data.List
 import Data.Char ( isControl, isAscii )
+import Data.Maybe ( isJust )
 
 import Control.Concurrent
 
@@ -21,7 +22,7 @@ import Control.Monad.IO.Class
 
 import Network.Wai.Middleware.Static
 import Web.Scotty (scotty, middleware)
-import Web.KansasComet
+import Web.KansasComet hiding ( abort )
 import qualified Web.KansasComet as KC
 
 import Language.Sunroof
@@ -35,7 +36,11 @@ import Data.Ratio
 import Test.QuickCheck hiding ( assert )
 import Test.QuickCheck.Monadic ( monadicIO, assert, run, pick, pre )
 import Test.QuickCheck.Gen ( Gen(MkGen, unGen) )
-import Test.QuickCheck.Property ( callback, Callback( PostTest ) , CallbackKind( NotCounterexample ) )
+import Test.QuickCheck.Property 
+  ( callback, abort, ok
+  , Callback( PostTest )
+  , CallbackKind( NotCounterexample )
+  )
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) web_app
@@ -162,7 +167,7 @@ data T = forall a. Testable a => T String a
 runTests :: SunroofEngine -> [T] -> IO ()
 runTests doc tests = do
   let testCount = length tests
-  progressMax doc testCount
+  progressMax doc (testCount * 100)
   progressVal doc 0
   execTests tests
   where
@@ -170,9 +175,8 @@ runTests doc tests = do
     runTest (T name test) = do
       putStrLn name
       quickCheckWithResult (stdArgs {chatty=False})
-                        -- This is how we get an IO action; we need to check Result to see type (could be an aborted test)
---                $ callback (PostTest NotCounterexample (\ _ _ -> (do { putStr "." ; hFlush stdout })))
-                $ test
+        $ callback afterTestCallback
+        $ test
     execTests :: [T] -> IO ()
     execTests [] = do
       putStrLn "PASSED ALL TESTS"
@@ -183,11 +187,9 @@ runTests doc tests = do
       case result of
         Success _ _ out -> do
           putStrLn out
-          progressInc doc
           execTests ts
         GaveUp _ _ out -> do
           putStrLn out
-          progressInc doc
           execTests ts
         Failure _ _ _ _ reason _ out -> do
           putStrLn out
@@ -195,8 +197,16 @@ runTests doc tests = do
           putStrLn $ "FAILED TEST: " ++ name
         NoExpectedFailure _ _ out -> do
           putStrLn out
-          progressInc doc
           execTests ts
+    afterTestCallback :: Callback
+    afterTestCallback = PostTest NotCounterexample $ \ _ result -> do
+      if not (abort result) && isJust (ok result)
+        then do
+          progressInc doc
+          putStr "."
+          hFlush stdout
+        else do
+          return ()
 
 progressMax :: SunroofEngine -> Int -> IO ()
 progressMax doc n = async doc $ do
@@ -264,7 +274,7 @@ numExprGen n = frequency [(1, numGen), (2, binaryGen)]
           e1 <- numExprGen $ n - 1
           e2 <- numExprGen $ n - 1
           return $ e1 `op` e2
-
+{-
 data Op2 = Op2 (forall a . Num a => a -> a -> a) String
 op2s = [ Op2 (+) "+", Op2 (-) "-", Op2 (*) "*"]
 
@@ -311,3 +321,4 @@ expr n = choice 0.5
             e1 <- expr (n-1)
             e2 <- expr (n-1)
             return (o e1 e2))
+-}
