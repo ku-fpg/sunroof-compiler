@@ -28,12 +28,14 @@ import Language.Sunroof
 import Language.Sunroof.JS.JQuery (jQuery)
 
 import System.Random
+import System.IO
 
 import Data.Ratio
 
 import Test.QuickCheck hiding ( assert )
 import Test.QuickCheck.Monadic ( monadicIO, assert, run, pick, pre )
 import Test.QuickCheck.Gen ( Gen(MkGen, unGen) )
+import Test.QuickCheck.Property ( callback, Callback( PostTest ) , CallbackKind( NotCounterexample ) )
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) web_app
@@ -53,7 +55,7 @@ web_app doc = do
                 print "waited"
                 print a
         -}
-        
+
         runTests doc
           [ T "Constant Numbers" (checkConstNumber doc :: Double -> Property)
           , T "Constant Unit"    (checkConstValue doc :: () -> Property)
@@ -68,7 +70,7 @@ web_app doc = do
         let assert True msg = return ()
             assert False msg = error $ "test failed: " ++ msg
         -}
-        
+
         {-
         putStrLn "-- Check constant numbers"
         sequence_
@@ -89,7 +91,7 @@ web_app doc = do
          , m <- [-1..3]
          ]
                  -}
-         
+
         {-
         putStrLn "-- Check basic arithmetic expressions"
 
@@ -132,7 +134,7 @@ checkConstNumber doc n = monadicIO $ do
   -- Some weird conversion error going on. The returned value has more digits!
   assert $ n `deltaEqual` n'
 
--- | Check if simple arithmetic expressions with one operator produce 
+-- | Check if simple arithmetic expressions with one operator produce
 --   the same value after sync.
 checkBasicArith :: SunroofEngine -> (forall b. (Num b) => b -> b -> b) -> Double -> Double -> Property
 checkBasicArith doc op x y = monadicIO $ do
@@ -145,7 +147,7 @@ checkBasicArith doc op x y = monadicIO $ do
 checkArbitraryArith :: SunroofEngine -> Int -> Property
 checkArbitraryArith doc seed = monadicIO $ do
   n <- pick $ choose (1, 10)
-  (r, e) <- pick $ sameSeed (numExprGen n :: Gen Double) 
+  (r, e) <- pick $ sameSeed (numExprGen n :: Gen Double)
                             (numExprGen n :: Gen JSNumber)
   pre $ abs r < (100000000 :: Double)
   r' <- run $ sync doc (return e)
@@ -167,7 +169,10 @@ runTests doc tests = do
     runTest :: T -> IO Result
     runTest (T name test) = do
       putStrLn name
-      quickCheckWithResult (stdArgs {chatty=False}) test
+      quickCheckWithResult (stdArgs {chatty=False})
+                        -- This is how we get an IO action; we need to check Result to see type (could be an aborted test)
+--                $ callback (PostTest NotCounterexample (\ _ _ -> (do { putStr "." ; hFlush stdout })))
+                $ test
     execTests :: [T] -> IO ()
     execTests [] = do
       putStrLn "PASSED ALL TESTS"
@@ -195,14 +200,14 @@ runTests doc tests = do
 
 progressMax :: SunroofEngine -> Int -> IO ()
 progressMax doc n = async doc $ do
-  p <- jQuery "#progressbar" 
+  p <- jQuery "#progressbar"
   p # method "progressbar" ( "option" :: JSString
                            , "max" :: JSString
                            , js n :: JSNumber)
 
 progressVal :: SunroofEngine -> Int -> IO ()
 progressVal doc n = async doc $ do
-  p <- jQuery "#progressbar" 
+  p <- jQuery "#progressbar"
   p # method "progressbar" ( "option" :: JSString
                            , "value" :: JSString
                            , js n :: JSNumber)
@@ -233,9 +238,9 @@ deltaEqual x y = x >= y - delta && x <= y + delta
 -- | Use to generators with the same seed and size.
 --   This is useful for overloaded value generation.
 --   Example:
---   
+--
 -- > sameSeed (numGen :: Gen Double) (numGen :: Gen JSNumber)
---   
+--
 --   Both generators will produce the same overloaded value that can be casted
 --   to the appropriate type.
 sameSeed :: Gen a -> Gen b -> Gen (a,b)
@@ -254,7 +259,7 @@ numExprGen :: Num a => Int -> Gen a
 numExprGen 0 = numGen
 numExprGen n = frequency [(1, numGen), (2, binaryGen)]
   where binaryGen :: Num a => Gen a
-        binaryGen = do 
+        binaryGen = do
           op <- elements [(+),(-),(*)]
           e1 <- numExprGen $ n - 1
           e2 <- numExprGen $ n - 1
