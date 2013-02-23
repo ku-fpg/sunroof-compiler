@@ -366,6 +366,11 @@ instance SunroofValue Integer where
   type ValueOf Integer = JSNumber
   js = fromInteger . toInteger
 
+instance SunroofValue Rational where
+  type ValueOf Rational = JSNumber
+  js = box . Lit . (show :: Double -> String) . fromRational
+
+
 ---------------------------------------------------------------
 
 data JSString = JSString Expr
