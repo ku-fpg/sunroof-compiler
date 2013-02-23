@@ -63,7 +63,7 @@ web_app doc = do
         sequence_
          [ do putStrLn $ "checking : " ++ show n ++ " " ++ nm ++ " " ++ show m
               let r = (n `f` m)
-              r' <- sync doc (return (jsNumber n `f` jsNumber m :: JSNumber))
+              r' <- sync doc (return (js n `f` js m :: JSNumber))
               assert (r == r') $ "expecting " ++ show r ++ ", found " ++ show r'
          | Op2 f nm <- op2s
          , n <- [-1..3]
@@ -91,10 +91,6 @@ web_app doc = do
 
 data Op2 = Op2 (forall a . Num a => a -> a -> a) String
 op2s = [ Op2 (+) "+", Op2 (-) "-", Op2 (*) "*"]
-
-<<<<<<< HEAD
-jsNumber :: Double -> JSNumber
-jsNumber = fromRational . toRational
 
 newtype Arb a = Arb { unArb :: StdGen -> a }
 
@@ -125,20 +121,6 @@ instance Monad Arb where
 instance Applicative Arb where
         pure = return
         (<*>) = ap
-{-
---arithExpr :: (Num a) => Int -> Int -> a
-
-fromIntegralArb :: (Num b) => Arb  b
-fromIntegralArb = fromIntegral
-{-
-op2 =
-  where
-   ops :: Num a => Arb (a -> a -> a)
-   ops = finite [(+),(-),(*)]
--}
--}
-a1 = finite [1]
-a2 = finite [2]
 
 arbFromIntegral :: (Num b) => Arb  b
 arbFromIntegral = Arb $ \ std ->
@@ -154,19 +136,3 @@ expr n = choice 0.5
             e2 <- expr (n-1)
             return (o e1 e2))
 
-{-
-{-
-diag :: Integer -> (Integer,Integer)
-diag 0 = (0,0)
-diag 1 = (1,0)
-diag 2 = (0,1)
-diag 3 = (2,0)
-diag 4 = (1,1)
-diag 5 = (0,2)
-diag 6 = (
-  -}
-
-  -}
-
-=======
->>>>>>> 96256192ef621baf341b903decf347d88d97c9f3
