@@ -35,7 +35,7 @@ data E expr
         = Lit String    -- a precompiled (atomic) version of this literal
         | Var Id
         | Op String [expr]
-        | BinOp String expr expr
+        | BinOp String expr expr        -- We need to remove BinOp; this is a pretty print issues only
         | Function [Id] [Stmt]
 --
 instance Show Expr where
@@ -339,7 +339,7 @@ instance RealFloatB JSNumber where
     where isFinite (JSNumber a) = JSBool $ uniOp "isFinite" a
   isNegativeZero n = isInfinite n &&* n <* 0
   isIEEE _ = true -- AFAIK
-  atan2 (JSNumber a) (JSNumber b) = JSNumber $ binOp "Math.atan2" a b
+  atan2 (JSNumber a) (JSNumber b) = JSNumber $ Op "Math.atan2" [ExprE a, ExprE b]
 
 type instance BooleanOf JSNumber = JSBool
 
@@ -499,7 +499,7 @@ label = JSSelector
 ---------------------------------------------------------------
 
 (!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = box $ binOp "[]" (unbox arr) (unbox idx)
+(!) arr (JSSelector idx) = box $ Op "[]" [ExprE $ unbox arr,ExprE $ unbox idx]
 
 ---------------------------------------------------------------
 
