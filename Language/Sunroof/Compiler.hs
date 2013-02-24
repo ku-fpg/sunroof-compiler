@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
 module Language.Sunroof.Compiler
-  ( compileJS, compileJS'
+  ( compileJS
   ) where
 
 import Data.Proxy
@@ -16,12 +16,12 @@ import Language.Sunroof.Types
 compileAST :: (Sunroof a) => Uniq -> JS a -> (([Stmt], Expr), Uniq)
 compileAST uq jsm = runState (compile jsm) uq
 
-compileJS :: (Sunroof a) => JS a -> (String,String)
-compileJS = fst . compileJS' 0
+--compileJS :: (Sunroof a) => JS a -> (String,String)
+--compileJS = fst . compileJS' 0
 
-compileJS' :: (Sunroof a) => Uniq -> JS a -> ((String, String), Uniq)
-compileJS' uq jsm = let ((stmts, res), u) = compileAST uq jsm
-                    in ((unlines $ fmap show stmts, show res), u)
+compileJS :: (Sunroof a) => Uniq -> JS a -> IO ((String, String), Uniq)
+compileJS uq jsm = let ((stmts, res), u) = compileAST uq jsm
+                    in return ((unlines $ fmap show stmts, show res), u)
 
 -- compile an existing expression
 compile :: Sunroof c => JS c -> CompM ([Stmt], Expr)

@@ -50,23 +50,23 @@ import Web.KansasComet
   )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Compiler ( compileJS' )
+import Language.Sunroof.Compiler ( compileJS )
 import Language.Sunroof.Types
 
--- | The 'SunroofEngine' provides the verbosity level and 
+-- | The 'SunroofEngine' provides the verbosity level and
 --   kansas comet document to the 'SunroofApp'.
 data SunroofEngine = SunroofEngine
   { cometDocument :: Document
   , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
   }
 
--- | The number of uniques allocated for the first try of a compilation. 
+-- | The number of uniques allocated for the first try of a compilation.
 compileUniqAlloc :: Uniq
 compileUniqAlloc = 32
 
 -- | Log the given message on the given level
 sunroofLog :: SunroofEngine -> Int -> String -> IO ()
-sunroofLog engine level msg = 
+sunroofLog engine level msg =
   if (engineVerbose engine >= level)
     then do
       putStr "Sunroof> "
@@ -76,7 +76,7 @@ sunroofLog engine level msg =
 -- | Log the compilation result and return it
 compileLog :: SunroofEngine -> (String, String) -> IO (String, String)
 compileLog engine (src, retVal) = do
-  sequence_ $ fmap (sunroofLog engine 3) $ 
+  sequence_ $ fmap (sunroofLog engine 3) $
     [ "Compiled:", src, "Compiled Return: ", retVal]
   return (src, retVal)
 
@@ -86,7 +86,7 @@ compile engine jsm = do
   -- Allocate a standard amount of uniq for compilation
   uq <- docUniqs compileUniqAlloc (cometDocument engine)
   -- Compile
-  let (src, uq') = compileJS' uq jsm
+  (src, uq') <- compileJS uq jsm
   -- Check if the allocated amount was sufficient
   if (uq' < uq + compileUniqAlloc)
     -- It was sufficient we are finished
@@ -96,7 +96,8 @@ compile engine jsm = do
       -- Allocate all that are needed
       newUq <- docUniqs (uq' - uq) (cometDocument engine)
       -- Compile again
-      compileLog engine $ fst $ compileJS' newUq jsm
+      (src', _) <- compileJS newUq jsm
+      compileLog engine $ src
 
 -- | Executes the Javascript in the browser without waiting for a result.
 async :: SunroofEngine -> JS () -> IO ()
@@ -155,26 +156,26 @@ wait scope tmpl k = do
 -- Default Server Instance
 -- -----------------------------------------------------------------------
 
--- | A comet application takes the engine/document we are currently communicating 
+-- | A comet application takes the engine/document we are currently communicating
 --   with and delivers the IO action to be executed as server application.
 type SunroofApp = SunroofEngine -> IO ()
 
--- | The 'SunroofServerOptions' specify the configuration of the 
+-- | The 'SunroofServerOptions' specify the configuration of the
 --   sunroof comet server infrastructure.
---   
+--
 --   [@cometPort@] The port the server is reachable from.
---   
---   [@cometResourceBaseDir@] Will be used as base directory to 
+--
+--   [@cometResourceBaseDir@] Will be used as base directory to
 --     search for the @css@ and @js@ folders which will be forwarded.
---   
+--
 --   [@cometIndexFile@] The file to be used as index file.
---   
---   [@cometOptions@] Provides the kansas comet options to use. 
+--
+--   [@cometOptions@] Provides the kansas comet options to use.
 --     Default options are provided with the 'defaultServerOpts'.
---   
---   [@sunroofVerbose@] @0@ for none, @1@ for initializations, 
+--
+--   [@sunroofVerbose@] @0@ for none, @1@ for initializations,
 --     @2@ for commands done and @3@ for a complete log.
---   
+--
 --   See 'sunroofCometServer' and 'defaultServerOpts' for further information.
 data SunroofServerOptions = SunroofServerOptions
   { cometPort :: Port
@@ -185,40 +186,40 @@ data SunroofServerOptions = SunroofServerOptions
   }
 
 -- | Sets up a comet server ready to use with sunroof.
---   
---   @sunroofCometServer opts app@: 
+--
+--   @sunroofCometServer opts app@:
 --   The @opts@ give various configuration for the comet server.
 --   See 'SunroofServerOptions' for further information on this.
---   The application to run is given by @app@. It takes the current 
+--   The application to run is given by @app@. It takes the current
 --   engine/document as parameter. The document is needed for calls to 'sync',
 --   'async' and 'rsync'.
---   
---   The server provides the kansas comet Javascript on the path 
+--
+--   The server provides the kansas comet Javascript on the path
 --   @js/kansas-comet.js@.
---   
+--
 --   For the index file to setup the communication correctly with the comet
 --   server it has to load the @kansas-comet.js@ inside the @head@:
---   
+--
 -- >   <script type="text/javascript" src="js/kansas-comet.js"></script>
---   
+--
 --   It also has to execute the following Javascript at the end of the
 --   index file to initialize the communication:
---   
+--
 -- >   <script type="text/javascript">
 -- >     $(document).ready(function() {
 -- >       $.kc.connect("/ajax");
 -- >     });
 -- >   </script>
---   
---   The string @/ajax@ has to be set to whatever the comet prefix 
---   in the 'Options' provided by the 'SunroofServerOptions' is. 
+--
+--   The string @/ajax@ has to be set to whatever the comet prefix
+--   in the 'Options' provided by the 'SunroofServerOptions' is.
 --   These snippits will work for the 'defaultServerOpts'.
---   
+--
 --   Additional debug information can be displayed in the browser when
 --   adding the following element to the index file:
---   
+--
 -- >   <div id="debug-log"></div>
---   
+--
 --   Look into the example folder to see all of this in action.
 sunroofServer :: SunroofServerOptions -> SunroofApp -> IO ()
 sunroofServer opts cometApp = do
@@ -230,32 +231,32 @@ sunroofServer opts cometApp = do
     kcomet <- liftIO kCometPlugin
     let pol = only [("", cometIndexFile opts)
                    ,("js/kansas-comet.js", kcomet)]
-              <|> ((hasPrefix "css/" <|> hasPrefix "js/") 
+              <|> ((hasPrefix "css/" <|> hasPrefix "js/")
                    >-> addBase (cometResourceBaseDir opts))
     SC.middleware $ staticPolicy pol
     connect (cometOptions opts) $ wrapDocument opts cometApp
 
 -- | Wrap the document into the sunroof engine.
 wrapDocument :: SunroofServerOptions -> SunroofApp -> (Document -> IO ())
-wrapDocument opts cometApp doc = cometApp 
-                               $ SunroofEngine 
+wrapDocument opts cometApp doc = cometApp
+                               $ SunroofEngine
                                { cometDocument = doc
                                , engineVerbose = sunroofVerbose opts
                                }
 
 -- | Default options to use for the sunroof comet server.
---   
+--
 --   [@cometPort@] Default port is @3000@.
---   
+--
 --   [@cometResourceBaseDir@] Default resource location is @"."@.
---   
+--
 --   [@cometIndexFile@] Default index file is @"index.html"@.
---   
---   [@cometOptions@] Uses the server path @/ajax@ for the 
+--
+--   [@cometOptions@] Uses the server path @/ajax@ for the
 --     comet JSON communication. Sets verbosity to @0@ (quiet).
---   
+--
 --   [@sunroofVerbose@] Is set to @0@ (quiet).
---   
+--
 defaultServerOpts :: SunroofServerOptions
 defaultServerOpts = SunroofServerOptions
   { cometPort = 3000
