@@ -12,6 +12,7 @@ import Control.Monad.Operational
 import Data.Boolean
 import Data.Boolean.Numbers
 import Control.Monad
+import Data.Char
 import Data.AdditiveGroup
 import Data.VectorSpace hiding ((<.>))
 import Numeric ( showHex )
@@ -19,7 +20,7 @@ import Data.Proxy
 import Data.Reify
 import Control.Applicative ( Applicative, pure, (<$>), (<*>))
 import Data.Traversable
-import Data.Foldable hiding (all)
+import Data.Foldable hiding (all, any)
 
 type Uniq = Int         -- used as a unique label
 
@@ -40,7 +41,7 @@ data E expr
         = Lit String    -- a precompiled (atomic) version of this literal
         | Var Id
         | Op String [expr]
-        | BinOp String expr expr        -- We need to remove BinOp; this is a pretty print issues only
+--        | BinOp String expr expr        -- We need to remove BinOp; this is a pretty print issues only
         | Function [Id] [Stmt]
         deriving Show
 
@@ -53,21 +54,21 @@ instance Traversable E where
   traverse f (Lit s) = pure (Lit s)
   traverse f (Var s) = pure (Var s)
   traverse f (Op s xs) = Op s <$> traverse f xs
-  traverse f (BinOp s e1 e2) = BinOp s <$> f e1 <*> f e2
+--  traverse f (BinOp s e1 e2) = BinOp s <$> f e1 <*> f e2
   traverse f (Function nms stmts) = pure (Function nms stmts)
 
 instance Foldable E where
   foldMap f (Lit s) = mempty
   foldMap f (Var s) = mempty
   foldMap f (Op s xs) = foldMap f xs
-  foldMap f (BinOp s e1 e2) = foldMap f [e1,e2]
+--  foldMap f (BinOp s e1 e2) = foldMap f [e1,e2]
   foldMap f (Function nms stmts) = mempty
 
 instance Functor E where
   fmap f (Lit s) = Lit s
   fmap f (Var s) = Var s
   fmap f (Op s xs) = Op s (map f xs)
-  fmap f (BinOp s e1 e2) = BinOp s (f e1) (f e2)
+--  fmap f (BinOp s e1 e2) = BinOp s (f e1) (f e2)
   fmap f (Function nms stmts) = Function nms stmts
 
 --
@@ -78,10 +79,10 @@ showExpr :: Bool -> Expr -> String
 showExpr b e = p $ case e of
    (Lit a) -> a
    (Var v) -> v
-   (Op "[]" [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ show x ++ "]"
+   (Op "[]" [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
    (Op "?:" [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
+   (Op op [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
    (Op fn args) -> fn ++ "(" ++ intercalate "," (map (\ (ExprE e) -> showExpr False e) args) ++ ")"
-   (BinOp op (ExprE x) (ExprE y)) -> showExpr True x ++ op ++ showExpr True y
    (Function args body) ->
                 "function" ++
                 "(" ++ intercalate "," args ++ ") {\n" ++
@@ -245,7 +246,7 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunr
 data JSBool = JSBool Expr
 
 instance Show JSBool where
-        show (JSBool e) = show e
+        show (JSBool e) = showExpr False e
 
 instance Sunroof JSBool where
         box = JSBool
@@ -256,9 +257,9 @@ instance Boolean JSBool where
   false         = JSBool (Lit "false")
   notB  (JSBool e1) = JSBool $ Op "!" [ExprE e1]
   (&&*) (JSBool e1)
-        (JSBool e2) = JSBool $ BinOp "&&" (ExprE e1) (ExprE e2)
+        (JSBool e2) = JSBool $ binOp "&&" e1 e2
   (||*) (JSBool e1)
-        (JSBool e2) = JSBool $ BinOp "||" (ExprE e1) (ExprE e2)
+        (JSBool e2) = JSBool $ binOp "||" e1 e2
 
 type instance BooleanOf JSBool = JSBool
 
@@ -266,8 +267,8 @@ instance IfB JSBool where
     ifB = js_ifB
 
 instance EqB JSBool where
-  (==*) e1 e2 = JSBool $ BinOp "==" (ExprE $ unbox e1) (ExprE $ unbox e2)
-  (/=*) e1 e2 = JSBool $ BinOp "!=" (ExprE $ unbox e1) (ExprE $ unbox e2)
+  (==*) e1 e2 = JSBool $ binOp "==" (unbox e1) (unbox e2)
+  (/=*) e1 e2 = JSBool $ binOp "!=" (unbox e1) (unbox e2)
 
 js_ifB :: (Sunroof a) => JSBool -> a -> a -> a
 js_ifB (JSBool c) t e = box $ Op "?:" [ExprE c,ExprE $ unbox t,ExprE $ unbox e]
@@ -284,7 +285,7 @@ instance SunroofValue Bool where
 data JSFunction args ret = JSFunction Expr
 
 instance Show (JSFunction a r) where
-        show (JSFunction v) = show v
+        show (JSFunction v) = showExpr False v
 
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
         box = JSFunction
@@ -307,7 +308,7 @@ instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS b) where
 
 ---------------------------------------------------------------
 
-binOp op e1 e2 = BinOp op (ExprE e1) (ExprE e2)
+binOp op e1 e2 = Op op [ExprE e1, ExprE e2]
 uniOp op e = Op op [ExprE e]
 
 ---------------------------------------------------------------
@@ -315,7 +316,7 @@ uniOp op e = Op op [ExprE e]
 data JSNumber = JSNumber Expr
 
 instance Show JSNumber where
-        show (JSNumber v) = show v
+        show (JSNumber v) = showExpr False v
 
 instance Sunroof JSNumber where
         box = JSNumber
@@ -423,7 +424,7 @@ instance SunroofValue Rational where
 data JSString = JSString Expr
 
 instance Show JSString where
-        show (JSString v) = show v
+        show (JSString v) = showExpr False v
 
 instance Sunroof JSString where
         box = JSString
@@ -431,7 +432,7 @@ instance Sunroof JSString where
 
 instance Monoid JSString where
         mempty = fromString ""
-        mappend (JSString e1) (JSString e2) = JSString $ BinOp "+" (ExprE e1) (ExprE e2)
+        mappend (JSString e1) (JSString e2) = JSString $ binOp "+" e1 e2
 
 instance IsString JSString where
     fromString = JSString . Lit . jsLiteralString
@@ -497,7 +498,7 @@ jsEscapeString (c:cs) = case c of
 data JSObject = JSObject Expr
 
 instance Show JSObject where
-        show (JSObject v) = show v
+        show (JSObject v) = showExpr False v
 
 instance Sunroof JSObject where
         box = JSObject

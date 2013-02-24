@@ -20,7 +20,7 @@ compileAST uq jsm = runStateT (compile jsm) uq
 compileJS :: (Sunroof a) => Uniq -> JS a -> IO ((String, String), Uniq)
 compileJS uq jsm = do
         ((stmts, res), u) <- compileAST uq jsm
-        return ((unlines $ fmap show stmts, show res), u)
+        return ((unlines $ fmap showStmt stmts, showExpr False res), u)
 
 -- compile an existing expression
 compile :: Sunroof c => JS c -> CompM ([Stmt], Expr)
