@@ -3,7 +3,7 @@
 module Language.Sunroof.Painting where
 
 import Language.Sunroof.Types
-import qualified Language.Sunroof.JS.Canvas as C
+import Language.Sunroof.JS.Canvas
 
 import Data.Monoid
 import Data.Semigroup
@@ -33,15 +33,47 @@ draw :: JSObject -> Painting -> JS ()
 draw obj (Painting fn) = fn obj
 
 -- -----------------------------------------------------------------------
-
 -- | Turn an action on a canvas into a painting.
 -- Often, this action will be a compound action.
 painting :: Action JSObject () -> Painting
 painting act = Painting $ \ o -> o # act
 
-rotateP :: JSNumber -> Painting -> Painting
-rotateP by (Painting m) = painting $ \ cxt -> do
-        cxt # C.save
-        cxt # C.rotate by
-        m cxt
-        cxt # C.restore
+-- -----------------------------------------------------------------------
+-- Painting versions of common Canvas commands
+-- -----------------------------------------------------------------------
+
+scopeP :: Painting -> Painting
+scopeP p = painting $ \ c -> do
+        c # save
+        draw c p
+        c # restore
+
+lineP :: (JSNumber,JSNumber) -> (JSNumber,JSNumber) -> Painting
+lineP (x0,y0) (x1,y1) = painting $ \ c -> do
+        c # beginPath
+        c # moveTo (x0,y0)
+        c # lineTo (x1,y1)
+        c # stroke
+
+arcP :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
+     -> JSNumber            -- ^ The radius.
+     -> (JSNumber,JSNumber) -- ^ The angle to start and the angle to stop drawing.
+     -> JSBool              -- ^ if counter clock
+     -> Painting
+arcP (cx,cy) r (sa,ea) cc = painting $ \ c -> do
+        c # beginPath
+        c # arc' (cx,cy) r (sa,ea) cc
+        c # stroke
+
+rotateP :: JSNumber -> Painting
+rotateP = painting . rotate
+
+translateP :: (JSNumber,JSNumber) -> Painting
+translateP = painting . translate
+
+setLineWidthP :: JSNumber -> Painting
+setLineWidthP = painting . setLineWidth
+
+setStrokeStyleP :: JSString -> Painting
+setStrokeStyleP = painting . setStrokeStyle
+
