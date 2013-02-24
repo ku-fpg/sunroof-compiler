@@ -123,12 +123,10 @@ ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
         step  = edge / 3
         pic   = step / 1.5
 
-        game = [(-1,-1),(0,-1),(1,-1)]
-{-
+        game = [(x,y) | x <- map js [-1..(1::Int)], y <- map js [-1..(1::Int)]]
         play ((x,y):xys) (me,opp) = pauseA
                             ->> scopeA (pure (translateP (x*step*2,y*step*2)) <> me)
                             ->> play xys (opp,me)
--}
         play _ _ = mempty
 
         backgroundGrid =
