@@ -245,7 +245,6 @@ wrapDocument opts cometApp doc = cometApp
                                { cometDocument = doc
                                , engineVerbose = sunroofVerbose opts
                                , compilerOpts = sunroofCompilerOpts opts
-
                                }
 
 -- | Default options to use for the sunroof comet server.
