@@ -16,6 +16,10 @@ import Data.AdditiveGroup
 import Data.VectorSpace hiding ((<.>))
 import Numeric ( showHex )
 import Data.Proxy
+import Data.Reify
+import Control.Applicative ( Applicative, pure, (<$>), (<*>))
+import Data.Traversable
+import Data.Foldable hiding (all)
 
 type Uniq = Int         -- used as a unique label
 
@@ -30,6 +34,7 @@ type Id = String
 type Expr = E ExprE
 
 data ExprE = ExprE Expr
+        deriving Show
 
 data E expr
         = Lit String    -- a precompiled (atomic) version of this literal
@@ -37,9 +42,37 @@ data E expr
         | Op String [expr]
         | BinOp String expr expr        -- We need to remove BinOp; this is a pretty print issues only
         | Function [Id] [Stmt]
+        deriving Show
+
+instance MuRef ExprE where
+  type DeRef ExprE = E
+  mapDeRef f (ExprE e) = traverse f e
+
+
+instance Traversable E where
+  traverse f (Lit s) = pure (Lit s)
+  traverse f (Var s) = pure (Var s)
+  traverse f (Op s xs) = Op s <$> traverse f xs
+  traverse f (BinOp s e1 e2) = BinOp s <$> f e1 <*> f e2
+  traverse f (Function nms stmts) = pure (Function nms stmts)
+
+instance Foldable E where
+  foldMap f (Lit s) = mempty
+  foldMap f (Var s) = mempty
+  foldMap f (Op s xs) = foldMap f xs
+  foldMap f (BinOp s e1 e2) = foldMap f [e1,e2]
+  foldMap f (Function nms stmts) = mempty
+
+instance Functor E where
+  fmap f (Lit s) = Lit s
+  fmap f (Var s) = Var s
+  fmap f (Op s xs) = Op s (map f xs)
+  fmap f (BinOp s e1 e2) = BinOp s (f e1) (f e2)
+  fmap f (Function nms stmts) = Function nms stmts
+
 --
-instance Show Expr where
-        show = showExpr False
+--instance Show Expr where
+--        show = showExpr False
 
 showExpr :: Bool -> Expr -> String
 showExpr b e = p $ case e of
