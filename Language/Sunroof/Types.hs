@@ -8,6 +8,7 @@ import Data.Char ( isDigit, isControl, isAscii, ord )
 import Data.List ( intercalate )
 --import qualified Data.Map as Map
 import Data.Monoid
+import qualified Data.Semigroup as Semi
 import Control.Monad.Operational
 import Data.Boolean
 import Data.Boolean.Numbers
@@ -632,6 +633,12 @@ unJS ((:=) sel a obj) = singleton $ JS_Assign sel a obj
 instance Monad JS where
         return a = JS (return a)
         m >>= k = JS (unJS m >>= \ r -> unJS (k r))
+
+-- | We define the Semigroup instance for JS, where
+--  the first result (but not the first effect) is discarded.
+--  Thus, '<>' is the analog of the monadic '>>'.
+instance Semi.Semigroup (JS a) where
+        js1 <> js2 = js1 >> js2
 
 -- define primitive effects / "instructions" for the JS monad
 data JSI a where
