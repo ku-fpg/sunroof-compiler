@@ -63,7 +63,7 @@ compile = eval . view . unJS
             branch <- compileBranch b c1 c2
             compileStatement branch (JS . g)
           -- or we're done already
-          eval (Return b) = return ([], unbox b)
+          eval (Return b) = compileExpr (unbox b)
 
 compileBind :: forall a b . (Sunroof a, Sunroof b)
             => Expr -> (a -> JS b) -> CompM ([Stmt], Expr)
