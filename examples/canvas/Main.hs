@@ -20,6 +20,8 @@ import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery
 
+-- This is a transcription of the http://www.html5canvastutorials.com/ demos/tutorials.
+
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \ doc -> do
   registerEvents (cometDocument doc) "body" click
