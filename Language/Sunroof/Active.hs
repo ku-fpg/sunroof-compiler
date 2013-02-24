@@ -66,8 +66,10 @@ reifyActiveJS = onActive (error "can not reify a constant Active (no start or en
                , f
                )
 
+{-
 compileActiveJS :: Active JSTime (JS JSNumber) -> String
 compileActiveJS act = a ++ " ; return " ++ b
   where (a,b) = compileJS $ do
                    obj :: JSFunction JSNumber JSNumber <- function (runActive act . JSTime)
                    apply obj 0
+-}
