@@ -12,6 +12,8 @@ import Control.Monad.State
 
 import Language.Sunroof.Types
 import Data.Reify
+import Data.Graph
+import qualified Data.Map as Map
 --import Web.KansasComet (Template(..), extract)
 
 compileAST :: (Sunroof a) => Uniq -> JS a -> IO (([Stmt], Expr), Uniq)
@@ -89,10 +91,51 @@ compileFunction m2 = do
 -- allows for CSE inside Expr
 compileExpr :: Expr -> CompM ([Stmt], Expr)
 compileExpr e = do
---        liftIO $ print e
---        g <- liftIO $ reifyGraph (ExprE e)
---        liftIO $ print g
-        return ([],e)
+        (g,start) <- liftIO $ do
+--                putStrLn ""
+--                putStrLn ""
+--                print "------------------------------------------------------------"
+--                print e
+                Graph g start <- liftIO $ reifyGraph (ExprE e)
+--                print (g,start)
+                return (g,start)
+
+        let db = Map.fromList g
+        let out = stronglyConnComp
+                        [ (n,n,case e of
+                                Op _ xs -> xs
+                                _ -> [])
+                        | (n,e) <- g
+                        ]
+
+        let findExpr vars n =
+              case Map.lookup n vars of
+                  Just (id',_) -> Var id'
+                  Nothing -> case Map.lookup n db of
+                               Just op -> fmap (ExprE . findExpr vars) op
+
+        let loop vars [] = return vars :: CompM (Map.Map Unique (Id,Expr))
+            loop vars (n:ns) = case Map.lookup n db of
+                                 Nothing -> error "bad compile"
+                                 Just op@(Op {}) -> do
+                                   v <- uniqM
+                                   let vars' = Map.insert n ("c" ++ show v, fmap (ExprE . findExpr vars) op) vars
+                                   loop vars' ns
+                                 Just _ -> loop vars ns
+
+        ass <- loop Map.empty $ filter (/= start) $ flattenSCCs $ out
+--        liftIO $ print ass
+
+        return ([ VarStmt id' expr'
+                | n <- filter (/= start) $ flattenSCCs $ out
+                , Just (id',expr') <- [ Map.lookup n ass]
+                ],findExpr ass start)
+--        return ([],e)
+
+
+
+
+-----------------------------------------------------------------------------------
 
 type CompM = StateT Uniq IO
 
