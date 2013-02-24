@@ -76,9 +76,9 @@ instance Functor E where
 --        show = showExpr False
 
 showExpr :: Bool -> Expr -> String
+showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
+showExpr _ (Var v) = v  -- always stand alone
 showExpr b e = p $ case e of
-   (Lit a) -> a
-   (Var v) -> v
    (Op "[]" [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
    (Op "?:" [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Op op [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
@@ -133,7 +133,7 @@ showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n" ++
 ---------------------------------------------------------------
 
 litparen :: String -> String
-litparen nm | all isDigit nm = nm
+litparen nm | all (\ c -> isDigit c || c == '.') nm = nm
             | otherwise      = "(" ++ nm ++ ")"
 
 mkVar :: Sunroof a => Uniq -> a
