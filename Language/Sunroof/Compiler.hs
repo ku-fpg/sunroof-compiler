@@ -11,6 +11,7 @@ import Control.Monad.State
 --import Data.List (intercalate)
 
 import Language.Sunroof.Types
+import Data.Reify
 --import Web.KansasComet (Template(..), extract)
 
 compileAST :: (Sunroof a) => Uniq -> JS a -> IO (([Stmt], Expr), Uniq)
@@ -32,13 +33,13 @@ compile = eval . view . unJS
             compileBind (unbox e) (JS . g)
           eval (JS_Assign (JSSelector sel) a obj :>>= g) = do
             -- note, this is where we need to optimize/CSE  the a value.
-            compileStatement ( AssignStmt (unbox obj) (unbox sel) (unbox a)
-                             , Op "[]" [ExprE $ unbox obj, ExprE $ unbox sel] )
-                             (JS . g)
+            -- TODO: this constructor should return unit, not the updated value
+            (stmts0,val) <- compileExpr (unbox a)
+            (stmts1,ret) <- compile $ JS (g ())
+            return ( stmts0 ++ [AssignStmt (unbox obj) (unbox sel) val] ++ stmts1, ret )
           eval (JS_Select (JSSelector sel) obj :>>= g) = do
             compileBind (Op "[]" [ExprE $ unbox obj, ExprE $ unbox sel]) (JS . g)
           eval (JS_Invoke args fn :>>= g) = do
-            -- Do we need paranthesis for the function? (showExpr True $ unbox fn)
             compileBind (Op (showVar fn) (map ExprE args)) (JS . g)
           eval (JS_Function fun :>>= g) = do
             e <- compileFunction fun
@@ -53,23 +54,28 @@ compileBind :: forall a b . (Sunroof a, Sunroof b)
             => Expr -> (a -> JS b) -> CompM ([Stmt], Expr)
 compileBind e m2 = do
     a <- newVar
-    (stmts,ret) <- compile (m2 a)
-    return (assignVar (Proxy::Proxy a) (varId a) e : stmts , ret)
+    (stmts0, val) <- compileExpr e
+    (stmts1,ret) <- compile (m2 a)
+    return (stmts0 ++ [assignVar (Proxy::Proxy a) (varId a) val] ++ stmts1 , ret)
 
+-- TODO: inline
 compileStatement :: (Sunroof a, Sunroof b)
-                 => (Stmt, Expr) -> (a -> JS b) -> CompM ([Stmt], Expr)
-compileStatement (stmt, e) m2 = do
+                 => ([Stmt], Expr) -> (a -> JS b) -> CompM ([Stmt], Expr)
+compileStatement (stmts0, e) m2 = do
     (stmts,ret) <- compile $ m2 (box e)
-    return (stmt : stmts , ret)
+    return (stmts0 ++ stmts , ret)
 
 compileBranch :: forall a bool . (Sunroof a, Sunroof bool)
-              => bool -> JS a -> JS a -> CompM (Stmt, Expr)
+              => bool -> JS a -> JS a -> CompM ([Stmt], Expr)
 compileBranch b c1 c2 = do
   (res :: a) <- newVar
+  (src0, res0) <- compileExpr (unbox b)
   (src1, res1) <- compile c1
   (src2, res2) <- compile c2
-  return ( IfStmt (unbox b) (src1 ++ [assignVar (Proxy::Proxy a) (varId res) res1])
-                            (src2 ++ [assignVar (Proxy::Proxy a) (varId res) res2])
+  return ( src0 ++
+           [ IfStmt res0 (src1 ++ [assignVar (Proxy::Proxy a) (varId res) res1])
+                         (src2 ++ [assignVar (Proxy::Proxy a) (varId res) res2])
+           ]
          , unbox res)
 
 compileFunction :: forall a b . (JSArgument a, Sunroof b)
@@ -78,6 +84,15 @@ compileFunction m2 = do
     (arg :: a) <- jsValue
     (fStmts,ret) <- compile (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) (fStmts ++ [ReturnStmt ret])
+
+-- turn an expression into a list of statements, followed by an expression.
+-- allows for CSE inside Expr
+compileExpr :: Expr -> CompM ([Stmt], Expr)
+compileExpr e = do
+--        liftIO $ print e
+--        g <- liftIO $ reifyGraph (ExprE e)
+--        liftIO $ print g
+        return ([],e)
 
 type CompM = StateT Uniq IO
 
