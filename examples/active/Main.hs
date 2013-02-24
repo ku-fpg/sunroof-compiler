@@ -56,8 +56,6 @@ example doc = do
   -- Stuff
   (s,e,f) <- reifyActiveJS $ fmap (draw c) $ scopeA $ prog
 
-  alert("s=" <> cast s <> ";e=" <> cast e)
-
   n <- new
   n # "val" := (s :: JSNumber)
   loop <- function $ \ () -> do
@@ -127,23 +125,23 @@ ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
         play ((x,y):xys) (me,opp) = pauseA
                             ->> scopeA (pure (translateP (x*step*2,y*step*2)) <> me)
                             ->> play xys (opp,me)
-        play _ _ = mempty
+        play _ _ = pauseA       --
 
         backgroundGrid =
-                scopeA $ pure (setLineWidthP 10 <> setStrokeStyleP "#0000ff") <>
+                scopeA $ pure (setLineWidthP 10 <> setStrokeStyleP "#0000ff" <> painting (setLineCap "round")) <>
                          mconcat [ lineA (-edge,step*y) (edge,step*y) <>
                                    lineA (step*y,-edge) (step*y,edge)
                                  | y <- [1,-1] ]
 
                                  -- lineCap "butt"
         drawX :: Active JSTime Painting
-        drawX = scopeA $ pure (setLineWidthP 5 <> setStrokeStyleP "#00ff00") <>
+        drawX = scopeA $ pure (setLineWidthP 5 <> setStrokeStyleP "#00ff00" <> painting (setLineCap "round")) <>
                                 (lineA (-pic,-pic) (pic,pic) ->>
                                  lineA (-pic,pic) (pic,-pic))
 
         drawO :: Active JSTime Painting
         drawO = stretch 3
               $ scopeA
-              $ pure (setLineWidthP 5 <> setStrokeStyleP "#ff0000") <>
+              $ pure (setLineWidthP 5 <> setStrokeStyleP "#ff0000" <> painting (setLineCap "round")) <>
                 clamp ((\ (u :: JSNumber) -> arcP (0,0) pic (0,pi * 2 * u) false) <$> ui)
 
