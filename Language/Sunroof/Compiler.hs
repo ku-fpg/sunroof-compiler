@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
 module Language.Sunroof.Compiler
   ( compileJS
+  , CompilerOpts(..)
   ) where
 
 import Data.Proxy
@@ -14,14 +15,26 @@ import Language.Sunroof.Types
 import Data.Reify
 import Data.Graph
 import qualified Data.Map as Map
+import Data.Default
 --import Web.KansasComet (Template(..), extract)
 
-compileAST :: (Sunroof a) => Uniq -> JS a -> IO (([Stmt], Expr), Uniq)
-compileAST uq jsm = runStateT (compile jsm) uq
+data CompilerOpts = CompilerOpts
+        { co_reify   :: Bool        -- do we reify to capture Haskell-level lets / CSEs?
+        , co_cse     :: Bool        -- do we also capture non-reified CSE, using Value Numbering?
+        , co_const   :: Bool        -- do we constant fold?
+        , co_verbose :: Int         -- how verbose is the compiler when running? standard 0 - 3 scale
+        }
 
-compileJS :: (Sunroof a) => Uniq -> JS a -> IO ((String, String), Uniq)
-compileJS uq jsm = do
-        ((stmts, res), u) <- compileAST uq jsm
+instance Default CompilerOpts where
+        def = CompilerOpts True False False 0
+
+
+compileAST :: (Sunroof a) => CompilerOpts -> Uniq -> JS a -> IO (([Stmt], Expr), Uniq)
+compileAST _ uq jsm = runStateT (compile jsm) uq
+
+compileJS :: (Sunroof a) => CompilerOpts -> Uniq -> JS a -> IO ((String, String), Uniq)
+compileJS opts uq jsm = do
+        ((stmts, res), u) <- compileAST opts uq jsm
         return ((unlines $ fmap showStmt stmts, showExpr False res), u)
 
 -- compile an existing expression

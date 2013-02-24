@@ -50,7 +50,7 @@ import Web.KansasComet
   )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Compiler ( compileJS )
+import Language.Sunroof.Compiler ( compileJS, CompilerOpts(..) )
 import Language.Sunroof.Types
 
 -- | The 'SunroofEngine' provides the verbosity level and
@@ -58,6 +58,7 @@ import Language.Sunroof.Types
 data SunroofEngine = SunroofEngine
   { cometDocument :: Document
   , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
+  , compilerOpts  :: CompilerOpts
   }
 
 -- | The number of uniques allocated for the first try of a compilation.
@@ -86,7 +87,7 @@ compile engine jsm = do
   -- Allocate a standard amount of uniq for compilation
   uq <- docUniqs compileUniqAlloc (cometDocument engine)
   -- Compile
-  (src, uq') <- compileJS uq jsm
+  (src, uq') <- compileJS (compilerOpts engine) uq jsm
   -- Check if the allocated amount was sufficient
   if (uq' < uq + compileUniqAlloc)
     -- It was sufficient we are finished
@@ -96,7 +97,7 @@ compile engine jsm = do
       -- Allocate all that are needed
       newUq <- docUniqs (uq' - uq) (cometDocument engine)
       -- Compile again
-      (src', _) <- compileJS newUq jsm
+      (src', _) <- compileJS (compilerOpts engine) newUq jsm
       compileLog engine $ src
 
 -- | Executes the Javascript in the browser without waiting for a result.
@@ -183,6 +184,7 @@ data SunroofServerOptions = SunroofServerOptions
   , cometIndexFile :: FilePath
   , cometOptions :: Options
   , sunroofVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
+  , sunroofCompilerOpts :: CompilerOpts
   }
 
 -- | Sets up a comet server ready to use with sunroof.
@@ -242,6 +244,8 @@ wrapDocument opts cometApp doc = cometApp
                                $ SunroofEngine
                                { cometDocument = doc
                                , engineVerbose = sunroofVerbose opts
+                               , compilerOpts = sunroofCompilerOpts opts
+
                                }
 
 -- | Default options to use for the sunroof comet server.
@@ -264,6 +268,7 @@ defaultServerOpts = SunroofServerOptions
   , cometIndexFile = "index.html"
   , cometOptions = def { KC.prefix = "/ajax", KC.verbose = 0 }
   , sunroofVerbose = 0
+  , sunroofCompilerOpts = def
   }
 
 -- -----------------------------------------------------------------------
