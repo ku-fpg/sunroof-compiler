@@ -38,8 +38,8 @@ compile = eval . view . unJS
 --            sel_txt <- compileJSS jss
 --            compileBind ("(" ++ showVar o ++ ")." ++ sel_txt) g
 
---          eval (JS_Eval e :>>= g) = do
---            compileBind (unbox e) (JS . g)
+          eval (JS_Eval e :>>= g) = do
+            compileBind (unbox e) (JS . g)
           eval (JS_Assign (JSSelector sel) a obj :>>= g) = do
             -- note, this is where we need to optimize/CSE  the a value.
             compileStatement ( AssignStmt (unbox obj) (unbox sel) (unbox a)
