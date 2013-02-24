@@ -9,6 +9,7 @@ import Data.Proxy
 --import qualified Control.Applicative as App
 import Control.Monad.Operational
 import Control.Monad.State
+import Control.Monad.Reader
 --import Data.List (intercalate)
 
 import Language.Sunroof.Types
@@ -19,7 +20,7 @@ import Data.Default
 --import Web.KansasComet (Template(..), extract)
 
 data CompilerOpts = CompilerOpts
-        { co_reify   :: Bool        -- do we reify to capture Haskell-level lets / CSEs?
+        { co_on      :: Bool        -- do we reify to capture Haskell-level lets / CSEs?
         , co_cse     :: Bool        -- do we also capture non-reified CSE, using Value Numbering?
         , co_const   :: Bool        -- do we constant fold?
         , co_verbose :: Int         -- how verbose is the compiler when running? standard 0 - 3 scale
@@ -30,7 +31,7 @@ instance Default CompilerOpts where
 
 
 compileAST :: (Sunroof a) => CompilerOpts -> Uniq -> JS a -> IO (([Stmt], Expr), Uniq)
-compileAST _ uq jsm = runStateT (compile jsm) uq
+compileAST opts uq jsm = runStateT (runReaderT (compile jsm) opts) uq
 
 compileJS :: (Sunroof a) => CompilerOpts -> Uniq -> JS a -> IO ((String, String), Uniq)
 compileJS opts uq jsm = do
@@ -104,14 +105,15 @@ compileFunction m2 = do
 -- allows for CSE inside Expr
 compileExpr :: Expr -> CompM ([Stmt], Expr)
 compileExpr e = do
-        (g,start) <- liftIO $ do
---                putStrLn ""
---                putStrLn ""
---                print "------------------------------------------------------------"
---                print e
-                Graph g start <- liftIO $ reifyGraph (ExprE e)
---                print (g,start)
-                return (g,start)
+        opts <- ask
+        optExpr opts e
+
+
+optExpr :: CompilerOpts -> Expr -> CompM ([Stmt], Expr)
+optExpr opts e | not (co_on opts) = return ([],e)
+optExpr opts e = do
+
+        Graph g start <- liftIO $ reifyGraph (ExprE e)
 
         let db = Map.fromList g
         let out = stronglyConnComp
@@ -146,11 +148,17 @@ compileExpr e = do
 --        return ([],e)
 
 
+compilerLog :: Int -> String -> CompM ()
+compilerLog level msg = do
+  opts <- ask
+  when (co_verbose opts >= level) $ liftIO $ do
+      putStr "Compiler: "
+      putStrLn msg
 
 
 -----------------------------------------------------------------------------------
 
-type CompM = StateT Uniq IO
+type CompM = ReaderT CompilerOpts (StateT Uniq IO)
 
 instance UniqM CompM where
   uniqM = do
