@@ -13,15 +13,13 @@ import Control.Monad.State
 import Language.Sunroof.Types
 --import Web.KansasComet (Template(..), extract)
 
-compileAST :: (Sunroof a) => Uniq -> JS a -> (([Stmt], Expr), Uniq)
-compileAST uq jsm = runState (compile jsm) uq
-
---compileJS :: (Sunroof a) => JS a -> (String,String)
---compileJS = fst . compileJS' 0
+compileAST :: (Sunroof a) => Uniq -> JS a -> IO (([Stmt], Expr), Uniq)
+compileAST uq jsm = runStateT (compile jsm) uq
 
 compileJS :: (Sunroof a) => Uniq -> JS a -> IO ((String, String), Uniq)
-compileJS uq jsm = let ((stmts, res), u) = compileAST uq jsm
-                    in return ((unlines $ fmap show stmts, show res), u)
+compileJS uq jsm = do
+        ((stmts, res), u) <- compileAST uq jsm
+        return ((unlines $ fmap show stmts, show res), u)
 
 -- compile an existing expression
 compile :: Sunroof c => JS c -> CompM ([Stmt], Expr)
@@ -81,7 +79,7 @@ compileFunction m2 = do
     (fStmts,ret) <- compile (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) (fStmts ++ [ReturnStmt ret])
 
-type CompM = State Uniq
+type CompM = StateT Uniq IO
 
 instance UniqM CompM where
   uniqM = do
