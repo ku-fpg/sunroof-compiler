@@ -121,12 +121,19 @@ ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
         step  = edge / 3
         pic   = step / 1.5
 
-        game = [(x,y) | x <- map js [-1..(1::Int)], y <- map js [-1..(1::Int)]]
+        game :: [(JSNumber,JSNumber)]
+        game = [ (-1,-1),(0,0)
+               , (1,1), (-1,1)
+               , (1,-1), (1,0)
+               , (0,-1)
+               ]
+
         play ((x,y):xys) (me,opp) = pauseA
                             ->> scopeA (pure (translateP (x*step*2,y*step*2)) <> me)
                             ->> play xys (opp,me)
-        play _ _ = pauseA       --
+        play _ _ = pauseA ->> scopeA (pure (painting (translate (0,-step*2))) <> winningLine)
 
+        backgroundGrid :: Active JSTime Painting
         backgroundGrid =
                 scopeA $ pure (setLineWidthP 10 <> setStrokeStyleP "#0000ff" <> painting (setLineCap "round")) <>
                          mconcat [ lineA (-edge,step*y) (edge,step*y) <>
@@ -145,3 +152,6 @@ ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
               $ pure (setLineWidthP 5 <> setStrokeStyleP "#ff0000" <> painting (setLineCap "round")) <>
                 clamp ((\ (u :: JSNumber) -> arcP (0,0) pic (0,pi * 2 * u) false) <$> ui)
 
+        winningLine :: Active JSTime Painting
+        winningLine = pure (setLineWidthP 8 <> setStrokeStyleP "#000000" <> painting (setLineCap "butt")) <>
+                        lineA (-step * 3.2,0) (step * 3.2,0)
