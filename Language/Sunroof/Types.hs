@@ -4,7 +4,7 @@ module Language.Sunroof.Types where
 
 import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
 import GHC.Exts
-import Data.Char ( isDigit, isControl, isAscii, ord )
+--import Data.Char ( isDigit, isControl, isAscii, ord )
 import Data.List ( intercalate )
 --import qualified Data.Map as Map
 import Data.Monoid
@@ -19,7 +19,7 @@ import Data.VectorSpace hiding ((<.>))
 import Numeric ( showHex )
 import Data.Proxy
 import Data.Reify
-import Control.Applicative ( Applicative, pure, (<$>), (<*>))
+import Control.Applicative ( Applicative, pure, (<$>))
 import Data.Traversable
 import Data.Foldable hiding (all, any)
 
@@ -52,25 +52,25 @@ instance MuRef ExprE where
 
 
 instance Traversable E where
-  traverse f (Lit s) = pure (Lit s)
-  traverse f (Var s) = pure (Var s)
+  traverse _ (Lit s) = pure (Lit s)
+  traverse _ (Var s) = pure (Var s)
   traverse f (Op s xs) = Op s <$> traverse f xs
 --  traverse f (BinOp s e1 e2) = BinOp s <$> f e1 <*> f e2
-  traverse f (Function nms stmts) = pure (Function nms stmts)
+  traverse _ (Function nms stmts) = pure (Function nms stmts)
 
 instance Foldable E where
-  foldMap f (Lit s) = mempty
-  foldMap f (Var s) = mempty
-  foldMap f (Op s xs) = foldMap f xs
+  foldMap _ (Lit _) = mempty
+  foldMap _ (Var _) = mempty
+  foldMap f (Op _ xs) = foldMap f xs
 --  foldMap f (BinOp s e1 e2) = foldMap f [e1,e2]
-  foldMap f (Function nms stmts) = mempty
+  foldMap _ (Function _nms _stmts) = mempty
 
 instance Functor E where
-  fmap f (Lit s) = Lit s
-  fmap f (Var s) = Var s
+  fmap _ (Lit s) = Lit s
+  fmap _ (Var s) = Var s
   fmap f (Op s xs) = Op s (map f xs)
 --  fmap f (BinOp s e1 e2) = BinOp s (f e1) (f e2)
-  fmap f (Function nms stmts) = Function nms stmts
+  fmap _ (Function nms stmts) = Function nms stmts
 
 --
 --instance Show Expr where
@@ -83,7 +83,7 @@ showExpr b e = p $ case e of
    (Op "[]" [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
    (Op "?:" [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Op op [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
-   (Op fn args) -> fn ++ "(" ++ intercalate "," (map (\ (ExprE e) -> showExpr False e) args) ++ ")"
+   (Op fn args) -> fn ++ "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
    (Function args body) ->
                 "function" ++
                 "(" ++ intercalate "," args ++ ") {\n" ++
@@ -309,7 +309,10 @@ instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS b) where
 
 ---------------------------------------------------------------
 
+binOp :: String -> Expr -> Expr -> E ExprE
 binOp op e1 e2 = Op op [ExprE e1, ExprE e2]
+
+uniOp :: String -> Expr -> E ExprE
 uniOp op e = Op op [ExprE e]
 
 ---------------------------------------------------------------
@@ -328,7 +331,7 @@ instance Num JSNumber where
         (JSNumber e1) - (JSNumber e2) = JSNumber $ binOp "-" e1 e2
         (JSNumber e1) * (JSNumber e2) = JSNumber $ binOp "*" e1 e2
         abs (JSNumber e1) = JSNumber $ uniOp "Math.abs" e1
-        signum (JSNumber e1) = error "signum" -- JSNumber $ uniOp "ERROR" e1
+        signum (JSNumber _e1) = error "signum" -- JSNumber $ uniOp "ERROR" e1
         fromInteger = JSNumber . Lit . litparen . show
 
 instance IntegralB JSNumber where

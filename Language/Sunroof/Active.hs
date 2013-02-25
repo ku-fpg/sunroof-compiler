@@ -3,12 +3,12 @@
 module Language.Sunroof.Active where
 
 import Language.Sunroof.Types
-import Language.Sunroof.Compiler
+--import Language.Sunroof.Compiler
 
 import Control.Newtype
 import Data.Active
 import Data.VectorSpace hiding ((<.>))
-import Data.AdditiveGroup
+--import Data.AdditiveGroup
 import Data.AffineSpace
 import Data.Boolean
 

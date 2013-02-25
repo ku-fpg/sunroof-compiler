@@ -117,10 +117,10 @@ optExpr opts e = do
 
         let db = Map.fromList g
         let out = stronglyConnComp
-                        [ (n,n,case e of
+                        [ (n,n,case e' of
                                 Op _ xs -> xs
                                 _ -> [])
-                        | (n,e) <- g
+                        | (n,e') <- g
                         ]
 
         let findExpr vars n =
@@ -128,6 +128,7 @@ optExpr opts e = do
                   Just (id',_) -> Var id'
                   Nothing -> case Map.lookup n db of
                                Just op -> fmap (ExprE . findExpr vars) op
+                               Nothing -> error $ "optExpr: findExpr failed for " ++ show n
 
         let loop vars [] = return vars :: CompM (Map.Map Unique (Id,Expr))
             loop vars (n:ns) = case Map.lookup n db of

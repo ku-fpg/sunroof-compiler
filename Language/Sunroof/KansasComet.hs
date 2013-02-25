@@ -98,7 +98,7 @@ compile engine jsm = do
       newUq <- docUniqs (uq' - uq) (cometDocument engine)
       -- Compile again
       (src', _) <- compileJS (compilerOpts engine) newUq jsm
-      compileLog engine $ src
+      compileLog engine $ src'
 
 -- | Executes the Javascript in the browser without waiting for a result.
 async :: SunroofEngine -> JS () -> IO ()
