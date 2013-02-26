@@ -565,7 +565,7 @@ emptyArray = JSArray $ Lit "[]"
 instance forall a . (Sunroof a) => Monoid (JSArray a) where
   mempty = emptyArray
   mappend (JSArray e1) (JSArray e2) = JSArray $ Op (concat e1) [ExprE e2]
-    where 
+    where
       concat :: Expr -> String
       concat e = showExpr True $ Op "[]" $
         [ExprE e, ExprE $ (unbox :: JSString -> Expr) $ fromString "concat"]
@@ -695,6 +695,10 @@ instance Monad JS where
 --  Thus, '<>' is the analog of the monadic '>>'.
 instance Semi.Semigroup (JS a) where
         js1 <> js2 = js1 >> js2
+
+instance Monoid (JS ()) where
+        mempty = return ()
+        mappend = (<>)
 
 -- define primitive effects / "instructions" for the JS monad
 data JSI a where
