@@ -437,6 +437,10 @@ instance Sunroof JSString where
         box = JSString
         unbox (JSString e) = e
 
+instance Semi.Semigroup JSString where
+        (JSString e1) <>(JSString e2) = JSString $ binOp "+" e1 e2
+
+
 instance Monoid JSString where
         mempty = fromString ""
         mappend (JSString e1) (JSString e2) = JSString $ binOp "+" e1 e2
