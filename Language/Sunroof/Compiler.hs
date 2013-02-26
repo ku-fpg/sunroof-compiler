@@ -4,8 +4,6 @@ module Language.Sunroof.Compiler
   , CompilerOpts(..)
   ) where
 
-import Data.Proxy
-
 --import qualified Control.Applicative as App
 import Control.Monad.Operational
 import Control.Monad.State
@@ -17,6 +15,8 @@ import Data.Reify
 import Data.Graph
 import qualified Data.Map as Map
 import Data.Default
+import Data.Proxy
+import Data.Boolean
 --import Web.KansasComet (Template(..), extract)
 
 data CompilerOpts = CompilerOpts
@@ -63,6 +63,9 @@ compile = eval . view . unJS
           eval (JS_Branch b c1 c2 :>>= g) = do
             branch <- compileBranch b c1 c2
             compileStatement branch (JS . g)
+          eval (JS_Foreach arr body :>>= g) = do
+            loop <- compileForeach arr body
+            compileStatement loop (JS . g)
           -- or we're done already
           eval (Return b) = compileExpr (unbox b)
 
@@ -100,6 +103,28 @@ compileFunction m2 = do
     (arg :: a) <- jsValue
     (fStmts,ret) <- compile (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) (fStmts ++ [ReturnStmt ret])
+
+compileForeach :: forall a b . (Sunroof a, Sunroof b) 
+               => JSArray a -> (a -> JS b) -> CompM ([Stmt], Expr)
+compileForeach arr body = do
+  (counter :: JSNumber) <- newVar
+  -- Introduce a new name for the array, so a possible literal array
+  -- is not reprinted for each access.
+  (arrVar :: JSArray a) <- newVar
+  (condStmts, condRet) <- compile $ do
+    return $ counter <* (cast arrVar ! attribute "length")
+  (bodyStmts, bodyRet) <- compile $ do
+    _ <- body (cast arrVar ! label (cast counter))
+    return ()
+  let incCounterStmts = 
+        [ VarStmt (varId counter) (unbox (counter + 1 :: JSNumber)) ]
+      loopStmts =
+        [ VarStmt (varId counter) (unbox (0 :: JSNumber))
+        , VarStmt (varId arrVar)  (unbox arr) ]
+        ++ condStmts ++
+        -- Recalculate the condition, in case the loop changed it.
+        [ WhileStmt (condRet) (bodyStmts ++ condStmts ++ incCounterStmts) ]
+  return (loopStmts, bodyRet)
 
 -- turn an expression into a list of statements, followed by an expression.
 -- allows for CSE inside Expr
