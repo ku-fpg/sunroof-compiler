@@ -45,18 +45,24 @@ example doc = do
   width' <- canvas <!> width
   height' <- canvas <!> height
 
-  let prog = pure clear <>
+  let prog :: Active JSTime Painting
+      prog = pure clear <>
              ticTacToe (canvas ! width, canvas ! height)
 --               counter (canvas ! width, canvas ! height)
+
+  let full :: Active JSTime Painting
+      full = prog <> (timeline (100,200) (300,220) `during` prog)
+                --
+
 {-
              pure (setLineWidthP 5) <>
              pure (setStrokeStyleP "#ff0000") <>
              (drawing ->> (scopeA (rotateA (2 * pi) <> lineA (300,100) (100,300))))
 -}
   -- Stuff
-  (s,e,f) <- reifyActiveJS $ fmap (c #) $ scopeA $ prog
+  (s,e,f) <- reifyActiveJS $ fmap (c #) $ scopeA $ full
 
-  alert("Count" <> cast s <> " " <> cast e)
+--  alert("Count" <> cast s <> " " <> cast e)
 
   date            <- evaluate $ object "new Date()"
   tm0 :: JSNumber <- date # method "getTime" ()
@@ -125,8 +131,8 @@ click = event "click" Click
 
 counter :: (JSNumber,JSNumber) -> Active JSTime Painting
 counter (width,height)
-        = pure (translate (width / 3, height / 3)) <>
-               (stretch 100 countPlease)
+        = scopeA $ pure (translate (width / 3, height / 3)) <>
+                        (stretch 100 countPlease)
   where
           countPlease :: Active JSTime Painting
           countPlease = clamp $ scopeA $
@@ -143,8 +149,9 @@ counter (width,height)
 --                ("X: " {- <> cast (Deep.floor (n :: JSNumber)) -})
 
 ticTacToe :: (JSNumber,JSNumber) -> Active JSTime Painting
-ticTacToe (width,height) = pure (translate (width / 2, height / 2)) <>
-        (stretch 3 backgroundGrid ->> play game (drawX,drawO))
+ticTacToe (width,height) =
+        scopeA $ pure (translate (width / 2, height / 2)) <>
+                      (stretch 3 backgroundGrid ->> play game (drawX,drawO))
   where
         scale = minB width height
         edge  = scale / 2.5     -- allow a small border
@@ -189,7 +196,16 @@ ticTacToe (width,height) = pure (translate (width / 2, height / 2)) <>
 
         winningLine :: Active JSTime Painting
         winningLine = pure (setLineWidth 8 <> setStrokeStyle "#000000" <>  (setLineCap "butt")) <>
+                        translateWA 1 <>
                         lineA (-step * 3.2,0) (step * 3.2,0)
+
+
+timeline :: (JSNumber,JSNumber) -> (JSNumber,JSNumber) -> Active JSTime Painting
+timeline (x0,y0) (x1,y1) =
+        scopeA $ pure (setLineWidth 2 <> setStrokeStyle "#000000" <>  (setLineCap "butt")) <>
+                 (clamp $ (\ (t::JSNumber) -> lineP (x0,y0) (x1,y1)) <$> ui) <>
+                 pure (setLineWidth 8 <> setStrokeStyle "#ff0000" <>  (setLineCap "butt")) <>
+                 (clamp $ (\ (t::JSNumber) -> lineP (x0,y0) (lerp x0 x1 t,lerp y0 y1 t)) <$> ui)
 
 
 arcP :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
