@@ -24,7 +24,6 @@ Extra-source-files:
 Library
   Exposed-modules:     Language.Sunroof
                        Language.Sunroof.Active
-                       Language.Sunroof.Painting
                        Language.Sunroof.Compiler
                        Language.Sunroof.Types
                        Language.Sunroof.KansasComet
