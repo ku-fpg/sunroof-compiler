@@ -26,7 +26,7 @@ import Language.Sunroof.JS.Canvas as C
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery
 import Language.Sunroof.Active
-import Language.Sunroof.Painting
+--import Language.Sunroof.Painting
 import Language.Sunroof.Container
 import Data.VectorSpace (lerp)
 
@@ -40,9 +40,7 @@ example doc = do
   canvas <- document # getElementById "canvas"
   c <- canvas # getContext "2d"
 
-  let clear :: Painting = painting $ \ c -> c # clearRect (0,0) (canvas ! width, canvas ! height)
-
-  let drawing :: Active JSTime Painting = lineA (100,100) (300,300)
+  let clear :: Painting = clearRect (0,0) (canvas ! width, canvas ! height)
 
   width' <- canvas <!> width
   height' <- canvas <!> height
@@ -56,7 +54,7 @@ example doc = do
              (drawing ->> (scopeA (rotateA (2 * pi) <> lineA (300,100) (100,300))))
 -}
   -- Stuff
-  (s,e,f) <- reifyActiveJS $ fmap (draw c) $ scopeA $ prog
+  (s,e,f) <- reifyActiveJS $ fmap (c #) $ scopeA $ prog
 
   alert("Count" <> cast s <> " " <> cast e)
 
@@ -85,10 +83,10 @@ lineA :: (JSNumber,JSNumber) -> (JSNumber,JSNumber) -> Active JSTime Painting
 lineA (x0,y0) (x1,y1) = clamp $ (\ (t::JSNumber) -> lineP (x0,y0) (lerp x0 x1 t,lerp y0 y1 t)) <$> ui
 
 rotateA :: JSNumber -> Active JSTime Painting
-rotateA speed = clamp $ (rotateP . (* speed)) <$> ui
+rotateA speed = clamp $ (rotate . (* speed)) <$> ui
 
 translateA :: (JSNumber,JSNumber) -> Active JSTime Painting
-translateA (a,b) = clamp $ (translateP . (\ t -> (a * t, b * t))) <$> ui
+translateA (a,b) = clamp $ (translate . (\ t -> (a * t, b * t))) <$> ui
 
 scopeA :: Active JSTime Painting -> Active JSTime Painting
 scopeA = fmap scopeP
@@ -101,9 +99,9 @@ wobbleA :: JSNumber -> Active JSTime JSNumber
 wobbleA speed = (\ (t :: JSNumber) -> sin ((t * speed) `N.mod` (pi * 2))) <$> ui
 
 translateWA :: JSNumber -> Active JSTime Painting
-translateWA n = (\ a b -> translateP (a,b)) <$> wobbleA (n*7) <*> wobbleA (n*13)
+translateWA n = (\ a b -> translate (a,b)) <$> wobbleA (n*7) <*> wobbleA (n*13)
 
-
+type Painting = JSObject -> JS ()
 
 {-
 arcA :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
@@ -127,13 +125,13 @@ click = event "click" Click
 
 counter :: (JSNumber,JSNumber) -> Active JSTime Painting
 counter (width,height)
-        = pure (translateP (width / 3, height / 3)) <>
+        = pure (translate (width / 3, height / 3)) <>
                (stretch 100 countPlease)
   where
           countPlease :: Active JSTime Painting
           countPlease = clamp $ scopeA $
-                pure (painting (setFont "40pt Calibri")) <>
-                     (\ (n :: JSNumber) -> painting $ \ c -> do
+                pure ((setFont "40pt Calibri")) <>
+                     (\ (n :: JSNumber) -> \ c -> do
 --                                        alert(cast n)
                                         c # fillText (cast (Deep.floor (n*100))) (n*100,0)
                                         date <- evaluate $ object "new Date()"
@@ -145,7 +143,7 @@ counter (width,height)
 --                ("X: " {- <> cast (Deep.floor (n :: JSNumber)) -})
 
 ticTacToe :: (JSNumber,JSNumber) -> Active JSTime Painting
-ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
+ticTacToe (width,height) = pure (translate (width / 2, height / 2)) <>
         (stretch 3 backgroundGrid ->> play game (drawX,drawO))
   where
         scale = minB width height
@@ -161,13 +159,13 @@ ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
                ]
 
         play ((x,y):xys) (me,opp) = pauseA
-                            ->> scopeA (pure (translateP (x*step*2,y*step*2)) <> me)
+                            ->> scopeA (pure (translate (x*step*2,y*step*2)) <> me)
                             ->> play xys (opp,me)
-        play _ _ = pauseA ->> scopeA (pure (painting (translate (0,-step*2))) <> winningLine)
+        play _ _ = pauseA ->> scopeA (pure ((translate (0,-step*2))) <> winningLine)
 
         backgroundGrid :: Active JSTime Painting
         backgroundGrid =
-                scopeA $ pure (setLineWidthP 10 <> setStrokeStyleP "#0000ff" <> painting (setLineCap "round")) <>
+                scopeA $ pure (setLineWidth 10 <> setStrokeStyle "#0000ff" <> setLineCap "round") <>
                          mconcat [ lineA (-edge,step*y) (edge,step*y) <>
                                    lineA (step*y,-edge) (step*y,edge)
                                  | y <- [1,-1] ]
@@ -175,20 +173,44 @@ ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
                                  -- lineCap "butt"
         drawX :: Active JSTime Painting
         drawX = clamp $
-                scopeA $ pure (setLineWidthP 5 <> setStrokeStyleP "#00ff00" <> painting (setLineCap "round")) <>
+                scopeA $ pure (setLineWidth 5 <> setStrokeStyle "#00ff00" <> setLineCap "round") <>
                                 (lineA (-pic,-pic) (pic,pic) ->>
                                  lineA (-pic,pic) (pic,-pic))
 
         drawO :: Active JSTime Painting
         drawO = stretch 3
               $ scopeA
-              $ pure (setLineWidthP 5 <> setStrokeStyleP "#ff0000" <> painting (setLineCap "round")) <>
-                         pure (painting ( setShadowColor "black"  <>
+              $ pure (setLineWidth 5 <> setStrokeStyle "#ff0000" <> setLineCap "round") <>
+                         pure (( setShadowColor "black"  <>
                                               setShadowBlur 10 <>
                                               setShadowOffsetX 2 <>
                                               setShadowOffsetY 2)) <>
                 clamp ((\ (u :: JSNumber) -> arcP (0,0) pic (0,pi * 2 * u) false) <$> ui)
 
         winningLine :: Active JSTime Painting
-        winningLine = pure (setLineWidthP 8 <> setStrokeStyleP "#000000" <> painting (setLineCap "butt")) <>
+        winningLine = pure (setLineWidth 8 <> setStrokeStyle "#000000" <>  (setLineCap "butt")) <>
                         lineA (-step * 3.2,0) (step * 3.2,0)
+
+
+arcP :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
+     -> JSNumber            -- ^ The radius.
+     -> (JSNumber,JSNumber) -- ^ The angle to start and the angle to stop drawing.
+     -> JSBool              -- ^ if counter clock
+     -> Painting
+arcP (cx,cy) r (sa,ea) cc = \ c -> do
+        c # beginPath
+        c # arc' (cx,cy) r (sa,ea) cc
+        c # stroke
+
+scopeP :: Painting -> Painting
+scopeP p = \ c -> do
+        c # save
+        c # p
+        c # restore
+
+lineP :: (JSNumber,JSNumber) -> (JSNumber,JSNumber) -> Painting
+lineP (x0,y0) (x1,y1) = \ c -> do
+        c # beginPath
+        c # moveTo (x0,y0)
+        c # lineTo (x1,y1)
+        c # stroke
