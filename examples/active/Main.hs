@@ -12,6 +12,7 @@ import Control.Applicative
 import Data.Active
 import Network.Wai.Middleware.Static
 import Data.Boolean
+import qualified Data.Boolean.Numbers as Deep
 
 import Web.KansasComet
 import qualified Web.KansasComet as KC
@@ -48,6 +49,7 @@ example doc = do
 
   let prog = pure clear <>
              ticTacToe (canvas ! width, canvas ! height)
+--               counter (canvas ! width, canvas ! height)
 {-
              pure (setLineWidthP 5) <>
              pure (setStrokeStyleP "#ff0000") <>
@@ -56,16 +58,25 @@ example doc = do
   -- Stuff
   (s,e,f) <- reifyActiveJS $ fmap (draw c) $ scopeA $ prog
 
+  alert("Count" <> cast s <> " " <> cast e)
+
+  date            <- evaluate $ object "new Date()"
+  tm0 :: JSNumber <- date # method "getTime" ()
+
   n <- new
   n # "val" := (s :: JSNumber)
+  let speed :: Rational
+      speed = 20        -- FPS target
   loop <- function $ \ () -> do
-                apply f (n ! "val")
-                n # "val" := ((n ! "val") + 0.05 :: JSNumber)
-                ifB ((n ! "val") >* (e + 0.025))
+                date            <- evaluate $ object "new Date()"
+                tm1 :: JSNumber <- date # method "getTime" ()
+                let tm = (tm1 - tm0) / 1000
+                ifB (tm >* e)
                     (window # clearInterval (n ! "callsign"))
                     (return ())
+                apply f tm
                 return ()
-  v <- window # setInterval loop 20
+  v <- window # setInterval loop (fromRational (1000 / speed))
   n # "callsign" := v
   return ()
 
@@ -111,6 +122,27 @@ click = event "click" Click
             <&> "id"      .= "$(widget).attr('id')"
             <&> "pageX"   .=  "event.pageX"
             <&> "pageY"   .=  "event.pageY"
+
+-- counter
+
+counter :: (JSNumber,JSNumber) -> Active JSTime Painting
+counter (width,height)
+        = pure (translateP (width / 3, height / 3)) <>
+               (stretch 100 countPlease)
+  where
+          countPlease :: Active JSTime Painting
+          countPlease = clamp $ scopeA $
+                pure (painting (setFont "40pt Calibri")) <>
+                     (\ (n :: JSNumber) -> painting $ \ c -> do
+--                                        alert(cast n)
+                                        c # fillText (cast (Deep.floor (n*100))) (n*100,0)
+                                        date <- evaluate $ object "new Date()"
+                                        s <- date # method "getSeconds" ()
+                                        c # fillText (cast (s :: JSNumber)) (n*100,100)
+--                                        alert("X" <> cast n)
+                     ) <$> ui
+--                     painting $ fillText ("X") (n*10,0)) <$> ui
+--                ("X: " {- <> cast (Deep.floor (n :: JSNumber)) -})
 
 ticTacToe :: (JSNumber,JSNumber) -> Active JSTime Painting
 ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
