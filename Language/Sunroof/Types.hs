@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Language.Sunroof.Types where
 
@@ -96,15 +97,12 @@ indent :: Int -> String -> String
 indent n = unlines . map (take n (cycle "  ") ++) . lines
 
 data Stmt
-        = VarStmt Id Expr                       -- var Id = Expr;   // Id is fresh
-        | AssignStmt Expr Expr Expr             -- Expr[Expr] = Expr
-        | ExprStmt Expr                         -- Expr
-        | ReturnStmt Expr                       -- return Expr
-        | IfStmt Expr [Stmt] [Stmt]             -- if (Expr) {
-                                                --    Stmts
-                                                -- } else {
-                                                --    Stmts
-                                                -- }
+        = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
+        | AssignStmt Expr Expr Expr -- Expr[Expr] = Expr
+        | ExprStmt Expr             -- Expr
+        | ReturnStmt Expr           -- return Expr
+        | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
+        | WhileStmt Expr [Stmt]     -- while (Expr) { Stmts }
 
 instance Show Stmt where
         show = showStmt
@@ -114,11 +112,14 @@ showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
 showStmt (AssignStmt e1 e2 e3) = showExpr True e1 ++ "[" ++ showExpr False e2 ++ "] = " ++ showExpr False e3 ++ ";"
 showStmt (ExprStmt e) = showExpr False e ++ ";"
 showStmt (ReturnStmt e) = "return " ++ showExpr False e ++ ";"
-showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n" ++
-                indent 2 (unlines (map showStmt t)) ++
-        "} else {\n" ++
-                indent 2 (unlines (map showStmt e)) ++
-        "}"
+showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n"
+  ++ indent 2 (unlines (map showStmt t))
+  ++ "} else {\n"
+  ++ indent 2 (unlines (map showStmt e))
+  ++ "}"
+showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
+  ++ indent 2 (unlines (map showStmt stmts))
+  ++ "}"
 
 {-
         show (Lit a)  = a
@@ -423,7 +424,9 @@ instance SunroofValue Rational where
   type ValueOf Rational = JSNumber
   js = box . Lit . litparen . (show :: Double -> String) . fromRational
 
----------------------------------------------------------------
+-- -------------------------------------------------------------
+-- Javascript Strings
+-- -------------------------------------------------------------
 
 data JSString = JSString Expr
 
@@ -458,7 +461,9 @@ instance SunroofValue Char where
   type ValueOf Char = JSString
   js c = fromString [c]
 
----------------------------------------------------------------
+-- -------------------------------------------------------------
+-- String Conversion Utilities: Haskell -> JS
+-- -------------------------------------------------------------
 
 -- | Transform a Haskell string into a string representing a JS string literal.
 jsLiteralString :: String -> String
@@ -497,7 +502,9 @@ jsEscapeString (c:cs) = case c of
   -- All other non ASCII signs are escaped to unicode.
   c' -> jsUnicodeChar c' ++ jsEscapeString cs
 
----------------------------------------------------------------
+-- -------------------------------------------------------------
+-- Javascript Objects
+-- -------------------------------------------------------------
 
 data JSObject = JSObject Expr
 
@@ -516,6 +523,44 @@ instance IfB JSObject where
 instance SunroofValue Expr where
   type ValueOf Expr = JSObject
   js = box
+
+-- -------------------------------------------------------------
+-- Javascript Arrays
+-- -------------------------------------------------------------
+
+data JSArray a = JSArray Expr
+
+instance Show (JSArray a) where
+        show (JSArray v) = showExpr False v
+
+instance (Sunroof a) => Sunroof (JSArray a) where
+        box = JSArray
+        unbox (JSArray o) = o
+
+type instance BooleanOf (JSArray a) = JSBool
+
+instance (Sunroof a) => IfB (JSArray a) where
+    ifB = js_ifB
+{- This conflicts with the string instance.
+instance (SunroofValue a) => SunroofValue [a] where
+  type ValueOf [a] = JSArray (ValueOf a)
+  -- Uses JSON
+  js l  = JSArray $ Lit $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
+-}
+
+array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
+array l  = JSArray $ Lit $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
+
+emptyArray :: (Sunroof a) => JSArray a
+emptyArray = JSArray $ Lit "[]"
+
+instance forall a . (Sunroof a) => Monoid (JSArray a) where
+  mempty = emptyArray
+  mappend (JSArray e1) (JSArray e2) = JSArray $ Op (concat e1) [ExprE e2]
+    where 
+      concat :: Expr -> String
+      concat e = showExpr True $ Op "[]" $
+        [ExprE e, ExprE $ (unbox :: JSString -> Expr) $ fromString "concat"]
 
 ---------------------------------------------------------------
 
@@ -590,7 +635,7 @@ method str args obj = do
   f `apply` args
 
 string :: String -> JSString
-string = JSString . Lit . show
+string = fromString
 
 object :: String -> JSObject
 object = JSObject . Lit
@@ -662,6 +707,8 @@ data JSI a where
     JS_Function :: (JSArgument a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
     JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> JSI a
+    -- A loop primitive.
+    JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS b) -> JSI ()
 
 ---------------------------------------------------------------
 
@@ -673,6 +720,9 @@ function = JS . singleton . JS_Function
 -- | Call a function with the given arguments.
 apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS ret
 apply f args = f # with args
+
+foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS b) -> JS ()
+foreach arr body = JS $ singleton $ JS_Foreach arr body
 
 (<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
 (<!>) o s = evaluate $ o ! s
