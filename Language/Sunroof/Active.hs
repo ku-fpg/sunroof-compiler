@@ -34,8 +34,24 @@ instance Clock JSTime where
 instance FractionalOf JSTime JSNumber where
   toFractionalOf = unJSTime
 
-instance (BooleanOf a ~ JSBool, IfB a) => Deadline JSTime a where
+--instance (BooleanOf a ~ JSBool, IfB a) => Deadline JSTime a where
+--        choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
+
+instance (BooleanOf b ~ JSBool, IfB b, Deadline JSTime b) => Deadline JSTime (a -> b) where
+        choose (JSTime t1) (JSTime t2) f1 f2 a = ifB (t1 <=* t2) (f1 a) (f2 a)
+
+instance (Sunroof a) => Deadline JSTime (JS a) where
         choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
+
+instance Deadline JSTime JSNumber where
+        choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
+
+instance Deadline JSTime JSBool where
+        choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
+
+--instance (BooleanOf a ~ JSBool, IfB a) => Deadline JSTime (f -> a) where
+--        choose (JSTime t1) (JSTime t2) x y c = ifB (t1 <=* t2) (x c) (y c)
+
 
 newtype JSDuration = JSDuration { unJSDuration :: JSNumber }
   deriving ( Show, AdditiveGroup )
