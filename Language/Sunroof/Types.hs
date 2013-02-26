@@ -29,6 +29,10 @@ type Uniq = Int         -- used as a unique label
 cast :: (Sunroof a, Sunroof b) => a -> b
 cast = box . unbox
 
+-- cast to int?
+int :: (Sunroof a) => a -> JSNumber
+int = box . (\ e -> Op "(int)" [ExprE e]) . unbox
+
 ---------------------------------------------------------------
 -- Trivial expression language for Java
 
