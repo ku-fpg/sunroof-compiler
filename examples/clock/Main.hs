@@ -92,8 +92,7 @@ clockJS = do
     c # save
     c # rotate (2 * pi / 4) -- 0 degrees is at the top
     -- Draw all hour lines.
-    -- TODO: This repeats the call 60 times. Would be neat to have loops.
-    sequence_ $ (flip fmap) (fmap fromInteger [1..60] :: [JSNumber]) $ \n -> do
+    foreach (array [1..60::Int]) $ \n -> do
       c # save
       c # rotate ((2 * pi / 60) * n)
       renderClockFaceLine `apply` (c, u, n)
