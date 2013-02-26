@@ -6,7 +6,7 @@ module Main where
 import Web.Scotty (scotty, middleware)
 import Data.Default
 import Control.Monad
-import Data.Monoid
+import Data.Semigroup
 import Control.Monad.IO.Class
 import Control.Applicative
 import Data.Active
@@ -142,7 +142,8 @@ ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
 
                                  -- lineCap "butt"
         drawX :: Active JSTime Painting
-        drawX = scopeA $ pure (setLineWidthP 5 <> setStrokeStyleP "#00ff00" <> painting (setLineCap "round")) <>
+        drawX = clamp $
+                scopeA $ pure (setLineWidthP 5 <> setStrokeStyleP "#00ff00" <> painting (setLineCap "round")) <>
                                 (lineA (-pic,-pic) (pic,pic) ->>
                                  lineA (-pic,pic) (pic,-pic))
 
@@ -150,6 +151,10 @@ ticTacToe (width,height) = pure (translateP (width / 2, height / 2)) <>
         drawO = stretch 3
               $ scopeA
               $ pure (setLineWidthP 5 <> setStrokeStyleP "#ff0000" <> painting (setLineCap "round")) <>
+                         pure (painting ( setShadowColor "black"  <>
+                                              setShadowBlur 10 <>
+                                              setShadowOffsetX 2 <>
+                                              setShadowOffsetY 2)) <>
                 clamp ((\ (u :: JSNumber) -> arcP (0,0) pic (0,pi * 2 * u) false) <$> ui)
 
         winningLine :: Active JSTime Painting
