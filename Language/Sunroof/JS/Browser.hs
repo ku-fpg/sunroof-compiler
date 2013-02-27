@@ -16,6 +16,8 @@ module Language.Sunroof.JS.Browser
   , window
   , setInterval
   , clearInterval
+  , setTimeout
+  , clearTimeout
   -- Screen API
   , screen
   -- Document API
@@ -119,6 +121,12 @@ setInterval f interval = method "setInterval" (f, interval)
 -- | Clears a timer set with the 'setInterval' method.
 clearInterval :: JSNumber -> Action JSObject ()
 clearInterval ident = method "clearInterval" (ident)
+
+setTimeout :: (Sunroof r) => JSFunction () r -> JSNumber -> Action JSObject JSNumber
+setTimeout f interval = method "setTimeout" (f, interval)
+
+clearTimeout :: JSNumber -> Action JSObject ()
+clearTimeout ident = method "clearTimeout" (ident)
 
 -- -----------------------------------------------------------------------
 -- Screen API
