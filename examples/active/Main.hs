@@ -5,7 +5,7 @@ module Main where
 
 import Web.Scotty (scotty, middleware)
 import Data.Default
-import Control.Monad
+import Control.Monad hiding (forever)
 import Data.Semigroup
 import Control.Monad.IO.Class
 import Control.Applicative
@@ -32,7 +32,7 @@ import Data.VectorSpace (lerp)
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \ doc -> do
-        registerEvents (cometDocument doc) "body" click
+        registerEvents (cometDocument doc) "body" (slide <> click)
         async doc (example doc)
 
 example :: SunroofEngine -> JS ()
@@ -52,21 +52,24 @@ example doc = do
 
   let full :: Active JSTime Painting
       full = prog <> (timeline (100,200) (300,220) `during` prog)
-                --
 
-{-
-             pure (setLineWidthP 5) <>
-             pure (setStrokeStyleP "#ff0000") <>
-             (drawing ->> (scopeA (rotateA (2 * pi) <> lineA (300,100) (100,300))))
--}
-  -- Stuff
   (s,e,f) <- reifyActiveJS $ fmap (c #) $ scopeA $ full
+
+  let mul :: JSNumber
+      mul = 400 / (e - s)
+
+  jQuery "#start" >>= text (cast s)
+  jQuery "#end"   >>= text (cast e)
 
 --  alert("Count" <> cast s <> " " <> cast e)
 
   date            <- evaluate $ object "new Date()"
   tm0 :: JSNumber <- date # method "getTime" ()
 
+  jQuery "#slider" >>= method "slider" ("option" :: JSString, "min" :: JSString, s * mul :: JSNumber) :: JS ()
+  jQuery "#slider" >>= method "slider" ("option" :: JSString, "max" :: JSString, e * mul :: JSNumber) :: JS ()
+
+{-
   n <- new
   n # "val" := (s :: JSNumber)
   let speed :: Rational
@@ -78,11 +81,61 @@ example doc = do
                 ifB (tm >* e)
                     (window # clearInterval (n ! "callsign"))
                     (return ())
+                printFixed "#time" 2 tm
                 apply f tm
+                jQuery "#slider"  >>= method "slider" ("option" :: JSString, "value" :: JSString, Deep.floor (tm * mul) :: JSNumber) :: JS ()
                 return ()
-  v <- window # setInterval loop (fromRational (1000 / speed))
-  n # "callsign" := v
-  return ()
+-}
+
+
+{-
+  let loop2 m = do
+          alert("X")
+          wait "body" (slide <> click) $ \ res -> do
+                        alert("X")
+                        alert("X" <> cast res)
+                        m
+--                        forkJS loop2
+
+  forkJS $ do
+          loop2 (
+-}
+  let paint tm = do
+          printFixed "#time" 2 tm
+          apply f tm
+
+  forkJS $ loopJSB $ do
+          res <- blockJSB (wait "body" (slide <> click))
+          liftJSB $ do
+             val :: JSNumber <- evaluate (res ! "value")
+             let nm = val / mul
+             paint nm
+{-
+          switchB ((res ! "id" :: JSString))
+            [("slider", liftJSB $ do
+                  val :: JSNumber <- evaluate (res ! "value")
+                  let nm = val / mul
+                  paint nm)
+            ,("player", do
+                     stopJSB
+             )]
+-}
+{-
+
+-}
+
+switchB _   []         = return ()
+switchB tag ((a,b):xs) = ifB (tag ==* a) b (switchB tag xs)
+
+--  v <- window # setInterval loop (fromRational (1000 / speed))
+--  n # "callsign" := v
+
+
+printFixed :: JSString -> JSNumber -> JSNumber -> JS ()
+printFixed tag prec val = do
+        val' <- cast val # method "toFixed" prec
+        jQuery tag >>= text val'
+        return ()
 
 -- Active versions of painting commands
 lineA :: (JSNumber,JSNumber) -> (JSNumber,JSNumber) -> Active JSTime Painting
@@ -119,8 +172,13 @@ arcA :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
 
 default(JSNumber, JSString, String)
 
-data Event = Click String Int Int
+data Event = Slide String Int
+           | Click String Int Int
     deriving (Show)
+
+slide = event "slide" Slide
+            <&> "id"      .= "$(widget).attr('id')"
+            <&> "value"   .= "aux.value"
 
 click = event "click" Click
             <&> "id"      .= "$(widget).attr('id')"
@@ -230,3 +288,56 @@ lineP (x0,y0) (x1,y1) = \ c -> do
         c # moveTo (x0,y0)
         c # lineTo (x1,y1)
         c # stroke
+
+--foreverJS :: JS () -> JS ()
+--foreverJS =
+------------------------------------------------------------------
+-- Exeriment with new monad
+
+forkJS :: JSB () -> JS ()
+forkJS (JSB m) = do
+    f <- function $ \ () -> m return
+    window # setTimeout f 0
+    return ()
+
+nullJS :: JSObject
+nullJS = object "null"
+
+threadDelayJSB :: JSNumber -> JSB ()
+threadDelayJSB n = JSB $ \ k -> do
+        f <- function $ k
+        window # setTimeout f n
+        return ()
+
+loopJSB :: JSB () -> JSB ()      -- does not terminate
+loopJSB (JSB m) = JSB $ \ _ -> do
+    v <- newJSRef (cast nullJS)
+    f <- function $ \ () -> m (\ () -> do
+            f <- readJSRef v
+            window # setTimeout f 0
+            return ())
+    writeJSRef v f
+    apply f ()  -- and call the function
+    return ()
+
+yieldJSB :: JSB ()
+yieldJSB = threadDelayJSB 0
+
+-- break out of the JSB
+stopJSB :: JSB ()
+stopJSB = JSB $ \ _ -> return ()
+
+-- The JS (Blocking) is continuation based.
+newtype JSB a = JSB { unJSB :: (a -> JS ()) -> JS () }
+
+instance Monad JSB where
+        return a = JSB $ \ k -> k a
+        (JSB m) >>= k = JSB $ \ k0 -> m (\ a -> unJSB (k a) k0)
+
+liftJSB :: JS a -> JSB a
+liftJSB m = JSB $ \ k -> do
+        r <- m
+        k r
+
+blockJSB :: ((JSObject -> JS ()) -> JS ()) -> JSB JSObject
+blockJSB m = JSB m
