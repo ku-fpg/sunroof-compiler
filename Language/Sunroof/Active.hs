@@ -75,12 +75,19 @@ ex1 :: Active JSTime (JS JSNumber)
 ex1 = fmap return ui
 
 reifyActiveJS :: Active JSTime (JS ()) -> JS (JSNumber, JSNumber, JSFunction JSNumber ())
-reifyActiveJS = onActive (error "can not reify a constant Active (no start or end)") $ \ d -> do
-        f <- function (runDynamic d . JSTime)
-        return ( fromTime $ start $ era d
-               , fromTime $ end $ era d
-               , f
-               )
+reifyActiveJS = onActive
+              (\ x -> do f <- function (\ _ -> x)
+                         return ( 0
+                                , 0
+                                , f
+                                )
+              )
+              (\ d -> do f <- function (runDynamic d . JSTime)
+                         return ( fromTime $ start $ era d
+                                , fromTime $ end $ era d
+                                , f
+                                )
+              )
 
 {-
 compileActiveJS :: Active JSTime (JS JSNumber) -> String
