@@ -1,11 +1,12 @@
 
-module Language.Sunroof.JS.JQuery 
+module Language.Sunroof.JS.JQuery
   -- General JQuery API
   ( dollar
   , jQuery, jq
   -- DOM API
   , append
   , html
+  , text
   ) where
 
 import Language.Sunroof.Types
@@ -47,3 +48,6 @@ append x = method "append" x
 
 html :: JSString -> Action JSObject JSObject
 html nm = method "html"  nm
+
+text :: JSString -> Action JSObject JSObject
+text = method "text"
