@@ -5,7 +5,7 @@ module Main where
 import Web.Scotty (scotty, middleware)
 import Data.Default
 import Control.Monad
-import Data.Monoid
+import Data.Semigroup
 import Control.Monad.IO.Class
 import Network.Wai.Middleware.Static
 import Data.Boolean

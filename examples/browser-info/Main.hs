@@ -3,7 +3,7 @@
 module Main where
 
 import Data.Default
-import Data.Monoid
+import Data.Semigroup
 import Data.Boolean
 import Data.Maybe ( fromJust )
 import Data.String
@@ -26,7 +26,7 @@ default(JSNumber, JSString, String)
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
-  registerEvents (cometDocument doc) "body" mempty
+--  registerEvents (cometDocument doc) "body" mempty
 
   theCookie <- sync doc $ document <!> cookie
   putStrLn $ "Cookie:     " ++ show theCookie
