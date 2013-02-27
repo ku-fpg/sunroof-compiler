@@ -8,17 +8,32 @@
     <script type="text/javascript" src="js/jquery-ui.js"></script>
   </head>
   <body>
+    <div align="center" style="border: 1px solid; padding: 10px; display: inline-block; line-height: 3em;">
     <canvas 
       id="canvas" 
-      style="padding: 0px; margin: 0px; border: solid 1px black" 
+      style="padding: 0px; margin: 10px; border: solid 1px black" 
       width="500" 
-      height="500"
-      class="click">
+      height="500">
     </canvas>
+
+    <div id="slider" style="width: 450px" class="slide"></div> 
+    
+    <table style="border: 1px solid; width: 450px; margin: 10px;">
+      <tr>
+        <th>Time:</td><td id="time"></td>
+        <th>Start:</td><td id="start"></td>
+        <th>End:</td><td id="end"></td>
+        <td id="end"><button id="player" class="click">play</button></td>
+      </tr>
+    </table>
+
+    </div>
+    
     <hr>
     <div id="debug-log"></div>
     <script type="text/javascript">
       $(document).ready(function() {
+       $("#slider").slider();
         $.kc.connect("/ajax");
       });
     </script>
