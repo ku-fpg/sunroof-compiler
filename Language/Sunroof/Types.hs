@@ -759,4 +759,10 @@ switch _a [] = return (cast (object "undefined"))
 switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
 ---------------------------------------------------------------
+-- The JS (Blocking) is continuation based.
+newtype JSB a = JSB { unJSB :: (a -> JS ()) -> JS () }
+
+instance Monad JSB where
+        return a = JSB $ \ k -> k a
+        (JSB m) >>= k = JSB $ \ k0 -> m (\ a -> unJSB (k a) k0)
 
