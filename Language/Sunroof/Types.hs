@@ -672,8 +672,10 @@ select sel obj = JS $ singleton $ JS_Select sel obj
 
 -- This is not the same as return; it evaluates
 -- the argument to value form.
-evaluate :: (Sunroof a) => a -> JS a
+evaluate, var :: (Sunroof a) => a -> JS a
 evaluate a  = JS $ singleton (JS_Eval a)
+
+var = evaluate
 
 ---------------------------------------------------------------
 
