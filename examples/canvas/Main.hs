@@ -108,8 +108,8 @@ example_1_2_3 canvas c = do
 
 example_1_2_4 :: JSObject -> JSObject -> JS ()
 example_1_2_4 canvas c = do
-  w <- canvas <!> width
-  h <- canvas <!> height
+  w <- evaluate $ canvas ! width
+  h <- evaluate $ canvas ! height
   sequence_
     [ do c # beginPath
          c # moveTo (200, h / 2 + n)
@@ -124,8 +124,8 @@ example_1_2_4 canvas c = do
 
 example_1_3_1 :: JSObject -> JSObject -> JS ()
 example_1_3_1 canvas c = do
-  w <- canvas <!> width
-  h <- canvas <!> height
+  w <- evaluate $ canvas ! width
+  h <- evaluate $ canvas ! height
   let centerX = w / 2;
   let centerY = h / 2;
   let radius = 75;
@@ -141,8 +141,8 @@ example_1_3_1 canvas c = do
 
 example_1_5_4 :: JSObject -> JSObject -> JS ()
 example_1_5_4 canvas c = do
-  w <- canvas <!> width
-  h <- canvas <!> height
+  w <- evaluate $ canvas ! width
+  h <- evaluate $ canvas ! height
   let centerX = w / 2
   let centerY = h / 2
   let radius = 70
@@ -174,8 +174,8 @@ example_1_8_3 canvas c = do
 
 example_1_8_4 :: JSObject -> JSObject -> JS ()
 example_1_8_4 canvas c = do
-  w <- canvas <!> width
-  h <- canvas <!> height
+  w <- evaluate $ canvas ! width
+  h <- evaluate $ canvas ! height
   let x = w / 2
   let y = h / 2
   -- Draw alignment line
@@ -201,8 +201,8 @@ example_1_8_4 canvas c = do
 
 example_1_8_5 :: JSObject -> JSObject -> JS ()
 example_1_8_5 canvas c = do
-  w <- canvas <!> width
-  h <- canvas <!> height
+  w <- evaluate $ canvas ! width
+  h <- evaluate $ canvas ! height
   let y = h / 2
   -- Draw baseline
   c # setStrokeStyle "red"

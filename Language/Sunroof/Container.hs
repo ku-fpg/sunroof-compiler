@@ -22,7 +22,7 @@ newJSRef a = do
 
 -- | This a a non-blocking read
 readJSRef :: (Sunroof a) => JSRef a -> JS a
-readJSRef (JSRef obj) = obj <!> "val"
+readJSRef (JSRef obj) = evaluate $ obj ! "val"
 
 -- | This a a non-blocking write
 writeJSRef :: (Sunroof a) => JSRef a -> a -> JS ()

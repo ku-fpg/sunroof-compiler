@@ -28,37 +28,37 @@ main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
 --  registerEvents (cometDocument doc) "body" mempty
 
-  theCookie <- sync doc $ document <!> cookie
+  theCookie <- sync doc $ evaluate $ document ! cookie
   putStrLn $ "Cookie:     " ++ show theCookie
 
-  theTitle <- sync doc $ document <!> title
+  theTitle <- sync doc $ evaluate $ document ! title
   putStrLn $ "Title:      " ++ show theTitle
 
-  theReferrer <- sync doc $ document <!> referrer
+  theReferrer <- sync doc $ evaluate $ document ! referrer
   putStrLn $ "Referrer:   " ++ show theReferrer
 
-  theUrl <- sync doc $ document <!> url
+  theUrl <- sync doc $ evaluate $ document ! url
   putStrLn $ "URL:        " ++ show theUrl
 
-  theUserAgent <- sync doc $ object "navigator" <!> (attribute "userAgent" :: JSSelector JSString)
+  theUserAgent <- sync doc $ evaluate $ object "navigator" ! (attribute "userAgent" :: JSSelector JSString)
   putStrLn $ "User Agent: " ++ show theUserAgent
 
   theWidth  <- sync doc
-             $ screen <!> (attribute "width" :: JSSelector JSNumber)
+             $ evaluate $ screen ! (attribute "width" :: JSSelector JSNumber)
   theHeight <- sync doc
-             $ screen <!> (attribute "height" :: JSSelector JSNumber)
+             $ evaluate $ screen ! (attribute "height" :: JSSelector JSNumber)
   putStrLn $ "Screen Size:   " ++ show theWidth ++ " x " ++ show theHeight
 
   theOuterWidth  <- sync doc
-                  $ window <!> (attribute "outerWidth" :: JSSelector JSNumber)
+                  $ evaluate $ window ! (attribute "outerWidth" :: JSSelector JSNumber)
   theOuterHeight <- sync doc
-                  $ window <!> (attribute "outerHeight" :: JSSelector JSNumber)
+                  $ evaluate $ window ! (attribute "outerHeight" :: JSSelector JSNumber)
   putStrLn $ "Window Size:   " ++ show theOuterWidth ++ " x " ++ show theOuterHeight
 
   theInnerWidth  <- sync doc
-                  $ window <!> (attribute "innerWidth" :: JSSelector JSNumber)
+                  $ evaluate $ window ! (attribute "innerWidth" :: JSSelector JSNumber)
   theInnerHeight <- sync doc
-                  $ window <!> (attribute "innerHeight" :: JSSelector JSNumber)
+                  $ evaluate $ window ! (attribute "innerHeight" :: JSSelector JSNumber)
   putStrLn $ "Viewport Size: " ++ show theInnerWidth ++ " x " ++ show theInnerHeight
 
   async doc $ do

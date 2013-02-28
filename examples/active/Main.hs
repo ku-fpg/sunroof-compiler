@@ -42,8 +42,8 @@ example doc = do
 
   let clear :: Painting = clearRect (0,0) (canvas ! width, canvas ! height)
 
-  width' <- canvas <!> width
-  height' <- canvas <!> height
+  width' <- evaluate $ canvas ! width
+  height' <- evaluate $ canvas ! height
 
   let prog :: Active JSTime Painting
       prog = pure clear <>
@@ -327,13 +327,13 @@ yieldJSB = threadDelayJSB 0
 stopJSB :: JSB ()
 stopJSB = JSB $ \ _ -> return ()
 
--- The JS (Blocking) is continuation based.
+{--- The JS (Blocking) is continuation based.
 newtype JSB a = JSB { unJSB :: (a -> JS ()) -> JS () }
 
 instance Monad JSB where
         return a = JSB $ \ k -> k a
         (JSB m) >>= k = JSB $ \ k0 -> m (\ a -> unJSB (k a) k0)
-
+-}
 liftJSB :: JS a -> JSB a
 liftJSB m = JSB $ \ k -> do
         r <- m

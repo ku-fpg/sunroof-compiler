@@ -639,10 +639,9 @@ instance Monad (Action a) where
 -- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 
+-- SBC: call
 method :: (JSArgument a, Sunroof r) => String -> a -> Action JSObject r
-method str args obj = do
-  f <- select (attribute str) obj
-  f `apply` args
+method str args obj = (obj ! attribute str) `apply` args
 
 string :: String -> JSString
 string = fromString
@@ -650,13 +649,15 @@ string = fromString
 object :: String -> JSObject
 object = JSObject . Lit
 
--- perhaps call this invoke
+-- perhaps call this invoke, or fun
+-- SBC: fun
 call :: String -> JSFunction a r
 call = JSFunction . Lit
 
 with :: (JSArgument a, Sunroof r) => a -> Action (JSFunction a r) r
 with a fn = JS $ singleton $ JS_Invoke (jsArgs a) fn
 
+-- TODO: should take String argument
 new :: JS JSObject
 new = evaluate $ object "new Object()"
 
@@ -667,17 +668,18 @@ attribute attr = label $ string attr
 --vector = ...
 ---------------------------------------------------------------
 
-select :: (Sunroof a) => JSSelector a -> JSObject -> JS a
-select sel obj = JS $ singleton $ JS_Select sel obj
+--select :: (Sunroof a) => JSSelector a -> JSObject -> JS a
+--select sel obj = evaluate (obj ! sel) JS $ singleton $ JS_Select sel obj
 
 ---------------------------------------------------------------
 
 -- This is not the same as return; it evaluates
 -- the argument to value form.
-evaluate, var :: (Sunroof a) => a -> JS a
+evaluate, var, value :: (Sunroof a) => a -> JS a
 evaluate a  = JS $ singleton (JS_Eval a)
 
 var = evaluate
+value = evaluate
 
 ---------------------------------------------------------------
 
@@ -733,6 +735,8 @@ data JSI a where
 function :: (JSArgument a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
 function = JS . singleton . JS_Function
 
+infixl 1 `apply`
+
 -- | Call a function with the given arguments.
 apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS ret
 apply f args = f # with args
@@ -740,10 +744,7 @@ apply f args = f # with args
 foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS b) -> JS ()
 foreach arr body = JS $ singleton $ JS_Foreach arr body
 
-(<!>) :: (Sunroof b) => JSObject -> JSSelector b -> JS b
-(<!>) o s = evaluate $ o ! s
-
-infixl 2 #
+infixl 1 #
 
 -- We should use this operator for the obj.label concept.
 -- It has been used in other places (but I can not seems
