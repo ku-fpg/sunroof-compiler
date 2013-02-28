@@ -589,6 +589,8 @@ label = JSSelector
 
 ---------------------------------------------------------------
 
+infixl 1 !
+
 (!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
 (!) arr (JSSelector idx) = box $ Op "[]" [ExprE $ unbox arr,ExprE $ unbox idx]
 
