@@ -81,14 +81,23 @@ instance Functor E where
 --instance Show Expr where
 --        show = showExpr False
 
+-- | Boolean argument says non-trivial arguments need parenthesis.
+
 showExpr :: Bool -> Expr -> String
 showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
 showExpr _ (Var v) = v  -- always stand alone
 showExpr b e = p $ case e of
-   (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
+--   (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
    (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
-   (Apply (ExprE fn) args) -> showExpr True fn ++ "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
+   (Apply (ExprE fn) args) -> showFun fn args
+   (Dot (ExprE a) (ExprE x) Base) -> showIdx a x
+        -- This is a shortcomming in Javascript, where grabbing a indirected function
+        -- throws away the context (self/this). So we force storage of the context, using a closure.
+   (Dot (ExprE a) (ExprE x) (Fun n)) ->
+                "function(" ++ intercalate "," args ++ ") { return (" ++
+                        showIdx a x ++ ")(" ++ intercalate "," args ++ "); }"
+         where args = [ "a" ++ show i | i <- take n [0..]]
    (Function args body) ->
                 "function" ++
                 "(" ++ intercalate "," args ++ ") {\n" ++
@@ -96,6 +105,16 @@ showExpr b e = p $ case e of
                 "}"
  where
    p txt = if b then "(" ++ txt ++ ")" else txt
+
+showIdx :: Expr -> Expr -> String
+showIdx a x = showExpr True a ++ "[" ++ showExpr False x ++ "]"
+
+-- Show a function argument,
+showFun :: Expr -> [ExprE] -> String
+showFun e args = case e of
+    (Dot (ExprE a) (ExprE x) _) -> "(" ++ showIdx a x ++ ")" ++ args_text
+    _                           -> showExpr True e ++ args_text
+  where args_text = "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
 
 indent :: Int -> String -> String
 indent n = unlines . map (take n (cycle "  ") ++) . lines
@@ -137,7 +156,7 @@ showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
 -}
 
 data Type
- = Uni          --
+ = Base         -- base type, like object
  | Fun Int      -- f (a_1,..,a_n), n == number in int
   deriving (Eq,Ord, Show)
 
@@ -161,7 +180,7 @@ class Show a => Sunroof a where
         assignVar _ a rhs = VarStmt a rhs
 
         typeOf :: a -> Type
-        typeOf _ = Uni
+        typeOf _ = Base
 
 -- unit is the oddball
 instance Sunroof () where
@@ -605,7 +624,7 @@ label = JSSelector
 infixl 1 !
 
 (!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = box $ op "[]" [ExprE $ unbox arr,ExprE $ unbox idx]
+(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (undefined :: a))
 
 ---------------------------------------------------------------
 
