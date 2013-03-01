@@ -672,7 +672,7 @@ instance Monad (Action a) where
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 
 -- SBC: call
-method :: (JSArgument a, Sunroof r) => String -> a -> Action JSObject r
+method :: (JavaScript m, JSArgument a, Sunroof r) => String -> a -> (JSObject -> m r)
 method str args obj = (obj ! attribute str) `apply` args
 
 string :: String -> JSString
@@ -686,8 +686,8 @@ object = JSObject . Lit
 call :: String -> JSFunction a r
 call = JSFunction . Lit
 
-with :: (JSArgument a, Sunroof r) => a -> Action (JSFunction a r) r
-with a fn = JS $ singleton $ JS_Invoke (jsArgs a) fn
+with :: (JavaScript m, JSArgument a, Sunroof r) => a -> (JSFunction a r -> m r)
+with a fn = liftJS $ JS $ singleton $ JS_Invoke (jsArgs a) fn
 
 -- TODO: should take String argument
 new :: JS JSObject
@@ -770,7 +770,7 @@ function = JS . singleton . JS_Function
 infixl 1 `apply`
 
 -- | Call a function with the given arguments.
-apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS ret
+apply :: (JavaScript m, JSArgument args, Sunroof ret) => JSFunction args ret -> args -> m ret
 apply f args = f # with args
 
 foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS b) -> JS ()
@@ -781,7 +781,7 @@ infixl 1 #
 -- We should use this operator for the obj.label concept.
 -- It has been used in other places (but I can not seems
 -- to find a library for it)
-(#) :: a -> (a -> JS b) -> JS b
+(#) :: (JavaScript m) => a -> (a -> m b) -> m b
 (#) obj act = act obj
 
 type instance BooleanOf (JS a) = JSBool
@@ -795,9 +795,24 @@ switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
 ---------------------------------------------------------------
 -- The JS (Blocking) is continuation based.
+
+type ThreadedJS a = JSB a
+type AtomicJS a = JS a
+
 newtype JSB a = JSB { unJSB :: (a -> JS ()) -> JS () }
 
 instance Monad JSB where
         return a = JSB $ \ k -> k a
         (JSB m) >>= k = JSB $ \ k0 -> m (\ a -> unJSB (k a) k0)
+
+class Monad m => JavaScript m where
+        liftJS :: JS a -> m a
+
+instance JavaScript JS where
+        liftJS m = m
+
+instance JavaScript JSB where
+        liftJS m = JSB $ \ k -> do
+                r <- m
+                k r
 
