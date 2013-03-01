@@ -140,7 +140,9 @@ optExpr opts e = do
 
         Graph g start <- liftIO $ reifyGraph (ExprE e)
 
-        let db = Map.fromList g
+        liftIO $ print (g,start)
+
+        let db0 = Map.fromList g
         let out = stronglyConnComp
                         [ (n,n,case e' of
                                 Apply f xs -> f : xs
@@ -148,29 +150,45 @@ optExpr opts e = do
                         | (n,e') <- g
                         ]
 
-        let findExpr vars n =
-              case Map.lookup n vars of
-                  Just (id',_) -> Var id'
-                  Nothing -> case Map.lookup n db of
-                               Just op -> fmap (ExprE . findExpr vars) op
-                               Nothing -> error $ "optExpr: findExpr failed for " ++ show n
 
-        let loop vars [] = return vars :: CompM (Map.Map Unique (Id,Expr))
-            loop vars (n:ns) = case Map.lookup n db of
-                                 Nothing -> error "bad compile"
-                                 Just op@(Apply {}) -> do
-                                   v <- uniqM
-                                   let vars' = Map.insert n ("c" ++ show v, fmap (ExprE . findExpr vars) op) vars
-                                   loop vars' ns
-                                 Just _ -> loop vars ns
+        let ids = filter (/= start) $ flattenSCCs $ out
 
-        ass <- loop Map.empty $ filter (/= start) $ flattenSCCs $ out
---        liftIO $ print ass
 
-        return ([ VarStmt id' expr'
-                | n <- filter (/= start) $ flattenSCCs $ out
-                , Just (id',expr') <- [ Map.lookup n ass]
-                ],findExpr ass start)
+        jsVars :: Map.Map Uniq String <- liftM Map.fromList $ sequence
+                    [ do v <- uniqM
+                         return (n,"c" ++ show v)
+                    | n <- ids
+                    , Just (Apply {}) <- [ Map.lookup n db0]
+                    ]
+
+        let findExpr db n =
+              case Map.lookup n jsVars of
+                  Just v -> Var v
+                  Nothing  -> case Map.lookup n db of
+                                Just op -> fmap (ExprE . findExpr db) op
+                                Nothing -> error $ "optExpr: findExpr failed for " ++ show n
+
+        -- replace dumb statement with better ones
+        let folder :: (Ord n)
+                   => (e -> Map.Map n e -> Maybe e)
+                   -> Map.Map n e
+                   -> [n]
+                   -> Map.Map n e
+            folder f db [] = db
+            folder f db (n:ns) = case Map.lookup n db of
+                                   Nothing -> error "bad folder"
+                                   Just e -> case f e db of
+                                               Nothing -> folder f db ns
+                                               Just e' -> folder f (Map.insert n e' db) ns
+
+        let dbF = db0
+
+        return undefined
+        return ([ VarStmt c $ fmap (ExprE . findExpr dbF) expr
+                | n <- ids
+                , Just c    <- return $ Map.lookup n jsVars
+                , Just expr <- return $ Map.lookup n dbF
+                ], findExpr dbF start)
 --        return ([],e)
 
 
