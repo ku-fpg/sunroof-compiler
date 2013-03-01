@@ -715,6 +715,7 @@ value = evaluate
 -- Control.Monad.Operational makes a monad out of JS for us
 data JS a where
     JS   :: Program JSI a                                             -> JS a
+    JS'  :: ((a -> Program JSI ()) -> Program JSI ())                 -> JS a   -- IDEA
     (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject              -> JS ()
 
 unJS :: JS a -> Program JSI a
