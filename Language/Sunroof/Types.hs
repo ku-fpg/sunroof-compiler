@@ -311,7 +311,7 @@ instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) wher
         assignVar _ a rhs = VarStmt a
                           $ Function args
                           [ ReturnStmt
-                          $ op (showExpr FixCxt rhs) (fmap (ExprE . Var) args) ]
+                          $ op (showExpr True rhs) (fmap (ExprE . Var) args) ]
           where args = [ 'a' : show (i :: Int)
                        | (i,_) <- zip [1..] (jsArgs (undefined :: a))]
         typeOf _ = Fun (length (jsArgs (undefined :: a)))
