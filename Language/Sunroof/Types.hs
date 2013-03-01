@@ -593,10 +593,10 @@ emptyArray = JSArray $ Lit "[]"
 lengthArray :: (Sunroof a) => JSArray a -> JSNumber
 lengthArray o = cast o ! "length"
 
-pushArray :: (JavaScript js, JSArgument a, Sunroof a) => a -> JSArray a -> js ()
+pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS ()
 pushArray a = method "push" a . cast
 
-popArray :: (JavaScript js, Sunroof a) => JSArray a -> js a
+popArray :: (Sunroof a) => JSArray a -> JS a
 popArray = method "pop" () . cast
 
 ---------------------------------------------------------------
