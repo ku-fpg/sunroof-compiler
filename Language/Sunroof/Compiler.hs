@@ -210,9 +210,13 @@ optExpr opts e = do
                                        -> return (Inst (Lit "true"))
                              -- var c4770 = true;
                              -- var c4771 = c4770?0.0:0.0;
-                          Inst (Apply g [x,_,_]) | getVar g == Just "?:"
-                                       && getLit x == return "true"
-                                       -> return (Copy x)
+
+                          Inst (Apply g [x,y,z])
+                                | getVar g == Just "?:" && getLit x == return "true"
+                                       -> return (Copy y)
+                                | getVar g == Just "?:" && getLit x == return "false"
+                                       -> return (Copy z)
+
                           _ -> Nothing
 
 --                      getVar :: Uniq -> String
