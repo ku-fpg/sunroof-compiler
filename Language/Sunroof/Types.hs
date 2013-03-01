@@ -684,7 +684,7 @@ call :: String -> JSFunction a r
 call = JSFunction . Lit
 
 with :: (JSArgument a, Sunroof r) => a -> Action (JSFunction a r) r
-with a fn = JS $ singleton $ JS_Invoke (jsArgs a) fn
+with a fn = JS_ $ singleton $ JS_Invoke (jsArgs a) fn
 
 -- TODO: should take String argument
 new :: JS JSObject
@@ -705,7 +705,7 @@ attribute attr = label $ string attr
 -- This is not the same as return; it evaluates
 -- the argument to value form.
 evaluate, var, value :: (Sunroof a) => a -> JS a
-evaluate a  = JS $ singleton (JS_Eval a)
+evaluate a  = JS_ $ singleton (JS_Eval a)
 
 var = evaluate
 value = evaluate
@@ -714,17 +714,17 @@ value = evaluate
 
 -- Control.Monad.Operational makes a monad out of JS for us
 data JS a where
-    JS   :: Program JSI a                                             -> JS a
-    JS'  :: ((a -> Program JSI ()) -> Program JSI ())                 -> JS a   -- IDEA
+    JS_   :: Program JSI a                                             -> JS a
+    JS   :: ((a -> Program JSI ()) -> Program JSI ())                 -> JS a   -- IDEA
     (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject              -> JS ()
 
 unJS :: JS a -> Program JSI a
-unJS (JS m) = m
+unJS (JS_ m) = m
 unJS ((:=) sel a obj) = singleton $ JS_Assign sel a obj
 
 instance Monad JS where
-        return a = JS (return a)
-        m >>= k = JS (unJS m >>= \ r -> unJS (k r))
+        return a = JS_ (return a)
+        m >>= k = JS_ (unJS m >>= \ r -> unJS (k r))
 
 -- | We define the Semigroup instance for JS, where
 --  the first result (but not the first effect) is discarded.
@@ -763,7 +763,7 @@ data JSI a where
 -- We only can compile functions that do not have interesting return
 -- values, so we can assume they are continuation-like things.
 function :: (JSArgument a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
-function = JS . singleton . JS_Function
+function = JS_ . singleton . JS_Function
 
 infixl 1 `apply`
 
@@ -772,7 +772,7 @@ apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS ret
 apply f args = f # with args
 
 foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS b) -> JS ()
-foreach arr body = JS $ singleton $ JS_Foreach arr body
+foreach arr body = JS_ $ singleton $ JS_Foreach arr body
 
 infixl 1 #
 
@@ -785,7 +785,7 @@ infixl 1 #
 type instance BooleanOf (JS a) = JSBool
 
 instance forall a . (Sunroof a) => IfB (JS a) where
-    ifB i h e = JS $ singleton $ JS_Branch i h e
+    ifB i h e = JS_ $ singleton $ JS_Branch i h e
 
 switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b) => a -> [(a,JS b)] -> JS b
 switch _a [] = return (cast (object "undefined"))

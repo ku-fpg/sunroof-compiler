@@ -48,26 +48,26 @@ compile = eval . view . unJS
     -- to get something we can pattern match on
     where eval :: Sunroof b => ProgramView JSI b -> CompM ([Stmt], Expr)
           eval (JS_Eval e :>>= g) = do
-            compileBind (unbox e) (JS . g)
+            compileBind (unbox e) (JS_ . g)
           eval (JS_Assign (JSSelector sel) a obj :>>= g) = do
             -- note, this is where we need to optimize/CSE  the a value.
             -- TODO: this constructor should return unit, not the updated value
             (stmts0,val) <- compileExpr (unbox a)
-            (stmts1,ret) <- compile $ JS (g ())
+            (stmts1,ret) <- compile $ JS_ (g ())
             return ( stmts0 ++ [AssignStmt (unbox obj) (unbox sel) val] ++ stmts1, ret )
           eval (JS_Select (JSSelector sel) obj :>>= g) = do
-            compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unbox sel]) (JS . g)
+            compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unbox sel]) (JS_ . g)
           eval (JS_Invoke args fn :>>= g) = do
-            compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) (JS . g)
+            compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) (JS_ . g)
           eval (JS_Function fun :>>= g) = do
             e <- compileFunction fun
-            compileBind e (JS . g)
+            compileBind e (JS_ . g)
           eval (JS_Branch b c1 c2 :>>= g) = do
             branch <- compileBranch b c1 c2
-            compileStatement branch (JS . g)
+            compileStatement branch (JS_ . g)
           eval (JS_Foreach arr body :>>= g) = do
             loop <- compileForeach arr body
-            compileStatement loop (JS . g)
+            compileStatement loop (JS_ . g)
           -- or we're done already
           eval (Return b) = compileExpr (unbox b)
 
