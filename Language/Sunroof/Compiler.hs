@@ -13,10 +13,12 @@ import Control.Monad.Reader
 import Language.Sunroof.Types
 import Data.Reify
 import Data.Graph
+import Data.Maybe
 import qualified Data.Map as Map
 import Data.Default
 import Data.Proxy
 import Data.Boolean
+import Debug.Trace
 --import Web.KansasComet (Template(..), extract)
 
 data CompilerOpts = CompilerOpts
@@ -134,6 +136,10 @@ compileExpr e = do
         optExpr opts e
 
 
+data Inst i e = Inst (i e)
+              | Copy e          -- an indirection
+   deriving (Show)
+
 optExpr :: CompilerOpts -> Expr -> CompM ([Stmt], Expr)
 optExpr opts e | not (co_on opts) = return ([],e)
 optExpr opts e = do
@@ -142,7 +148,8 @@ optExpr opts e = do
 
         liftIO $ print (g,start)
 
-        let db0 = Map.fromList g
+        let db0 = Map.fromList [ (n,Inst e) | (n,e) <- g ]
+
         let out = stronglyConnComp
                         [ (n,n,case e' of
                                 Apply f xs -> f : xs
@@ -158,37 +165,76 @@ optExpr opts e = do
                     [ do v <- uniqM
                          return (n,"c" ++ show v)
                     | n <- ids
-                    , Just (Apply {}) <- [ Map.lookup n db0]
+                    , Just (Inst (Apply {})) <- [ Map.lookup n db0 ]
                     ]
 
-        let findExpr db n =
-              case Map.lookup n jsVars of
+        let findExpr vars db n =
+              case Map.lookup n vars of
                   Just v -> Var v
                   Nothing  -> case Map.lookup n db of
-                                Just op -> fmap (ExprE . findExpr db) op
+                                Just (Inst op) -> fmap (ExprE . findExpr vars db) op
+                                Just (Copy n') -> findExpr vars db n'
+--                                Just op -> fmap (ExprE . findExpr db) op
                                 Nothing -> error $ "optExpr: findExpr failed for " ++ show n
 
         -- replace dumb statement with better ones
         let folder :: (Ord n)
-                   => (e -> Map.Map n e -> Maybe e)
-                   -> Map.Map n e
+                   => Map.Map n e
                    -> [n]
+                   -> (e -> Map.Map n e -> Maybe e)
                    -> Map.Map n e
-            folder f db [] = db
-            folder f db (n:ns) = case Map.lookup n db of
+            folder db [] f = db
+            folder db (n:ns) f = case Map.lookup n db of
                                    Nothing -> error "bad folder"
                                    Just e -> case f e db of
-                                               Nothing -> folder f db ns
-                                               Just e' -> folder f (Map.insert n e' db) ns
+                                               Nothing -> folder db ns f
+                                               Just e' -> folder (Map.insert n e' db) ns f
 
-        let dbF = db0
+
+        let db1 = folder db0 ids $ \ e db ->
+                     let getExpr :: Uniq -> Expr
+                         getExpr = findExpr Map.empty db
+
+                         getVar :: Uniq -> Maybe String
+                         getVar e = case findExpr jsVars db e of { Var x -> return x ; _ -> Nothing }
+
+                         getLit :: Uniq -> Maybe String
+                         getLit e = case findExpr Map.empty db e of { Lit x -> return x ; _ -> Nothing }
+
+                     in case e of
+                             -- var c4770 = 0.0<=0.0;
+                          (Inst (Apply g [x,y])) | getVar g == Just "<="
+                                       && isJust (getLit x)
+                                       && isJust (getLit y)
+                                       && getLit x == getLit y
+                                       -> return (Inst (Lit "true"))
+                             -- var c4770 = true;
+                             -- var c4771 = c4770?0.0:0.0;
+                          Inst (Apply g [x,_,_]) | getVar g == Just "?:"
+                                       && getLit x == return "true"
+                                       -> return (Copy x)
+                          _ -> Nothing
+
+--                      getVar :: Uniq -> String
+--                      getLit :: Uniq -> String
+
+
+                                -- c4773?0.0:0.0;
+--                      f (Apply g xs)
+--                          | g
+
+        -- Next, do a forward push of value numbering
+        let dbF = db1
 
         return undefined
-        return ([ VarStmt c $ fmap (ExprE . findExpr dbF) expr
+        return ([ VarStmt c $ case e of
+                                Inst expr -> fmap (ExprE . findExpr jsVars dbF) expr
+                                Copy n'   -> -- Apply (ExprE (Var "COPY")) [ ExprE $ findExpr jsVars dbF n' ]
+                                             findExpr jsVars dbF n'
                 | n <- ids
                 , Just c    <- return $ Map.lookup n jsVars
-                , Just expr <- return $ Map.lookup n dbF
-                ], findExpr dbF start)
+                , Just e <- return $ Map.lookup n dbF
+                ], findExpr jsVars dbF start)
 --        return ([],e)
 
 
