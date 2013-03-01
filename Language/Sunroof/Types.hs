@@ -46,7 +46,8 @@ data ExprE = ExprE Expr
 data E expr
         = Lit String    -- a precompiled (atomic) version of this literal
         | Var Id
-        | Apply expr [expr]
+        | Dot expr expr Type    -- expr . expr :: Type
+        | Apply expr [expr]     -- expr ( expr, ..., expr )
         | Function [Id] [Stmt]
         deriving Show
 
@@ -58,18 +59,21 @@ instance MuRef ExprE where
 instance Traversable E where
   traverse _ (Lit s) = pure (Lit s)
   traverse _ (Var s) = pure (Var s)
+  traverse f (Dot o n a) = Dot <$> f o <*> f n <*> pure a
   traverse f (Apply s xs) = Apply <$> f s <*> traverse f xs
   traverse _ (Function nms stmts) = pure (Function nms stmts)
 
 instance Foldable E where
   foldMap _ (Lit _) = mempty
   foldMap _ (Var _) = mempty
+  foldMap f (Dot o n _) = f o `mappend` f n
   foldMap f (Apply o xs) = f o `mappend` foldMap f xs
   foldMap _ (Function _nms _stmts) = mempty
 
 instance Functor E where
   fmap _ (Lit s) = Lit s
   fmap _ (Var s) = Var s
+  fmap f (Dot o n a) = Dot (f o) (f n) a
   fmap f (Apply s xs) = Apply (f s) (map f xs)
   fmap _ (Function nms stmts) = Function nms stmts
 
@@ -132,6 +136,11 @@ showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
 --        show (Cast e) = show e
 -}
 
+data Type
+ = Uni          --
+ | Fun Int      -- f (a_1,..,a_n), n == number in int
+  deriving (Eq,Ord, Show)
+
 ---------------------------------------------------------------
 
 litparen :: String -> String
@@ -151,12 +160,16 @@ class Show a => Sunroof a where
         assignVar :: Proxy a -> Id -> Expr -> Stmt
         assignVar _ a rhs = VarStmt a rhs
 
+        typeOf :: a -> Type
+        typeOf _ = Uni
+
 -- unit is the oddball
 instance Sunroof () where
         showVar _ = ""
         assignVar _ _ rhs = ExprStmt rhs
         box _ = ()
         unbox () = Lit ""
+
 ---------------------------------------------------------------
 
 class Monad m => UniqM m where
@@ -298,9 +311,10 @@ instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) wher
         assignVar _ a rhs = VarStmt a
                           $ Function args
                           [ ReturnStmt
-                          $ op (showExpr True rhs) (fmap (ExprE . Var) args) ]
+                          $ op (showExpr FixCxt rhs) (fmap (ExprE . Var) args) ]
           where args = [ 'a' : show (i :: Int)
                        | (i,_) <- zip [1..] (jsArgs (undefined :: a))]
+        typeOf _ = Fun (length (jsArgs (undefined :: a)))
 
 type instance BooleanOf (JSFunction a r) = JSBool
 
