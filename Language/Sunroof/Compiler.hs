@@ -77,7 +77,7 @@ compileBind e m2 = do
     a <- newVar
     (stmts0, val) <- compileExpr e
     (stmts1,ret) <- compile (m2 a)
-    return (stmts0 ++ [assignVar (Proxy::Proxy a) (varId a) val] ++ stmts1 , ret)
+    return (stmts0 ++ [VarStmt (varId a) val] ++ stmts1 , ret)
 
 -- TODO: inline
 compileStatement :: (Sunroof a, Sunroof b)
@@ -94,8 +94,8 @@ compileBranch b c1 c2 = do
   (src1, res1) <- compile c1
   (src2, res2) <- compile c2
   return ( src0 ++
-           [ IfStmt res0 (src1 ++ [assignVar (Proxy::Proxy a) (varId res) res1])
-                         (src2 ++ [assignVar (Proxy::Proxy a) (varId res) res2])
+           [ IfStmt res0 (src1 ++ [VarStmt (varId res) res1])
+                         (src2 ++ [VarStmt (varId res) res2])
            ]
          , unbox res)
 

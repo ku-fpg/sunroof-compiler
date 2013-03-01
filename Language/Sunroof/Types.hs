@@ -131,6 +131,7 @@ instance Show Stmt where
         show = showStmt
 
 showStmt :: Stmt -> String
+showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
 showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
 showStmt (AssignStmt e1 e2 e3) = showExpr True e1 ++ "[" ++ showExpr False e2 ++ "] = " ++ showExpr False e3 ++ ";"
 showStmt (ExprStmt e) = showExpr False e ++ ";"
@@ -176,18 +177,14 @@ class Show a => Sunroof a where
         showVar :: a -> String -- needed because show instance for unit is problematic
         showVar = show
 
-        assignVar :: Proxy a -> Id -> Expr -> Stmt
-        assignVar _ a rhs = VarStmt a rhs
-
         typeOf :: a -> Type
         typeOf _ = Base
 
 -- unit is the oddball
 instance Sunroof () where
-        showVar _ = ""
-        assignVar _ _ rhs = ExprStmt rhs
+--        showVar _ = ""
         box _ = ()
-        unbox () = Lit ""
+        unbox () = Var ""
 
 ---------------------------------------------------------------
 
@@ -327,12 +324,6 @@ instance Show (JSFunction a r) where
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
         box = JSFunction
         unbox (JSFunction e) = e
-        assignVar _ a rhs = VarStmt a
-                          $ Function args
-                          [ ReturnStmt
-                          $ op (showExpr True rhs) (fmap (ExprE . Var) args) ]
-          where args = [ 'a' : show (i :: Int)
-                       | (i,_) <- zip [1..] (jsArgs (undefined :: a))]
         typeOf _ = Fun (length (jsArgs (undefined :: a)))
 
 type instance BooleanOf (JSFunction a r) = JSBool
