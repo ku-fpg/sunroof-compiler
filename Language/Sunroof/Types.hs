@@ -582,16 +582,22 @@ instance (SunroofValue a) => SunroofValue [a] where
 array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
 array l  = JSArray $ Lit $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
 
+instance forall a . (Sunroof a) => Monoid (JSArray a) where
+  mempty = emptyArray
+  mappend (JSArray e1) (JSArray e2) = JSArray $ binOp "[].concat" e1 e2
+
+-- Operations on arrays
 emptyArray :: (Sunroof a) => JSArray a
 emptyArray = JSArray $ Lit "[]"
 
-instance forall a . (Sunroof a) => Monoid (JSArray a) where
-  mempty = emptyArray
-  mappend (JSArray e1) (JSArray e2) = JSArray $ op (concat e1) [ExprE e2]
-    where
-      concat :: Expr -> String
-      concat e = showExpr True $ op "[]" $
-        [ExprE e, ExprE $ (unbox :: JSString -> Expr) $ fromString "concat"]
+lengthArray :: (Sunroof a) => JSArray a -> JSNumber
+lengthArray o = cast o ! "length"
+
+pushArray :: (JavaScript js, JSArgument a, Sunroof a) => a -> JSArray a -> js ()
+pushArray a = method "push" a . cast
+
+popArray :: (JavaScript js, Sunroof a) => JSArray a -> js a
+popArray = method "pop" () . cast
 
 ---------------------------------------------------------------
 
