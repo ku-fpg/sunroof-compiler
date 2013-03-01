@@ -54,9 +54,9 @@ compile = eval . view . unJS
             (stmts1,ret) <- compile $ JS (g ())
             return ( stmts0 ++ [AssignStmt (unbox obj) (unbox sel) val] ++ stmts1, ret )
           eval (JS_Select (JSSelector sel) obj :>>= g) = do
-            compileBind (Op "[]" [ExprE $ unbox obj, ExprE $ unbox sel]) (JS . g)
+            compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unbox sel]) (JS . g)
           eval (JS_Invoke args fn :>>= g) = do
-            compileBind (Op (showVar fn) (map ExprE args)) (JS . g)
+            compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) (JS . g)
           eval (JS_Function fun :>>= g) = do
             e <- compileFunction fun
             compileBind e (JS . g)
@@ -104,7 +104,7 @@ compileFunction m2 = do
     (fStmts,ret) <- compile (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) (fStmts ++ [ReturnStmt ret])
 
-compileForeach :: forall a b . (Sunroof a, Sunroof b) 
+compileForeach :: forall a b . (Sunroof a, Sunroof b)
                => JSArray a -> (a -> JS b) -> CompM ([Stmt], Expr)
 compileForeach arr body = do
   (counter :: JSNumber) <- newVar
@@ -116,7 +116,7 @@ compileForeach arr body = do
   (bodyStmts, bodyRet) <- compile $ do
     _ <- body (cast arrVar ! label (cast counter))
     return ()
-  let incCounterStmts = 
+  let incCounterStmts =
         [ VarStmt (varId counter) (unbox (counter + 1 :: JSNumber)) ]
       loopStmts =
         [ VarStmt (varId counter) (unbox (0 :: JSNumber))
@@ -143,7 +143,7 @@ optExpr opts e = do
         let db = Map.fromList g
         let out = stronglyConnComp
                         [ (n,n,case e' of
-                                Op _ xs -> xs
+                                Apply f xs -> f : xs
                                 _ -> [])
                         | (n,e') <- g
                         ]
@@ -158,7 +158,7 @@ optExpr opts e = do
         let loop vars [] = return vars :: CompM (Map.Map Unique (Id,Expr))
             loop vars (n:ns) = case Map.lookup n db of
                                  Nothing -> error "bad compile"
-                                 Just op@(Op {}) -> do
+                                 Just op@(Apply {}) -> do
                                    v <- uniqM
                                    let vars' = Map.insert n ("c" ++ show v, fmap (ExprE . findExpr vars) op) vars
                                    loop vars' ns

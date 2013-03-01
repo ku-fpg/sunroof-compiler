@@ -20,7 +20,7 @@ import Data.VectorSpace hiding ((<.>))
 import Numeric ( showHex )
 import Data.Proxy
 import Data.Reify
-import Control.Applicative ( Applicative, pure, (<$>))
+import Control.Applicative ( Applicative, pure, (<$>), (<*>))
 import Data.Traversable
 import Data.Foldable hiding (all, any)
 
@@ -31,7 +31,7 @@ cast = box . unbox
 
 -- cast to int?
 int :: (Sunroof a) => a -> JSNumber
-int = box . (\ e -> Op "(int)" [ExprE e]) . unbox
+int = box . (\ e -> op "(int)" [ExprE e]) . unbox
 
 ---------------------------------------------------------------
 -- Trivial expression language for Java
@@ -46,8 +46,7 @@ data ExprE = ExprE Expr
 data E expr
         = Lit String    -- a precompiled (atomic) version of this literal
         | Var Id
-        | Op String [expr]
---        | BinOp String expr expr        -- We need to remove BinOp; this is a pretty print issues only
+        | Apply expr [expr]
         | Function [Id] [Stmt]
         deriving Show
 
@@ -59,22 +58,19 @@ instance MuRef ExprE where
 instance Traversable E where
   traverse _ (Lit s) = pure (Lit s)
   traverse _ (Var s) = pure (Var s)
-  traverse f (Op s xs) = Op s <$> traverse f xs
---  traverse f (BinOp s e1 e2) = BinOp s <$> f e1 <*> f e2
+  traverse f (Apply s xs) = Apply <$> f s <*> traverse f xs
   traverse _ (Function nms stmts) = pure (Function nms stmts)
 
 instance Foldable E where
   foldMap _ (Lit _) = mempty
   foldMap _ (Var _) = mempty
-  foldMap f (Op _ xs) = foldMap f xs
---  foldMap f (BinOp s e1 e2) = foldMap f [e1,e2]
+  foldMap f (Apply o xs) = f o `mappend` foldMap f xs
   foldMap _ (Function _nms _stmts) = mempty
 
 instance Functor E where
   fmap _ (Lit s) = Lit s
   fmap _ (Var s) = Var s
-  fmap f (Op s xs) = Op s (map f xs)
---  fmap f (BinOp s e1 e2) = BinOp s (f e1) (f e2)
+  fmap f (Apply s xs) = Apply (f s) (map f xs)
   fmap _ (Function nms stmts) = Function nms stmts
 
 --
@@ -85,10 +81,10 @@ showExpr :: Bool -> Expr -> String
 showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
 showExpr _ (Var v) = v  -- always stand alone
 showExpr b e = p $ case e of
-   (Op "[]" [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
-   (Op "?:" [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
-   (Op op [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
-   (Op fn args) -> fn ++ "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
+   (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
+   (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
+   (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
+   (Apply (ExprE fn) args) -> showExpr True fn ++ "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
    (Function args body) ->
                 "function" ++
                 "(" ++ intercalate "," args ++ ") {\n" ++
@@ -249,6 +245,9 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunr
 
 ---------------------------------------------------------------
 
+--op :: String -> [Expr] -> Expr
+op n = Apply (ExprE $ Var n)
+
 data JSBool = JSBool Expr
 
 instance Show JSBool where
@@ -261,7 +260,7 @@ instance Sunroof JSBool where
 instance Boolean JSBool where
   true          = JSBool (Lit "true")
   false         = JSBool (Lit "false")
-  notB  (JSBool e1) = JSBool $ Op "!" [ExprE e1]
+  notB  (JSBool e1) = JSBool $ op "!" [ExprE e1]
   (&&*) (JSBool e1)
         (JSBool e2) = JSBool $ binOp "&&" e1 e2
   (||*) (JSBool e1)
@@ -277,7 +276,7 @@ instance EqB JSBool where
   (/=*) e1 e2 = JSBool $ binOp "!=" (unbox e1) (unbox e2)
 
 js_ifB :: (Sunroof a) => JSBool -> a -> a -> a
-js_ifB (JSBool c) t e = box $ Op "?:" [ExprE c,ExprE $ unbox t,ExprE $ unbox e]
+js_ifB (JSBool c) t e = box $ op "?:" [ExprE c,ExprE $ unbox t,ExprE $ unbox e]
 
 instance SunroofValue Bool where
   type ValueOf Bool = JSBool
@@ -299,7 +298,7 @@ instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) wher
         assignVar _ a rhs = VarStmt a
                           $ Function args
                           [ ReturnStmt
-                          $ Op (showExpr True rhs) (fmap (ExprE . Var) args) ]
+                          $ op (showExpr True rhs) (fmap (ExprE . Var) args) ]
           where args = [ 'a' : show (i :: Int)
                        | (i,_) <- zip [1..] (jsArgs (undefined :: a))]
 
@@ -315,10 +314,10 @@ instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS b) where
 ---------------------------------------------------------------
 
 binOp :: String -> Expr -> Expr -> E ExprE
-binOp op e1 e2 = Op op [ExprE e1, ExprE e2]
+binOp o e1 e2 = op o [ExprE e1, ExprE e2]
 
 uniOp :: String -> Expr -> E ExprE
-uniOp op e = Op op [ExprE e]
+uniOp o e = op o [ExprE e]
 
 ---------------------------------------------------------------
 
@@ -382,7 +381,7 @@ instance RealFloatB JSNumber where
     where isFinite (JSNumber a) = JSBool $ uniOp "isFinite" a
   isNegativeZero n = isInfinite n &&* n <* 0
   isIEEE _ = true -- AFAIK
-  atan2 (JSNumber a) (JSNumber b) = JSNumber $ Op "Math.atan2" [ExprE a, ExprE b]
+  atan2 (JSNumber a) (JSNumber b) = JSNumber $ op "Math.atan2" [ExprE a, ExprE b]
 
 type instance BooleanOf JSNumber = JSBool
 
@@ -564,10 +563,10 @@ emptyArray = JSArray $ Lit "[]"
 
 instance forall a . (Sunroof a) => Monoid (JSArray a) where
   mempty = emptyArray
-  mappend (JSArray e1) (JSArray e2) = JSArray $ Op (concat e1) [ExprE e2]
+  mappend (JSArray e1) (JSArray e2) = JSArray $ op (concat e1) [ExprE e2]
     where
       concat :: Expr -> String
-      concat e = showExpr True $ Op "[]" $
+      concat e = showExpr True $ op "[]" $
         [ExprE e, ExprE $ (unbox :: JSString -> Expr) $ fromString "concat"]
 
 ---------------------------------------------------------------
@@ -592,7 +591,7 @@ label = JSSelector
 infixl 1 !
 
 (!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = box $ Op "[]" [ExprE $ unbox arr,ExprE $ unbox idx]
+(!) arr (JSSelector idx) = box $ op "[]" [ExprE $ unbox arr,ExprE $ unbox idx]
 
 ---------------------------------------------------------------
 
