@@ -38,7 +38,7 @@ import Data.Ratio
 import Test.QuickCheck hiding ( assert )
 import Test.QuickCheck.Monadic ( monadicIO, assert, run, pick, pre )
 import Test.QuickCheck.Gen ( Gen(MkGen, unGen) )
-import Test.QuickCheck.Property 
+import Test.QuickCheck.Property
   ( callback, abort, ok
   , Callback( PostTest )
   , CallbackKind( NotCounterexample )
@@ -65,15 +65,15 @@ web_app doc = do
         -}
 
         runTests doc
-          [ T "Constant Numbers" (checkConstNumber doc :: Double -> Property)
-          , T "Constant Unit"    (checkConstValue doc :: () -> Property)
-          , T "Constant Boolean" (checkConstValue doc :: Bool -> Property)
-          , T "Constant String"  (checkConstValue doc :: String -> Property)
-          , T "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
-          , T "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
-          , T "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
-          , T "Arbitrary Arithmetic" (checkArbitraryArith doc)
-          , T "Arbitrary Boolean"    (checkArbitraryBool  doc)
+          [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
+          , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
+          , Test "Constant Boolean" (checkConstValue doc :: Bool -> Property)
+          , Test "Constant String"  (checkConstValue doc :: String -> Property)
+          , Test "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
+          , Test "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
+          , Test "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
+          , Test "Arbitrary Arithmetic" (checkArbitraryArith doc)
+          , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
           ]
         {-
         let assert True msg = return ()
@@ -174,9 +174,9 @@ checkArbitraryBool doc seed = monadicIO $ do
 -- Test execution
 -- -----------------------------------------------------------------------
 
-data T = forall a. Testable a => T String a
+data Test = forall a. Testable a => Test String a
 
-runTests :: SunroofEngine -> [T] -> IO ()
+runTests :: SunroofEngine -> [Test] -> IO ()
 runTests doc tests = do
   let testCount = length tests
   progressMax doc (testCount * casesPerTest)
@@ -185,17 +185,17 @@ runTests doc tests = do
   where
     casesPerTest :: Int
     casesPerTest = 100
-    runTest :: T -> IO Result
-    runTest (T name test) = do
+    runTest :: Test -> IO Result
+    runTest (Test name test) = do
       putStrLn name
       quickCheckWithResult (stdArgs {chatty=False,maxSuccess=casesPerTest})
         $ callback afterTestCallback
         $ test
-    execTests :: [T] -> IO ()
+    execTests :: [Test] -> IO ()
     execTests [] = do
       putStrLn "PASSED ALL TESTS"
       progressMsg doc "PASSED ALL TESTS"
-    execTests (t@(T name _):ts) = do
+    execTests (t@(Test name _):ts) = do
       progressMsg doc name
       result <- runTest t
       case result of
@@ -217,7 +217,7 @@ runTests doc tests = do
       if not (abort result) && isJust (ok result)
         then do
           progressInc doc
-          if numSuccessTests state `mod` (casesPerTest `div` 10) == 0 
+          if numSuccessTests state `mod` (casesPerTest `div` 10) == 0
             then do
               putStr "."
               hFlush stdout
@@ -339,8 +339,8 @@ boolExprGen n = frequency [(1, boolGen), (3, binaryGen), (1, ifGen), (1, unaryGe
         unaryGen = do
           e1 <- boolExprGen $ n - 1
           return $ notB e1
-        
-  
+
+
 {-
 data Op2 = Op2 (forall a . Num a => a -> a -> a) String
 op2s = [ Op2 (+) "+", Op2 (-) "-", Op2 (*) "*"]
