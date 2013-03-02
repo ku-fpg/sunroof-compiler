@@ -31,11 +31,11 @@ dollar = call "$"
 
 -- | Calls the JQuery dollar function.
 --   See <http://api.jquery.com/jQuery/>.
-jQuery :: JSString -> JS JSObject
+jQuery :: JSString -> JS t JSObject
 jQuery nm = dollar `apply` nm
 
 -- | Short-hand for 'jQuery'.
-jq :: JSString -> JS JSObject
+jq :: JSString -> JS t JSObject
 jq = jQuery
 
 -- -----------------------------------------------------------------------

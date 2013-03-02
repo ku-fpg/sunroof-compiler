@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, DataKinds, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Language.Sunroof.Types where
@@ -122,6 +122,7 @@ indent n = unlines . map (take n (cycle "  ") ++) . lines
 data Stmt
         = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
         | AssignStmt Expr Expr Expr -- Expr[Expr] = Expr
+        | AssignStmt_ Expr Expr     -- Expr = Expr      // restrictions on lhs
         | ExprStmt Expr             -- Expr
         | ReturnStmt Expr           -- return Expr
         | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
@@ -134,6 +135,7 @@ showStmt :: Stmt -> String
 showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
 showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
 showStmt (AssignStmt e1 e2 e3) = showExpr True e1 ++ "[" ++ showExpr False e2 ++ "] = " ++ showExpr False e3 ++ ";"
+showStmt (AssignStmt_ e1 e2) = showExpr False e1 ++ " = " ++ showExpr False e2 ++ ";"
 showStmt (ExprStmt e) = showExpr False e ++ ";"
 showStmt (ReturnStmt e) = "return " ++ showExpr False e ++ ";"
 showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n"
@@ -158,6 +160,7 @@ showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
 
 data Type
  = Base         -- base type, like object
+ | Unit
  | Fun Int      -- f (a_1,..,a_n), n == number in int
   deriving (Eq,Ord, Show)
 
@@ -185,6 +188,7 @@ instance Sunroof () where
 --        showVar _ = ""
         box _ = ()
         unbox () = Var ""
+        typeOf _ = Unit
 
 ---------------------------------------------------------------
 
@@ -331,8 +335,8 @@ type instance BooleanOf (JSFunction a r) = JSBool
 instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
     ifB = js_ifB
 
-instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS b) where
-  type ValueOf (a -> JS b) = JS (JSFunction a b)
+instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
+  type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
   js = function
 
 ---------------------------------------------------------------
@@ -593,10 +597,10 @@ emptyArray = JSArray $ Lit "[]"
 lengthArray :: (Sunroof a) => JSArray a -> JSNumber
 lengthArray o = cast o ! "length"
 
-pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS ()
+pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 pushArray a = method "push" a . cast
 
-popArray :: (Sunroof a) => JSArray a -> JS a
+popArray :: (Sunroof a) => JSArray a -> JS t a
 popArray = method "pop" () . cast
 
 ---------------------------------------------------------------
@@ -628,48 +632,15 @@ infixl 1 !
 infix  5 :=
 
 
-type Action a r = a -> JS r
-{-
-data Action :: * -> * -> * where
-   -- Invoke is not quite right
-   Invoke :: (Sunroof r) => [Expr]                              -> Action (JSFunction a r) r
-   -- Basically, this is special form of call, to assign to a field
-   (:=)   :: (Sunroof a) => JSSelector a -> a                   -> Action JSObject ()
-   -- This is the fmap-like function, an effect-free modifier on the first argument
-   -- TODO: revisit Map and Invoke. Does not feel right.
-   Map :: (Sunroof b, a ~ JSObject, b ~ JSFunction x y, Sunroof c) => (a -> b) -> Action b c                 -> Action a c
-   Field :: JSSelector a                                        -> Action JSObject a
+type Action a r = a -> JS A r
 
-   Dot :: Action a b -> Action b c                              -> Action a c
-
-   NoAction :: b                                                -> Action a b
-   BindAction :: Action a b -> (b -> Action a c)                -> Action a c
-
--- There is
---  Action JSObject a                           -- Return a             JSObject -> JS a
---  Action (JSFunction a r) r                   -- Function a r         JSFunction a r -> a -> JS r
--}
--- method :: String             -> a -> JSObject -> JS r
--- with :: a                    -> JSFunction a r -> JS r
--- (:=) :: JSSelector a -> a    -> JSObject -> JS ()
-
--- type Action a = JSObject -> JS a     ??? But we have the reader monad built in anyway???
-
--- (a -> JS b) -> (b -> JS c)
--- method :: String -> a -> Return r
--- with :: Return (JSFunction a b) -> a -> Return a
-{-
-instance Monad (Action a) where
-        return = NoAction
-        (>>=)  = BindAction
--}
 ---------------------------------------------------------------
 
 -- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
 --method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
 
 -- SBC: call
-method :: (JSArgument a, Sunroof r) => String -> a -> Action JSObject r
+method :: (JSArgument a, Sunroof r) => String -> a -> JSObject -> JS t r
 method str args obj = (obj ! attribute str) `apply` args
 
 string :: String -> JSString
@@ -683,11 +654,11 @@ object = JSObject . Lit
 call :: String -> JSFunction a r
 call = JSFunction . Lit
 
-with :: (JSArgument a, Sunroof r) => a -> Action (JSFunction a r) r
+with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
 with a fn = JS_ $ singleton $ JS_Invoke (jsArgs a) fn
 
 -- TODO: should take String argument
-new :: JS JSObject
+new :: JS t JSObject
 new = evaluate $ object "new Object()"
 
 attribute :: String -> JSSelector a
@@ -704,7 +675,7 @@ attribute attr = label $ string attr
 
 -- This is not the same as return; it evaluates
 -- the argument to value form.
-evaluate, var, value :: (Sunroof a) => a -> JS a
+evaluate, var, value :: (Sunroof a) => a -> JS t a
 evaluate a  = JS_ $ singleton (JS_Eval a)
 
 var = evaluate
@@ -712,66 +683,88 @@ value = evaluate
 
 ---------------------------------------------------------------
 
+data T      -- Threadery
+       = A  -- Atomic
+       | B  -- Blocking
+
+data X (a :: T) = X
+
+type JSB a = JS B a
+
 -- Control.Monad.Operational makes a monad out of JS for us
-data JS a where
-    JS_   :: Program JSI a                                             -> JS a
-    JS   :: ((a -> Program JSI ()) -> Program JSI ())                 -> JS a   -- IDEA
-    (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject              -> JS ()
+data JS :: T -> * -> * where
 
-unJS :: JS a -> Program JSI a
-unJS (JS_ m) = m
-unJS ((:=) sel a obj) = singleton $ JS_Assign sel a obj
+    JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())              -> JS t a            -- TO CALL JSB
+    JS_    :: Program (JSI t) a                                            -> JS t a            -- TO CALL JSA
 
-instance Monad JS where
-        return a = JS_ (return a)
-        m >>= k = JS_ (unJS m >>= \ r -> unJS (k r))
+--    JSA   :: Program (JSI t) a                                             -> JS t a
+--    JSB   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())             -> JS t B
+
+    (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject                   -> JS t ()
+
+-- replace calls to JS $ singleton with single
+single :: JSI t a -> JS t a
+single i = JS_ $ singleton i
+
+unJS :: JS t a -> (a -> Program (JSI t) ()) -> Program (JSI t) ()
+unJS (JS m) k = m k
+unJS (JS_ m) k = m >>= k
+unJS ((:=) sel a obj) k = singleton (JS_Assign sel a obj) >>= k
+
+instance Monad (JS t) where
+        return a = JS_ $ return a       -- preserves the threadary kind
+        m >>= k = JS $ \ k0 -> unJS m (\ r -> unJS (k r) k0)
 
 -- | We define the Semigroup instance for JS, where
 --  the first result (but not the first effect) is discarded.
 --  Thus, '<>' is the analog of the monadic '>>'.
-instance Semi.Semigroup (JS a) where
+instance Semi.Semigroup (JS t a) where
         js1 <> js2 = js1 >> js2
 
-instance Monoid (JS ()) where
+instance Monoid (JS t ()) where
         mempty = return ()
         mappend = (<>)
 
 -- define primitive effects / "instructions" for the JS monad
-data JSI a where
+data JSI :: T -> * -> * where
 
     -- apply an action to an 'a', and compute a b
 --    JS_App    :: (Sunroof a, Sunroof b) => a -> Action a b      -> JSI b
 
-    JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject  -> JSI ()
+    JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject  -> JSI t ()
 
-    JS_Select  :: (Sunroof a) => JSSelector a -> JSObject      -> JSI a
+    JS_Select  :: (Sunroof a) => JSSelector a -> JSObject      -> JSI t a
 
-    JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r        -> JSI r        -- Perhaps take the overloaded vs [Expr]
+    JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r  -> JSI t r        -- Perhaps take the overloaded vs [Expr]
                                                                                 -- and use jsArgs in the compiler?
-
     -- Not the same as return; does evaluation of argument
-    JS_Eval   :: (Sunroof a) => a                               -> JSI a
+    JS_Eval   :: (Sunroof a) => a                                       -> JSI t a
 
-    JS_Function :: (JSArgument a, Sunroof b) => (a -> JS b)        -> JSI (JSFunction a b)
+    JS_Function :: (JSArgument a, Sunroof b) => (a -> JS A b)           -> JSI t (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-    JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS a -> JS a -> JSI a
+    JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS A a -> JS A a  -> JSI t a
     -- A loop primitive.
-    JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS b) -> JSI ()
+    JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b)  -> JSI A ()        -- to visit / generalize later
+
+    -- syntaxtical return in javascript; only used in code generator for now.
+    JS_Return  :: (Sunroof a) => a                                      -> JSI A ()      -- literal return
+    JS_Assign_ :: (Sunroof a) => Id -> a                                -> JSI t ()     -- a classical effect
+                        -- TODO: generalize Assign[_] to have a RHS
 
 ---------------------------------------------------------------
 
 -- We only can compile functions that do not have interesting return
 -- values, so we can assume they are continuation-like things.
-function :: (JSArgument a, Sunroof b) => (a -> JS b) -> JS (JSFunction a b)
+function :: (JSArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
 function = JS_ . singleton . JS_Function
 
 infixl 1 `apply`
 
 -- | Call a function with the given arguments.
-apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS ret
+apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 apply f args = f # with args
 
-foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS b) -> JS ()
+foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b) -> JS A ()
 foreach arr body = JS_ $ singleton $ JS_Foreach arr body
 
 infixl 1 #
@@ -779,23 +772,25 @@ infixl 1 #
 -- We should use this operator for the obj.label concept.
 -- It has been used in other places (but I can not seems
 -- to find a library for it)
-(#) :: a -> (a -> JS b) -> JS b
+(#) :: a -> (a -> JS t b) -> JS t b
 (#) obj act = act obj
 
-type instance BooleanOf (JS a) = JSBool
+type instance BooleanOf (JS t a) = JSBool
 
-instance forall a . (Sunroof a) => IfB (JS a) where
+-- TODO: generalize
+instance (Sunroof a) => IfB (JS A a) where
     ifB i h e = JS_ $ singleton $ JS_Branch i h e
 
-switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b) => a -> [(a,JS b)] -> JS b
+switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b, t ~ A) => a -> [(a,JS t b)] -> JS t b
 switch _a [] = return (cast (object "undefined"))
 switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
 ---------------------------------------------------------------
+{-
 -- The JS (Blocking) is continuation based.
-newtype JSB a = JSB { unJSB :: (a -> JS ()) -> JS () }
+newtype JSB a = JSB { unJSB :: (a -> JS A ()) -> JS A () }
 
 instance Monad JSB where
         return a = JSB $ \ k -> k a
         (JSB m) >>= k = JSB $ \ k0 -> m (\ a -> unJSB (k a) k0)
-
+-}

@@ -62,46 +62,46 @@ import Language.Sunroof.Types
 -- -----------------------------------------------------------------------
 
 -- | Display the given text in a message box.
-alert :: JSString -> JS ()
+alert :: JSString -> JS t ()
 alert msg = call "alert" `apply` (msg)
 
 -- | Decode the URI encoded in the given string.
-decodeURI :: JSString -> JS JSString
+decodeURI :: JSString -> JS t JSString
 decodeURI str = call "decodeURI" `apply` (str)
 
 -- | Encode the given string in URI encoding.
-encodeURI :: JSString -> JS JSString
+encodeURI :: JSString -> JS t JSString
 encodeURI str = call "encodeURI" `apply` (str)
 
 -- | Decode the URI encoded string. For use with 'encodeURIComponent'.
-decodeURIComponent :: JSString -> JS JSString
+decodeURIComponent :: JSString -> JS t JSString
 decodeURIComponent str = call "decodeURIComponent" `apply` (str)
 
 -- | Encode the string with URI encoding. This encodes a few more
 --   characters to make the string safe for direct server communication (AJAX).
-encodeURIComponent :: JSString -> JS JSString
+encodeURIComponent :: JSString -> JS t JSString
 encodeURIComponent str = call "encodeURIComponent" `apply` (str)
 
 -- | Evaluate the given JavaScript string if possible. Returns
 --   the result of evaluation.
 -- TODO: think about this a bit.
-eval :: (Sunroof a) => JSString -> JS a
+eval :: (Sunroof a) => JSString -> JS t a
 eval str = call "eval" `apply` (str)
 
 -- | Check if a given number is within the valid JavaScript number range.
-isFinite :: JSNumber -> JS JSBool
+isFinite :: JSNumber -> JS t JSBool
 isFinite n = call "isFinite" `apply` (n)
 
 -- | Check if a given number is NaN or not.
-isNaN :: JSNumber -> JS JSBool
+isNaN :: JSNumber -> JS t JSBool
 isNaN n = call "isNaN" `apply` (n)
 
 -- | Parse the given string to a number.
-parseFloat :: JSString -> JS JSNumber
+parseFloat :: JSString -> JS t JSNumber
 parseFloat str = call "parseFloat" `apply` (str)
 
 -- | Parse the given string to a number.
-parseInt :: JSString -> JS JSNumber
+parseInt :: JSString -> JS t JSNumber
 parseInt str = call "parseInt" `apply` (str)
 
 -- -----------------------------------------------------------------------

@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, MultiParamTypeClasses, OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DataKinds, MultiParamTypeClasses, OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
 
 module Language.Sunroof.Active where
 
@@ -40,7 +40,7 @@ instance FractionalOf JSTime JSNumber where
 instance (BooleanOf b ~ JSBool, IfB b, Deadline JSTime b) => Deadline JSTime (a -> b) where
         choose (JSTime t1) (JSTime t2) f1 f2 a = ifB (t1 <=* t2) (f1 a) (f2 a)
 
-instance (Sunroof a) => Deadline JSTime (JS a) where
+instance (Sunroof a) => Deadline JSTime (JS t a) where
         choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
 
 instance Deadline JSTime JSNumber where
@@ -71,10 +71,10 @@ instance Waiting JSDuration where
 instance FractionalOf JSDuration JSNumber where
   toFractionalOf = unJSDuration
 
-ex1 :: Active JSTime (JS JSNumber)
+ex1 :: Active JSTime (JS t JSNumber)
 ex1 = fmap return ui
 
-reifyActiveJS :: Active JSTime (JS ()) -> JS (JSNumber, JSNumber, JSFunction JSNumber ())
+reifyActiveJS :: Active JSTime (JS A ()) -> JS A (JSNumber, JSNumber, JSFunction JSNumber ())
 reifyActiveJS = onActive
               (\ x -> do f <- function (\ _ -> x)
                          return ( 0
@@ -90,9 +90,9 @@ reifyActiveJS = onActive
               )
 
 {-
-compileActiveJS :: Active JSTime (JS JSNumber) -> String
-compileActiveJS act = a ++ " ; return " ++ b
-  where (a,b) = compileJS $ do
+compileActiveJS t :: Active JSTime (JS t JSNumber) -> String
+compileActiveJS t act = a ++ " ; return " ++ b
+  where (a,b) = compileJS t $ do
                    obj :: JSFunction JSNumber JSNumber <- function (runActive act . JSTime)
                    apply obj 0
 -}

@@ -3,8 +3,10 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
 
-module Language.Sunroof.KansasComet
+module Language.Sunroof.KansasComet where
+{-
   ( sync
   , sync'
   , async
@@ -18,7 +20,7 @@ module Language.Sunroof.KansasComet
   , SunroofServerOptions(..)
   , SunroofApp
   ) where
-
+-}
 import Data.Aeson.Types ( Value(..), Object, Array )
 import Data.Attoparsec.Number ( Number(..) )
 --import Data.Boolean
@@ -47,10 +49,11 @@ import Web.KansasComet
   , Options
   , kCometPlugin
   , docUniqs
+  , docUniq
   )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Compiler ( compileJS, CompilerOpts(..) )
+import Language.Sunroof.Compiler ( compileJS_A, CompilerOpts(..) )
 import Language.Sunroof.Types
 
 -- | The 'SunroofEngine' provides the verbosity level and
@@ -60,6 +63,8 @@ data SunroofEngine = SunroofEngine
   , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
   , compilerOpts  :: CompilerOpts
   }
+
+
 
 -- | The number of uniques allocated for the first try of a compilation.
 compileUniqAlloc :: Uniq
@@ -75,53 +80,48 @@ sunroofLog engine level msg =
     else return ()
 
 -- | Log the compilation result and return it
-compileLog :: SunroofEngine -> (String, String) -> IO (String, String)
-compileLog engine (src, retVal) = do
+compileLog :: SunroofEngine -> String -> IO ()
+compileLog engine src = do
   sequence_ $ fmap (sunroofLog engine 3) $
-    [ "Compiled:", src, "Compiled Return: ", retVal]
-  return (src, retVal)
+    [ "Compiled:", src]
+  return ()
+
 
 -- | Compile js using unique variables each time.
-compile :: (Sunroof a) => SunroofEngine -> JS a -> IO (String, String)
-compile engine jsm = do
+compileRequest :: SunroofEngine -> JS A () -> IO String
+compileRequest engine jsm = do
   -- Allocate a standard amount of uniq for compilation
   uq <- docUniqs compileUniqAlloc (cometDocument engine)
   -- Compile
-  (src, uq') <- compileJS (compilerOpts engine) uq jsm
+  (stmts, uq') <- compileJS_A (compilerOpts engine) uq jsm
   -- Check if the allocated amount was sufficient
+  let txt = unlines $ fmap showStmt stmts
+
   if (uq' < uq + compileUniqAlloc)
     -- It was sufficient we are finished
-    then compileLog engine src
+    then do compileLog engine txt
+            return txt
     -- It wasn't sufficient
     else do
       -- Allocate all that are needed
       newUq <- docUniqs (uq' - uq) (cometDocument engine)
       -- Compile again
-      (src', _) <- compileJS (compilerOpts engine) newUq jsm
-      compileLog engine $ src'
+      (stmts', _) <- compileJS_A (compilerOpts engine) newUq jsm
+      let txt' = unlines $ fmap showStmt stmts'
+      compileLog engine txt'
+      return txt'
 
 -- | Executes the Javascript in the browser without waiting for a result.
-async :: SunroofEngine -> JS () -> IO ()
+async :: SunroofEngine -> JS A () -> IO ()
 async engine jsm = do
-  (src, _) <- compile engine jsm
+  src <- compileRequest engine jsm
   send (cometDocument engine) src  -- send it, and forget it
   return ()
 
--- | Executes the Javascript in the browser and waits for the result value.
---   The result is given as JSON value.
-sync' :: (Sunroof a) => SunroofEngine -> JS a -> IO Value
-sync' engine jsm = do
-  (src,retVar) <- compile engine jsm
-  case retVar of
-    -- if there is no return value we just represent it as null.
-    -- Like this we have something to wait for.
-    -- Right now this corresponds to a ~ ().
-    ""  -> queryGlobal (cometDocument engine) (src, "null")
-    ret -> queryGlobal (cometDocument engine) (src, ret)
-
+{-
 -- | Executes the Javascript in the browser and waits for the result.
 --   The returned value is just a reference to the computed value.
-rsync :: (Sunroof a) => SunroofEngine -> JS a -> IO a
+rsync :: (Sunroof a) => SunroofEngine -> JS A a -> IO a
 rsync engine jsm = do
   (src, retVar) <- compile engine jsm
   case retVar of
@@ -134,24 +134,33 @@ rsync engine jsm = do
       -- back the value.
       send (cometDocument engine) $ src -- send it, and forget it
       return $ box $ Lit ret
-
+-}
 -- | Executes the Javascript in the browser and waits for the result value.
 --   The result value is given the corresponding Haskell type,
 --   if possible (see 'SunroofResult').
-sync :: forall a. (SunroofResult a) => SunroofEngine -> JS a -> IO (ResultOf a)
+
+sync :: forall a t . (SunroofResult a,t ~ A) => SunroofEngine -> JS t a -> IO (ResultOf a)
+sync engine jsm | typeOf (error "witness" :: a) == Unit = do
+  _ <- sync engine (jsm >> return (0 :: JSNumber))
+  return $ jsonToValue (Proxy :: Proxy a) Null
+
 sync engine jsm = do
-  value <- sync' engine jsm
-  return $ jsonToValue (Proxy :: Proxy a) value
+  up <- newUplink engine
+  src <- compileRequest engine (jsm >>= putUplink up)
+  send (cometDocument engine) src
+  getUplink up
 
 -- | wait passes an event to a continuation, once. You need
 -- to re-register each time.
-wait :: Scope -> Template event -> (JSObject -> JS ()) -> JS ()
+{-
+wait :: Scope -> Template event -> (JSObject -> JS B ()) -> JS B ()
 wait scope tmpl k = do
         o <- function k
         apply (call "$.kc.waitFor") ( string scope
                                     , object (show (map fst (extract tmpl)))
                                     , o
                                     )
+-}
 
 -- -----------------------------------------------------------------------
 -- Default Server Instance
@@ -223,6 +232,7 @@ data SunroofServerOptions = SunroofServerOptions
 -- >   <div id="debug-log"></div>
 --
 --   Look into the example folder to see all of this in action.
+
 sunroofServer :: SunroofServerOptions -> SunroofApp -> IO ()
 sunroofServer opts cometApp = do
   let warpSettings = (SC.settings def) { settingsPort = cometPort opts }
@@ -337,3 +347,35 @@ instance SunroofValue Value where
 instance SunroofValue Text where
   type ValueOf Text = JSString
   js = js . unpack
+
+-------------------------------------------------------------------------------------------
+
+data Uplink a = Uplink SunroofEngine Int
+
+newUplink :: SunroofEngine -> IO (Uplink a)
+newUplink eng = do
+        u <- docUniq (cometDocument eng)
+        return $ Uplink eng u
+putUplink :: (Sunroof a) => Uplink a -> a -> JS t ()
+putUplink (Uplink _ u) a = kc_reply (js u) a
+
+getUplink :: forall a . (SunroofResult a) => Uplink a -> IO (ResultOf a)
+getUplink (Uplink eng u) = do
+        val <- KC.getReply (cometDocument eng) u
+        -- TODO: make this throw an exception if it goes wrong (I supose error does this already)
+        return $ jsonToValue (Proxy :: Proxy a) val
+
+
+-------------------------------------------------------------------------------------------
+-- This belongs in KansasComet
+
+kc_reply :: (Sunroof a) => JSNumber -> a -> JS t ()
+kc_reply n a = call "$.kc.reply" `apply` (n,a)
+
+-------------------------------------------------------------------------------------------
+
+debugSunroofEngine :: IO SunroofEngine
+debugSunroofEngine = do
+        doc <- KC.debugDocument
+        return $ SunroofEngine doc 3 def
+

@@ -1,8 +1,9 @@
-{-# LANGUAGE GADTs, RankNTypes, KindSignatures, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE GADTs, RankNTypes, KindSignatures, DataKinds, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
 module Language.Sunroof.Compiler
-  ( compileJS
-  , CompilerOpts(..)
-  ) where
+--  ( compileJS
+--  , CompilerOpts(..)
+--  ) where
+        where
 
 --import qualified Control.Applicative as App
 import Control.Monad.Operational
@@ -31,81 +32,120 @@ data CompilerOpts = CompilerOpts
 instance Default CompilerOpts where
         def = CompilerOpts True False False 0
 
+compileJS_A :: (Sunroof a) => CompilerOpts -> Uniq -> JS A a -> IO ([Stmt], Uniq)
+compileJS_A opts uq = compileJSI opts uq . extractProgram (JS_ . singleton . JS_Return)
 
-compileAST :: (Sunroof a) => CompilerOpts -> Uniq -> JS a -> IO (([Stmt], Expr), Uniq)
-compileAST opts uq jsm = runStateT (runReaderT (compile jsm) opts) uq
+-- It is not possible to compile JS B a, because where does the 'a' get returned to?
+compileJS_B :: (Sunroof a) => CompilerOpts -> Uniq -> JS B () -> IO ([Stmt], Uniq)
+compileJS_B opts uq = compileJSI opts uq . extractProgram (const $ return ())
 
-compileJS :: (Sunroof a) => CompilerOpts -> Uniq -> JS a -> IO ((String, String), Uniq)
-compileJS opts uq jsm = do
-        ((stmts, res), u) <- compileAST opts uq jsm
-        return ((unlines $ fmap showStmt stmts, showExpr False res), u)
+extractProgram :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
+extractProgram k m = case (m >>= k) of
+                       JS f -> f return
+                       JS_ p -> p
 
--- compile an existing expression
-compile :: Sunroof c => JS c -> CompM ([Stmt], Expr)
-compile = eval . view . unJS
+-- TODO: generalize with a closer
+compileJSI :: CompilerOpts -> Uniq -> Program (JSI t) () -> IO ([Stmt], Uniq)
+compileJSI opts uq jsi_prog = runStateT (runReaderT (compile jsi_prog) opts) uq
+
+compile :: Program (JSI t) () -> CompM [Stmt]
+compile = eval . view
     -- since the type  Program  is abstract (for efficiency),
     -- we have to apply the  view  function first,
     -- to get something we can pattern match on
-    where eval :: Sunroof b => ProgramView JSI b -> CompM ([Stmt], Expr)
+    where eval :: ProgramView (JSI t) () -> CompM [Stmt]
+          -- Return *will* be (), because of the normalization to CPS.
+          eval (Return ()) = return []
+
+          -- These are in the same order as the constructors.
+
           eval (JS_Eval e :>>= g) = do
-            compileBind (unbox e) (JS_ . g)
+            compileBind (unbox e) g
+
           eval (JS_Assign (JSSelector sel) a obj :>>= g) = do
             -- note, this is where we need to optimize/CSE  the a value.
             -- TODO: this constructor should return unit, not the updated value
             (stmts0,val) <- compileExpr (unbox a)
-            (stmts1,ret) <- compile $ JS_ (g ())
-            return ( stmts0 ++ [AssignStmt (unbox obj) (unbox sel) val] ++ stmts1, ret )
+            stmts1 <- compile (g ())
+            return ( stmts0 ++ [AssignStmt (unbox obj) (unbox sel) val] ++ stmts1)
+
+            -- TODO: this is wrong : use Dot
           eval (JS_Select (JSSelector sel) obj :>>= g) = do
-            compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unbox sel]) (JS_ . g)
+            compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unbox sel]) g
+
+          -- Return returns Haskell type JS A (), because there is nothing after a return.
+          -- We ignore everything after a return.
+          eval (JS_Return e :>>= _) = do
+            let ty = typeOf e
+            case ty of
+               Unit -> return []                -- nothing to return
+               _    -> do
+                  (stmts0,val) <- compileExpr (unbox e)
+                  return ( stmts0 ++ [ ReturnStmt val])
+
+          eval (JS_Assign_ var a :>>= g) = do
+            (stmts0,val) <- compileExpr (unbox a)
+            stmts1 <- compile (g ())
+            return ( stmts0 ++ [AssignStmt_ (Var var) val] ++ stmts1)
+
           eval (JS_Invoke args fn :>>= g) = do
-            compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) (JS_ . g)
+            compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) g
+
           eval (JS_Function fun :>>= g) = do
             e <- compileFunction fun
-            compileBind e (JS_ . g)
+            compileBind e g
+
           eval (JS_Branch b c1 c2 :>>= g) = do
-            branch <- compileBranch b c1 c2
-            compileStatement branch (JS_ . g)
+            (branch,res) <- compileBranch_A b c1 c2
+            stmt1 <- compile (g res)
+            return $ branch ++ stmt1
+
+{-
           eval (JS_Foreach arr body :>>= g) = do
             loop <- compileForeach arr body
             compileStatement loop (JS_ . g)
           -- or we're done already
           eval (Return b) = compileExpr (unbox b)
+-}
 
-compileBind :: forall a b . (Sunroof a, Sunroof b)
-            => Expr -> (a -> JS b) -> CompM ([Stmt], Expr)
+
+compileBind :: (Sunroof a)
+            => Expr
+            -> (a -> Program (JSI t) ())
+            -> CompM [Stmt]
 compileBind e m2 = do
     a <- newVar
-    (stmts0, val) <- compileExpr e
-    (stmts1,ret) <- compile (m2 a)
-    return (stmts0 ++ [VarStmt (varId a) val] ++ stmts1 , ret)
-
+    (stmts0,val) <- compileExpr e
+    stmts1       <- compile (m2 a)
+    return (stmts0 ++ [VarStmt (varId a) val] ++ stmts1)
+{-
 -- TODO: inline
 compileStatement :: (Sunroof a, Sunroof b)
                  => ([Stmt], Expr) -> (a -> JS b) -> CompM ([Stmt], Expr)
 compileStatement (stmts0, e) m2 = do
     (stmts,ret) <- compile $ m2 (box e)
     return (stmts0 ++ stmts , ret)
+-}
 
-compileBranch :: forall a bool . (Sunroof a, Sunroof bool)
-              => bool -> JS a -> JS a -> CompM ([Stmt], Expr)
-compileBranch b c1 c2 = do
-  (res :: a) <- newVar
+compileBranch_A :: forall a bool . (Sunroof a, Sunroof bool)
+              => bool -> JS A a -> JS A a -> CompM ([Stmt],a)
+compileBranch_A b c1 c2 = do
+  -- TODO: newVar should take a Id, or return an ID. varId is a hack.
+  (res :: a)   <- newVar
   (src0, res0) <- compileExpr (unbox b)
-  (src1, res1) <- compile c1
-  (src2, res2) <- compile c2
-  return ( src0 ++
-           [ IfStmt res0 (src1 ++ [VarStmt (varId res) res1])
-                         (src2 ++ [VarStmt (varId res) res2])
-           ]
-         , unbox res)
+  src1 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c1
+  src2 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c1
+  return ( [VarStmt (varId res) (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ], res)
 
 compileFunction :: forall a b . (JSArgument a, Sunroof b)
-                => (a -> JS b) -> CompM Expr
+                => (a -> JS A b)
+                -> CompM Expr
 compileFunction m2 = do
     (arg :: a) <- jsValue
-    (fStmts,ret) <- compile (m2 arg)
-    return $ Function (map varIdE $ jsArgs arg) (fStmts ++ [ReturnStmt ret])
+    fStmts <- compile $ extractProgram (JS_ . singleton . JS_Return) (m2 arg)
+    return $ Function (map varIdE $ jsArgs arg) fStmts
 
+{-
 compileForeach :: forall a b . (Sunroof a, Sunroof b)
                => JSArray a -> (a -> JS b) -> CompM ([Stmt], Expr)
 compileForeach arr body = do
@@ -130,6 +170,8 @@ compileForeach arr body = do
 
 -- turn an expression into a list of statements, followed by an expression.
 -- allows for CSE inside Expr
+-}
+
 compileExpr :: Expr -> CompM ([Stmt], Expr)
 compileExpr e = do
         opts <- ask
@@ -241,7 +283,6 @@ optExpr opts e = do
                 ], findExpr jsVars dbF start)
 --        return ([],e)
 
-
 compilerLog :: Int -> String -> CompM ()
 compilerLog level msg = do
   opts <- ask
@@ -270,4 +311,11 @@ varIdE :: Expr -> Id
 varIdE e = case e of
   (Var v) -> v
   v -> error $ "varId: Expressions is not a variable: " ++ show v
+
+----------------------------------------------------------------------------------
+
+testA :: (Sunroof a) => JS A a -> IO [Stmt]
+testA m = do
+  (stmts,_) <- compileJS_A def 0 m
+  return stmts
 
