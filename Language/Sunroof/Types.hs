@@ -763,7 +763,7 @@ data JSI :: T -> * -> * where
 
     JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-    JS_Branch :: (JSThread t, Sunroof a, Sunroof bool, t ~ A) => bool -> JS t a -> JS t a  -> JSI t a
+    JS_Branch :: (JSThread t, Sunroof a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
     -- A loop primitive.
     JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b)  -> JSI A ()        -- to visit / generalize later
 
@@ -806,7 +806,7 @@ infixl 1 #
 type instance BooleanOf (JS t a) = JSBool
 
 -- TODO: generalize
-instance (Sunroof a) => IfB (JS A a) where
+instance (JSThread t, Sunroof a) => IfB (JS t a) where
     ifB i h e = JS_ $ singleton $ JS_Branch i h e
 
 switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b, t ~ A) => a -> [(a,JS t b)] -> JS t b
