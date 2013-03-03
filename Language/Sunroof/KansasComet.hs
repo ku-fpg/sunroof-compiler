@@ -23,6 +23,8 @@ module Language.Sunroof.KansasComet where
   , SunroofApp
   ) where
 -}
+
+
 import Data.Aeson.Types ( Value(..), Object, Array )
 import Data.Attoparsec.Number ( Number(..) )
 --import Data.Boolean
@@ -57,7 +59,7 @@ import qualified Web.KansasComet as KC
 
 import Language.Sunroof.Compiler ( compileJS_A, compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.Types
-
+import Language.Sunroof.JavaScript
 
 -- | The 'SunroofEngine' provides the verbosity level and
 --   kansas comet document to the 'SunroofApp'.

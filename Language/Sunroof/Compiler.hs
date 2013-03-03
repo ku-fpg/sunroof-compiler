@@ -5,13 +5,16 @@ module Language.Sunroof.Compiler
 --  ) where
         where
 
+import Language.Sunroof.Types
+import Language.Sunroof.JavaScript
+
 --import qualified Control.Applicative as App
 import Control.Monad.Operational
 import Control.Monad.State
 import Control.Monad.Reader
 --import Data.List (intercalate)
 
-import Language.Sunroof.Types
+
 import Data.Reify
 import Data.Graph
 import Data.Maybe
