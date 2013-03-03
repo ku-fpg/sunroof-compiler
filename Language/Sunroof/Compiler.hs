@@ -95,7 +95,7 @@ compile = eval . view
             e <- compileFunction fun
             compileBind e g
 
-          eval (JS_Branch b c1 c2 :>>= g) = compileBranch_A b c1 c2 g
+          eval (JS_Branch b c1 c2 :>>= g) = compileBranch b c1 c2 g
 
 {-
           eval (JS_Foreach arr body :>>= g) = do
@@ -131,11 +131,11 @@ compileBranch_A b c1 c2 k = do
   (res :: a)   <- newVar
   (src0, res0) <- compileExpr (unbox b)
   src1 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c1
-  src2 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c1
+  src2 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c2
   rest <- compile (k res)
   return ( [VarStmt (varId res) (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
-compileBranch_B :: forall a bool t . (Sunroof bool, JSArgument a, JSThreadReturn t ())
+compileBranch_B :: forall a bool t . (Sunroof bool, JSArgument a, JSThread t)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_B b c1 c2 k = do
   fn_e <- compileFunction (JS_ . k)
@@ -143,10 +143,10 @@ compileBranch_B b c1 c2 k = do
   (fn :: JSFunction a ())   <- newVar
   (src0, res0) <- compileExpr (unbox b)
   src1 <- compile $ extractProgram (apply fn) c1
-  src2 <- compile $ extractProgram (apply fn) c1
+  src2 <- compile $ extractProgram (apply fn) c2
   return ( [VarStmt (varId fn) fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
 
-compileBranch :: forall a bool t . (JSThreadReturn t (), Sunroof bool, Sunroof a, JSArgument a)
+compileBranch :: forall a bool t . (JSThread t, Sunroof bool, Sunroof a, JSArgument a)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch b c1 c2 k = case evalStyle (ThreadProxy :: ThreadProxy t) of
                             A -> compileBranch_A b c1 c2 k

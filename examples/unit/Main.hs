@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeFamilies, ScopedTypeVariables, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings, TypeFamilies, ScopedTypeVariables, RankNTypes, DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ImpredicativeTypes #-}
@@ -46,7 +46,7 @@ import Test.QuickCheck.Property
 import Test.QuickCheck.State ( State( numSuccessTests ) )
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) web_app
+main = sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseDir = ".." }) web_app
 
 default(JSNumber, JSString, String)
 
@@ -64,8 +64,11 @@ web_app doc = do
                 print a
         -}
 
+        let tA = ThreadProxy :: ThreadProxy A
+        let tB = ThreadProxy :: ThreadProxy B
+
         runTests doc
-          [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
+          [ {-Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
           , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
           , Test "Constant Boolean" (checkConstValue doc :: Bool -> Property)
           , Test "Constant String"  (checkConstValue doc :: String -> Property)
@@ -74,6 +77,8 @@ web_app doc = do
           , Test "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
           , Test "Arbitrary Arithmetic" (checkArbitraryArith doc)
           , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
+          , -} Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
+          , Test "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
           ]
         {-
         let assert True msg = return ()
@@ -169,6 +174,21 @@ checkArbitraryBool doc seed = monadicIO $ do
                             (boolExprGen n :: Gen JSBool)
   b' <- run $ sync doc (return e)
   assert $ b == b'
+
+checkArbitraryIfThenElse_Int :: forall t . (JSThread t) => SunroofEngine -> ThreadProxy t -> Int -> Property
+checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
+  let n = (abs seed `mod` 10) + 1
+  (b, e) <- pick $ sameSeed (boolExprGen n :: Gen Bool)
+                            (boolExprGen n :: Gen JSBool)
+  (r1, e1) <- pick $ sameSeed (numExprGen n :: Gen Double)
+                              (numExprGen n :: Gen JSNumber)
+  (r2, e2) <- pick $ sameSeed (numExprGen n :: Gen Double)
+                              (numExprGen n :: Gen JSNumber)
+  pre $ abs r1 < (100000000 :: Double)
+  pre $ abs r2 < (100000000 :: Double)
+  run $ print ("e,e1,e2",e,e1,e2)
+  r12' <- run $ sync doc (ifB e (return e1) (return e2) >>= return :: JS t JSNumber)
+  assert $ (if b then r1 else r2) == r12'
 
 -- -----------------------------------------------------------------------
 -- Test execution

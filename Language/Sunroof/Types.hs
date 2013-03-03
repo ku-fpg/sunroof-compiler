@@ -691,9 +691,11 @@ data T = A | B
 
 data ThreadProxy (t :: T) = ThreadProxy
 
-class JSThread (t :: T) where
+class JSThreadReturn t () => JSThread (t :: T) where
     evalStyle    :: ThreadProxy t -> T
 
+--class JSThreadReturn t () => JSThread' (t :: T) where
+--    evalStyle'    :: ThreadProxy t -> T
 
 instance JSThread A where
     evalStyle _ = A
@@ -701,7 +703,7 @@ instance JSThread A where
 instance JSThread B where
     evalStyle _ = B
 
-class (Sunroof a, JSThread t) => JSThreadReturn (t :: T) a where
+class (Sunroof a) => JSThreadReturn (t :: T) a where
     threadCloser :: a -> Program (JSI t) ()
 
 instance (Sunroof a) => JSThreadReturn A a where
@@ -709,6 +711,7 @@ instance (Sunroof a) => JSThreadReturn A a where
 
 instance JSThreadReturn B () where
     threadCloser () = return ()
+
 
 type JSB a = JS B a
 
@@ -763,7 +766,7 @@ data JSI :: T -> * -> * where
 
     JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-    JS_Branch :: (JSThread t, Sunroof a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
+    JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
     -- A loop primitive.
     JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b)  -> JSI A ()        -- to visit / generalize later
 
@@ -806,10 +809,10 @@ infixl 1 #
 type instance BooleanOf (JS t a) = JSBool
 
 -- TODO: generalize
-instance (JSThread t, Sunroof a) => IfB (JS t a) where
+instance (JSThread t, Sunroof a, JSArgument a) => IfB (JS t a) where
     ifB i h e = JS_ $ singleton $ JS_Branch i h e
 
-switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b, t ~ A) => a -> [(a,JS t b)] -> JS t b
+switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b, JSArgument b, JSThread t) => a -> [(a,JS t b)] -> JS t b
 switch _a [] = return (cast (object "undefined"))
 switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
