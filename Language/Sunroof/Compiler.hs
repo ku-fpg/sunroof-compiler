@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, RankNTypes, KindSignatures, DataKinds, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE GADTs, RankNTypes, KindSignatures, FlexibleContexts, DataKinds, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
 module Language.Sunroof.Compiler
 --  ( compileJS
 --  , CompilerOpts(..)
@@ -95,10 +95,7 @@ compile = eval . view
             e <- compileFunction fun
             compileBind e g
 
-          eval (JS_Branch b c1 c2 :>>= g) = do
-            (branch,res) <- compileBranch_A b c1 c2
-            stmt1 <- compile (g res)
-            return $ branch ++ stmt1
+          eval (JS_Branch b c1 c2 :>>= g) = compileBranch_A b c1 c2 g
 
 {-
           eval (JS_Foreach arr body :>>= g) = do
@@ -127,17 +124,35 @@ compileStatement (stmts0, e) m2 = do
     return (stmts0 ++ stmts , ret)
 -}
 
-compileBranch_A :: forall a bool . (Sunroof a, Sunroof bool)
-              => bool -> JS A a -> JS A a -> CompM ([Stmt],a)
-compileBranch_A b c1 c2 = do
+compileBranch_A :: forall a bool t . (Sunroof a, Sunroof bool)
+              => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
+compileBranch_A b c1 c2 k = do
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
   (res :: a)   <- newVar
   (src0, res0) <- compileExpr (unbox b)
   src1 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c1
   src2 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c1
-  return ( [VarStmt (varId res) (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ], res)
+  rest <- compile (k res)
+  return ( [VarStmt (varId res) (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
-compileFunction :: forall a b t . (JSThread t b, JSArgument a, Sunroof b)
+compileBranch_B :: forall a bool t . (Sunroof bool, JSArgument a, JSThreadReturn t ())
+              => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
+compileBranch_B b c1 c2 k = do
+  fn_e <- compileFunction (JS_ . k)
+  -- TODO: newVar should take a Id, or return an ID. varId is a hack.
+  (fn :: JSFunction a ())   <- newVar
+  (src0, res0) <- compileExpr (unbox b)
+  src1 <- compile $ extractProgram (apply fn) c1
+  src2 <- compile $ extractProgram (apply fn) c1
+  return ( [VarStmt (varId fn) fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
+
+compileBranch :: forall a bool t . (JSThreadReturn t (), Sunroof bool, Sunroof a, JSArgument a)
+              => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
+compileBranch b c1 c2 k = case evalStyle (ThreadProxy :: ThreadProxy t) of
+                            A -> compileBranch_A b c1 c2 k
+                            B -> compileBranch_B b c1 c2 k
+
+compileFunction :: forall a b t . (JSThreadReturn t b, JSArgument a, Sunroof b)
                 => (a -> JS t b)
                 -> CompM Expr
 compileFunction m2 = do

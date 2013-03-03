@@ -683,22 +683,37 @@ value = evaluate
 
 ---------------------------------------------------------------
 
-data A = A  -- Atomic
-data B = B  -- Blocking
+--data A = AX  -- Atomic
+--data B = BX  -- Blocking
 
-class JSThread t a where
-    threadCloser :: (Sunroof a) => a -> Program (JSI t) ()
+data T = A | B
+        deriving (Eq, Ord, Show)
 
-instance (Sunroof a) => JSThread A a where
+data ThreadProxy (t :: T) = ThreadProxy
+
+class JSThread (t :: T) where
+    evalStyle    :: ThreadProxy t -> T
+
+
+instance JSThread A where
+    evalStyle _ = A
+
+instance JSThread B where
+    evalStyle _ = B
+
+class (Sunroof a, JSThread t) => JSThreadReturn (t :: T) a where
+    threadCloser :: a -> Program (JSI t) ()
+
+instance (Sunroof a) => JSThreadReturn A a where
     threadCloser = singleton . JS_Return
 
-instance JSThread B () where
-    threadCloser _ = return ()
+instance JSThreadReturn B () where
+    threadCloser () = return ()
 
 type JSB a = JS B a
 
 -- Control.Monad.Operational makes a monad out of JS for us
-data JS :: * -> * -> * where
+data JS :: T -> * -> * where
 
     JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())              -> JS t a            -- TO CALL JSB
     JS_    :: Program (JSI t) a                                            -> JS t a            -- TO CALL JSA
@@ -732,7 +747,7 @@ instance Monoid (JS t ()) where
         mappend = (<>)
 
 -- define primitive effects / "instructions" for the JS monad
-data JSI :: * -> * -> * where
+data JSI :: T -> * -> * where
 
     -- apply an action to an 'a', and compute a b
 --    JS_App    :: (Sunroof a, Sunroof b) => a -> Action a b      -> JSI b
@@ -746,9 +761,9 @@ data JSI :: * -> * -> * where
     -- Not the same as return; does evaluation of argument
     JS_Eval   :: (Sunroof a) => a                                       -> JSI t a
 
-    JS_Function :: (JSThread t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
+    JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-    JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS A a -> JS A a  -> JSI t a
+    JS_Branch :: (JSThread t, Sunroof a, Sunroof bool, t ~ A) => bool -> JS t a -> JS t a  -> JSI t a
     -- A loop primitive.
     JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b)  -> JSI A ()        -- to visit / generalize later
 
