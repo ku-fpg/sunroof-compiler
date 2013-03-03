@@ -31,6 +31,9 @@
 
         <script type="text/javascript">
             $(document).ready(function() {
+//                  $.kc.register("body","slide",function (t,e,aux) { return { id : "slider", value : aux.value };});
+//                  $.kc.register("body","click",function (t,e,a) { return { id : $(t).attr('id') };});
+
                 $.kc.connect("/ajax");
 
                 $("button").button();
@@ -41,6 +44,9 @@
                         min: 0,
                         max: 25
                 });
+
+//                main();
+
             });
         </script>
     </body>
