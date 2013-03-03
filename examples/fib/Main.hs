@@ -19,45 +19,25 @@ import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser (alert)
 import Language.Sunroof.JS.JQuery
 
+main2 :: IO ()
+main2 = do
+    staticCompiler def "main" prog >>= writeFile "main.js"
+
 main :: IO ()
 main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
   registerEvents (cometDocument doc) "body" (slide <> click)
-  {- Playing with canvas...
-  let getElementById :: JSString -> Action JSObject JSObject
-      getElementById a = method "getElementById" [cast a]
+  async doc prog
 
-  sync doc $ do
-      canvas <- object "document" # getElementById "canvas"
-      context <- canvas # getContext "2d"
-      context # setFillStyle "rgba(0, 0, 255, .5)"
-      context # fillRect (25, 25) (125, 125)
-
-      alert (cast context)
-
-      return ()
-      -}
-  async doc $ do
+prog :: JSB ()
+prog = do
       obj <- new
       obj # attribute "model" := (0 :: JSNumber)
 
       -- This is using the imperative update to enable the
-      let control :: () -> JS ()
-          control () = obj ! "control" `apply` ()
-
-          view :: () -> JS ()
-          view () = obj ! "view" `apply` ()
-
-          addMethod :: (JSArgument a, Sunroof a, Sunroof b) => String -> (a -> JS b) -> JS ()
-          addMethod nm f = do n <- function f
-                              obj # attribute nm := n
-
-          slider :: JSNumber -> Action JSObject JSObject
+      let slider :: JSNumber -> JSObject -> JSB JSObject
           slider nm = method "slider"  ("value" :: JSString, nm)
 
-          fib :: JSNumber -> JS JSNumber
-          fib n = obj ! "fib" `apply` n
-
-          update :: String -> JSNumber -> JSNumber -> JSNumber -> JS ()
+          update :: String -> JSNumber -> JSNumber -> JSNumber -> JSB ()
           update nm val mn mx =
               ifB ((val <=* mx) &&* (val >=* mn))
                   (obj # attribute nm := val)
@@ -71,29 +51,27 @@ main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc 
               (return (1 :: JSNumber))
               (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
 
-      addMethod "control" $ \ () ->
-          wait "body" (slide <> click) $ \ res -> do
-              model <- evaluate (obj ! "model") :: JS JSNumber
+      loopJS $ do
+          res <- wait "body" (slide <> click)
+          model <- evaluate (obj ! "model") :: JSB JSNumber
 
-              switchB (res ! "id" :: JSString)
+          switchB (res ! "id" :: JSString)
                   [ ("slider", update "model" (res ! "value") 0 25)
                   , ("up"    , update "model" (model + 1)     0 25)
                   , ("down"  , update "model" (model - 1)     0 25)
                   , ("reset" , update "model" 0               0 25)
                   ] $ return ()
 
-              view ()
-
-      addMethod "view" $ \ () -> do
-          model <- evaluate (obj ! "model") :: JS JSNumber
+          model <- evaluate (obj ! "model") :: JSB JSNumber
           jQuery "#slider"  >>= slider (cast model)
-          jQuery "#fib-out" >>= html ("fib " <> cast model <> "...")
-          res <- apply fib model
-          jQuery "#fib-out" >>= html ("fib " <> cast model <> " = " <> cast res)
-          control ()
+          liftJS $ do
+                jQuery "#fib-out" >>= html ("fib " <> cast model <> "...")
+                res <- apply fib model
+                jQuery "#fib-out" >>= html ("fib " <> cast model <> " = " <> cast res)
+                return ()
 
-      control ()
-  return ()
+      return ()
+
 
 default(JSNumber, JSString, String)
 
@@ -112,7 +90,7 @@ click = event "click" Click
             <&> "pageX"   .=  "event.pageX"
             <&> "pageY"   .=  "event.pageY"
 
-recfunction :: (JSArgument a, Sunroof b) => ((a -> JS b) -> (a -> JS b)) -> JS (JSFunction a b)
+recfunction :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> JS t (JSFunction a b)
 recfunction fn = do
         obj <- new
         f <- function $ fn (\ n -> obj # method "rec" n)
