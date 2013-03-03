@@ -68,7 +68,7 @@ web_app doc = do
         let tB = ThreadProxy :: ThreadProxy B
 
         runTests doc
-          [ {-Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
+          [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
           , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
           , Test "Constant Boolean" (checkConstValue doc :: Bool -> Property)
           , Test "Constant String"  (checkConstValue doc :: String -> Property)
@@ -77,7 +77,7 @@ web_app doc = do
           , Test "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
           , Test "Arbitrary Arithmetic" (checkArbitraryArith doc)
           , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
-          , -} Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
+          , Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
           , Test "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
           ]
         {-
