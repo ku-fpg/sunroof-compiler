@@ -646,17 +646,22 @@ data JSI :: T -> * -> * where
 
 ---------------------------------------------------------------
 
--- | We can compile A-tomic function, or B-lockable functions that return ().
+-- | We can compile A-tomic functions.
 
 function :: (JSArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
-function = JS_ . singleton . JS_Function
+function = function'
 
 -- | We can compile B-lockable functions that return ().
 -- Note that, with the 'B'-style threads, we return from a call at the first block,
 -- not at completion of the call.
 
 continuation :: (JSArgument a) => (a -> JS B ()) -> JS t (JSFunction a ())
-continuation = JS_ . singleton . JS_Function
+continuation = function'
+
+-- The generalization of function and continuation.
+
+function' :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
+function' = JS_ . singleton . JS_Function
 
 infixl 1 `apply`
 

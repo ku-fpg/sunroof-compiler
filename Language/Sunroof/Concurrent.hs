@@ -17,3 +17,12 @@ loopJS m = do
     writeJSRef v f
     apply f ()  -- and call the function
     return ()
+
+
+-- Returns the thread id.
+
+forkJS :: JSThread t => JS t () -> JS t2 ()
+forkJS m = do
+        f <- function' $ \ () -> m
+        liftJS $ window # setTimeout f 0
+        return ()
