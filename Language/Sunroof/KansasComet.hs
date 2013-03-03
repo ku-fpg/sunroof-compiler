@@ -53,7 +53,7 @@ import Web.KansasComet
   )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Compiler ( compileJS_A, CompilerOpts(..) )
+import Language.Sunroof.Compiler ( compileJS_A, compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.Types
 
 -- | The 'SunroofEngine' provides the verbosity level and
@@ -88,12 +88,12 @@ compileLog engine src = do
 
 
 -- | Compile js using unique variables each time.
-compileRequest :: SunroofEngine -> JS A () -> IO String
+compileRequest :: SunroofEngine -> JS t () -> IO String
 compileRequest engine jsm = do
   -- Allocate a standard amount of uniq for compilation
   uq <- docUniqs compileUniqAlloc (cometDocument engine)
   -- Compile
-  (stmts, uq') <- compileJS_A (compilerOpts engine) uq jsm
+  (stmts, uq') <- compileJSI (compilerOpts engine) uq $ extractProgram return jsm
   -- Check if the allocated amount was sufficient
   let txt = unlines $ fmap showStmt stmts
 
@@ -106,13 +106,13 @@ compileRequest engine jsm = do
       -- Allocate all that are needed
       newUq <- docUniqs (uq' - uq) (cometDocument engine)
       -- Compile again
-      (stmts', _) <- compileJS_A (compilerOpts engine) newUq jsm
+      (stmts', _) <- compileJSI (compilerOpts engine) newUq $ extractProgram return jsm
       let txt' = unlines $ fmap showStmt stmts'
       compileLog engine txt'
       return txt'
 
 -- | Executes the Javascript in the browser without waiting for a result.
-async :: SunroofEngine -> JS A () -> IO ()
+async :: SunroofEngine -> JS t () -> IO ()
 async engine jsm = do
   src <- compileRequest engine jsm
   send (cometDocument engine) src  -- send it, and forget it
@@ -139,7 +139,7 @@ rsync engine jsm = do
 --   The result value is given the corresponding Haskell type,
 --   if possible (see 'SunroofResult').
 
-sync :: forall a t . (SunroofResult a,t ~ A) => SunroofEngine -> JS t a -> IO (ResultOf a)
+sync :: forall a t . (SunroofResult a) => SunroofEngine -> JS t a -> IO (ResultOf a)
 sync engine jsm | typeOf (error "witness" :: a) == Unit = do
   _ <- sync engine (jsm >> return (0 :: JSNumber))
   return $ jsonToValue (Proxy :: Proxy a) Null
