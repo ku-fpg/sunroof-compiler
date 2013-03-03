@@ -97,13 +97,11 @@ compile = eval . view
 
           eval (JS_Branch b c1 c2 :>>= g) = compileBranch b c1 c2 g
 
-{-
           eval (JS_Foreach arr body :>>= g) = do
             loop <- compileForeach arr body
-            compileStatement loop (JS_ . g)
-          -- or we're done already
-          eval (Return b) = compileExpr (unbox b)
--}
+            rest <- compile (g ())
+            return (loop ++ rest)
+
 
 
 compileBind :: (Sunroof a)
@@ -160,32 +158,32 @@ compileFunction m2 = do
     fStmts <- compile $ extractProgram (JS_ . threadCloser) (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) fStmts
 
-{-
-compileForeach :: forall a b . (Sunroof a, Sunroof b)
-               => JSArray a -> (a -> JS b) -> CompM ([Stmt], Expr)
-compileForeach arr body = do
+compileForeach :: forall a b t . (JSThread t, Sunroof a, Sunroof b)
+               => JSArray a -> (a -> JS t b) -> CompM [Stmt]
+compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
   (counter :: JSNumber) <- newVar
   -- Introduce a new name for the array, so a possible literal array
   -- is not reprinted for each access.
   (arrVar :: JSArray a) <- newVar
-  (condStmts, condRet) <- compile $ do
-    return $ counter <* (cast arrVar ! attribute "length")
-  (bodyStmts, bodyRet) <- compile $ do
+
+  let condRet = unbox (counter <* (cast arrVar ! attribute "length"))
+  bodyStmts <- compile $ extractProgram (const $ return ()) $ do
     _ <- body (cast arrVar ! label (cast counter))
     return ()
   let incCounterStmts =
-        [ VarStmt (varId counter) (unbox (counter + 1 :: JSNumber)) ]
+        [ AssignStmt_ (unbox counter) (unbox (counter + 1 :: JSNumber)) ]
       loopStmts =
         [ VarStmt (varId counter) (unbox (0 :: JSNumber))
-        , VarStmt (varId arrVar)  (unbox arr) ]
-        ++ condStmts ++
+        , VarStmt (varId arrVar)  (unbox arr)
         -- Recalculate the condition, in case the loop changed it.
-        [ WhileStmt (condRet) (bodyStmts ++ condStmts ++ incCounterStmts) ]
-  return (loopStmts, bodyRet)
+        , WhileStmt (condRet) (bodyStmts ++ incCounterStmts) ]
+  return loopStmts
+
+box2 :: JSBool -> Expr
+box2 = undefined
 
 -- turn an expression into a list of statements, followed by an expression.
 -- allows for CSE inside Expr
--}
 
 compileExpr :: Expr -> CompM ([Stmt], Expr)
 compileExpr e = do
