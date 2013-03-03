@@ -631,7 +631,6 @@ infixl 1 !
 
 infix  5 :=
 
-
 type Action a r = a -> JS A r
 
 ---------------------------------------------------------------
@@ -770,7 +769,7 @@ data JSI :: T -> * -> * where
     JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b)  -> JSI A ()        -- to visit / generalize later
 
     -- syntaxtical return in javascript; only used in code generator for now.
-    JS_Return  :: (Sunroof a) => a                                      -> JSI A ()      -- literal return
+    JS_Return  :: (Sunroof a) => a                                      -> JSI t ()      -- literal return
     JS_Assign_ :: (Sunroof a) => Id -> a                                -> JSI t ()     -- a classical effect
                         -- TODO: generalize Assign[_] to have a RHS
 
@@ -827,3 +826,72 @@ instance Monad JSB where
 
 type JSA a = JS A a
 type JSB a = JS B a
+
+---------------------------------------------------------------
+
+         --  ((a -> M ()) -> M ()) -> JS t a
+--continue :: ((forall a . (JSArgument a) => a -> JS B ()) -> JS B ()) -> JS B ()
+--continue f = JS $ \ k -> down (undefined) -- f (down . k))
+
+-- Implementation of goto and callCC from
+--   http://stackoverflow.com/questions/9050725/call-cc-implementation
+--
+goto :: (x ~ ()) => (a -> Program (JSI B) ()) -> a -> JS B x
+goto continuation argument = JS $ \ _ -> continuation argument
+
+--callCC :: ((a -> JS 'B x) -> JS 'B a) -> JS 'B a
+callcc :: (x ~ ()) => ((a -> JS 'B x) -> JS 'B a) -> JS 'B a
+callcc f = JS $ \ cc -> unJS (f (goto cc)) cc
+
+-- this one discards its
+callcc' :: ((a -> JS 'B ()) -> JS 'B ()) -> JS 'B a
+callcc' f = JS $ \ cc -> unJS (f (goto cc)) return
+
+-- | reify the current contination as a JavaScript function.
+-- unlike callcc, captures then discards the continuation.
+
+reifyccJS :: JSArgument a => (JSFunction a () -> JS B a) -> JS B a
+reifyccJS f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
+                                    f o
+                               ) (\ _ -> return ())
+
+
+-----------------------------------------------------------------
+--Utilties for B
+
+-- | This is the IORef of Sunroof.
+newtype JSRef a = JSRef JSObject
+
+newJSRef :: (Sunroof a) => a -> JS t (JSRef a)
+newJSRef a = do
+        obj <- new
+        obj # "val" := a
+        return $ JSRef obj
+
+-- | This a a non-blocking read
+readJSRef :: (Sunroof a) => JSRef a -> JS t a
+readJSRef (JSRef obj) = evaluate $ obj ! "val"
+
+-- | This a a non-blocking write
+writeJSRef :: (Sunroof a) => JSRef a -> a -> JS t ()
+writeJSRef (JSRef obj) a = obj # "val" := a
+
+modifyJSRef :: (Sunroof a) => JSRef a -> (a -> JS A a) -> JS A ()
+modifyJSRef ref f = do
+        val <- readJSRef ref
+        f val >>= writeJSRef ref
+
+-----------------------------------------------------------------
+--
+
+nullJS :: JSObject
+nullJS = box $ Lit "null"
+
+-----------------------------------------------------------------
+--
+-- This is hacked right now
+liftJS :: (Sunroof a) => JS A a -> JS t a
+liftJS m = do
+        o <- function (\ () -> m)
+        apply o ()
+

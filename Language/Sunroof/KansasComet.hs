@@ -4,6 +4,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RankNTypes #-}
+
 
 module Language.Sunroof.KansasComet where
 {-
@@ -55,6 +57,7 @@ import qualified Web.KansasComet as KC
 
 import Language.Sunroof.Compiler ( compileJS_A, compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.Types
+
 
 -- | The 'SunroofEngine' provides the verbosity level and
 --   kansas comet document to the 'SunroofApp'.
@@ -154,15 +157,21 @@ sync engine jsm = do
 
 -- | wait passes an event to a continuation, once. You need
 -- to re-register each time.
-{-
-wait :: Scope -> Template event -> (JSObject -> JS B ()) -> JS B ()
-wait scope tmpl k = do
-        o <- function k
+
+
+--up :: Program (JSI t) () -> JS B ()
+--up = undefined
+
+--  ((a -> Program (JSI t) ()) -> Program (JSI t) ())
+
+wait :: Scope -> Template event -> JS B JSObject
+wait scope tmpl = reifyccJS $ \ o -> do
         apply (call "$.kc.waitFor") ( string scope
                                     , object (show (map fst (extract tmpl)))
                                     , o
                                     )
--}
+
+
 
 -- -----------------------------------------------------------------------
 -- Default Server Instance
