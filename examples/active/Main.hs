@@ -105,9 +105,9 @@ example doc = do
           printFixed "#time" 2 tm
           apply f tm
 
-  forkJS $ loopJSB $ do
-          res <- blockJSB (wait "body" (slide <> click))
-          liftJSB $ do
+  forkJS $ loopJS $ do
+          res <- wait "body" (slide <> click)
+          liftJS $ do
              val :: JSNumber <- evaluate (res ! "value")
              let nm = val / mul
              paint nm
@@ -294,7 +294,7 @@ lineP (x0,y0) (x1,y1) = \ c -> do
 --foreverJS =
 ------------------------------------------------------------------
 -- Exeriment with new monad
-
+{-
 forkJS :: JSB () -> JS A ()
 forkJS (JSB m) = do
     f <- function $ \ () -> m return
@@ -342,3 +342,5 @@ liftJSB m = JSB $ \ k -> do
 
 blockJSB :: ((JSObject -> JS A ()) -> JS A ()) -> JSB JSObject
 blockJSB m = JSB m
+
+-}
