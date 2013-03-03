@@ -137,12 +137,12 @@ compileBranch_A b c1 c2 = do
   src2 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c1
   return ( [VarStmt (varId res) (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ], res)
 
-compileFunction :: forall a b . (JSArgument a, Sunroof b)
+compileFunction :: forall a b t . (JSArgument a, Sunroof b)
                 => (a -> JS A b)
                 -> CompM Expr
 compileFunction m2 = do
     (arg :: a) <- jsValue
-    fStmts <- compile $ extractProgram (JS_ . singleton . JS_Return) (m2 arg)
+    fStmts <- compile $ extractProgram (JS_ . threadCloser) (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) fStmts
 
 {-

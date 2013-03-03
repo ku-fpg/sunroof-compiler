@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, DataKinds, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE OverloadedStrings, GADTs, MultiParamTypeClasses, ScopedTypeVariables, RankNTypes, DataKinds, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Language.Sunroof.Types where
@@ -683,16 +683,22 @@ value = evaluate
 
 ---------------------------------------------------------------
 
-data T      -- Threadery
-       = A  -- Atomic
-       | B  -- Blocking
+data A = A  -- Atomic
+data B = B  -- Blocking
 
-data X (a :: T) = X
+class JSThread t a where
+    threadCloser :: (Sunroof a) => a -> Program (JSI t) ()
+
+instance (Sunroof a) => JSThread A a where
+    threadCloser = singleton . JS_Return
+
+instance JSThread B () where
+    threadCloser _ = return ()
 
 type JSB a = JS B a
 
 -- Control.Monad.Operational makes a monad out of JS for us
-data JS :: T -> * -> * where
+data JS :: * -> * -> * where
 
     JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())              -> JS t a            -- TO CALL JSB
     JS_    :: Program (JSI t) a                                            -> JS t a            -- TO CALL JSA
@@ -726,7 +732,7 @@ instance Monoid (JS t ()) where
         mappend = (<>)
 
 -- define primitive effects / "instructions" for the JS monad
-data JSI :: T -> * -> * where
+data JSI :: * -> * -> * where
 
     -- apply an action to an 'a', and compute a b
 --    JS_App    :: (Sunroof a, Sunroof b) => a -> Action a b      -> JSI b
