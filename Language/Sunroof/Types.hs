@@ -746,7 +746,7 @@ data JSI :: * -> * -> * where
     -- Not the same as return; does evaluation of argument
     JS_Eval   :: (Sunroof a) => a                                       -> JSI t a
 
-    JS_Function :: (JSArgument a, Sunroof b) => (a -> JS A b)           -> JSI t (JSFunction a b)
+    JS_Function :: (JSThread t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
     JS_Branch :: (Sunroof a, Sunroof bool) => bool -> JS A a -> JS A a  -> JSI t a
     -- A loop primitive.
@@ -761,7 +761,7 @@ data JSI :: * -> * -> * where
 
 -- We only can compile functions that do not have interesting return
 -- values, so we can assume they are continuation-like things.
-function :: (JSArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
+function :: (JSThread t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
 function = JS_ . singleton . JS_Function
 
 infixl 1 `apply`
