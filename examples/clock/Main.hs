@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings, TypeFamilies, DataKinds #-}
 
 module Main where
 
@@ -24,7 +24,7 @@ import Language.Sunroof.JS.Browser hiding ( eval )
 import Language.Sunroof.JS.JQuery
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) 
+main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." })
      $ \doc -> async doc clockJS
 
 default(JSNumber, JSString, String)
@@ -32,8 +32,9 @@ default(JSNumber, JSString, String)
 type instance BooleanOf () = JSBool
 
 -- TODO: Would be neat to create JS functions with more then one parameter.
-clockJS :: JS ()
+clockJS :: JS A ()
 clockJS = do
+
   -- Renders a single line (with number) of the clock face.
   renderClockFaceLine <- function $ \(c, u, n) -> do
     c # save
@@ -56,7 +57,7 @@ clockJS = do
           c # fillText (cast $ n `div` 5) (0, 0)
         ) (return ())
     c # restore
-  
+
   -- Renders a single clock pointer.
   renderClockPointer <- function $ \(c, u, angle, width, len) -> do
     c # save
@@ -126,25 +127,25 @@ clockJS = do
 
   return ()
 
-canvas :: JS JSObject
+canvas :: JS A JSObject
 canvas = document # getElementById "canvas"
 
-context :: JS JSObject
+context :: JS A JSObject
 context = canvas >>= getContext "2d"
 
-clockUnit :: JS JSNumber
+clockUnit :: JS A JSNumber
 clockUnit = do
   (w, h) <- canvasSize
   return $ (maxB w h) / 2
 
-canvasSize :: JS (JSNumber, JSNumber)
+canvasSize :: JS A (JSNumber, JSNumber)
 canvasSize = do
   c <- jQuery "#canvas"
   w <- c # method "innerWidth" ()
   h <- c # method "innerHeight" ()
   return (w, h)
 
-currentTime :: JS (JSNumber, JSNumber, JSNumber)
+currentTime :: JS A (JSNumber, JSNumber, JSNumber)
 currentTime = do
   date <- evaluate $ object "new Date()"
   h <- date # method "getHours" ()
