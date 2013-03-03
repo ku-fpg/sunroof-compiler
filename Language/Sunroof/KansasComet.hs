@@ -148,6 +148,8 @@ sync engine jsm = do
   up <- newUplink engine
   src <- compileRequest engine (jsm >>= putUplink up)
   send (cometDocument engine) src
+  -- There is *no* race condition in here. If no-one is listening,
+  -- then the numbered event gets queued up.
   getUplink up
 
 -- | wait passes an event to a continuation, once. You need
@@ -356,6 +358,7 @@ newUplink :: SunroofEngine -> IO (Uplink a)
 newUplink eng = do
         u <- docUniq (cometDocument eng)
         return $ Uplink eng u
+
 putUplink :: (Sunroof a) => Uplink a -> a -> JS t ()
 putUplink (Uplink _ u) a = kc_reply (js u) a
 
@@ -365,6 +368,16 @@ getUplink (Uplink eng u) = do
         -- TODO: make this throw an exception if it goes wrong (I supose error does this already)
         return $ jsonToValue (Proxy :: Proxy a) val
 
+data Downlink a = Downlink SunroofEngine Int
+
+newDownlink :: SunroofEngine -> IO (Downlink a)
+newDownlink eng = do undefined
+
+putDownlink :: (Sunroof a) => Downlink a -> a -> IO ()
+putDownlink = undefined
+
+getDownlink :: forall a . (SunroofResult a) => Downlink a -> JS B (ResultOf a)
+getDownlink = undefined
 
 -------------------------------------------------------------------------------------------
 -- This belongs in KansasComet
