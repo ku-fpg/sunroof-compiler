@@ -32,6 +32,12 @@ data CompilerOpts = CompilerOpts
 instance Default CompilerOpts where
         def = CompilerOpts True False False 0
 
+
+staticCompiler :: CompilerOpts -> String -> JS t () -> IO String
+staticCompiler opts fName js = do
+    (stmts,_) <- compileJSI opts 0 $ extractProgram return js
+    return $ showStmt $ VarStmt fName $ Function [] stmts
+
 compileJS_A :: (Sunroof a) => CompilerOpts -> Uniq -> JS A a -> IO ([Stmt], Uniq)
 compileJS_A opts uq = compileJSI opts uq . extractProgram (JS_ . singleton . JS_Return)
 
