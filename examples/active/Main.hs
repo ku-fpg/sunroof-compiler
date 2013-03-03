@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds #-}
 
 module Main where
 
@@ -35,7 +36,7 @@ main = sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseD
         registerEvents (cometDocument doc) "body" (slide <> click)
         async doc (example doc)
 
-example :: SunroofEngine -> JS ()
+example :: SunroofEngine -> JS A ()
 example doc = do
   canvas <- document # getElementById "canvas"
   c <- canvas # getContext "2d"
@@ -66,8 +67,8 @@ example doc = do
   date            <- evaluate $ object "new Date()"
   tm0 :: JSNumber <- date # method "getTime" ()
 
-  jQuery "#slider" >>= method "slider" ("option" :: JSString, "min" :: JSString, s * mul :: JSNumber) :: JS ()
-  jQuery "#slider" >>= method "slider" ("option" :: JSString, "max" :: JSString, e * mul :: JSNumber) :: JS ()
+  jQuery "#slider" >>= method "slider" ("option" :: JSString, "min" :: JSString, s * mul :: JSNumber) :: JS A ()
+  jQuery "#slider" >>= method "slider" ("option" :: JSString, "max" :: JSString, e * mul :: JSNumber) :: JS A ()
 
 {-
   n <- new
@@ -131,7 +132,7 @@ switchB tag ((a,b):xs) = ifB (tag ==* a) b (switchB tag xs)
 --  n # "callsign" := v
 
 
-printFixed :: JSString -> JSNumber -> JSNumber -> JS ()
+printFixed :: JSString -> JSNumber -> JSNumber -> JS A ()
 printFixed tag prec val = do
         val' <- cast val # method "toFixed" prec
         jQuery tag >>= text val'
@@ -160,7 +161,7 @@ wobbleA speed = (\ (t :: JSNumber) -> sin ((t * speed) `N.mod` (pi * 2))) <$> ui
 translateWA :: JSNumber -> Active JSTime Painting
 translateWA n = (\ a b -> translate (a,b)) <$> wobbleA (n*7) <*> wobbleA (n*13)
 
-type Painting = JSObject -> JS ()
+type Painting = JSObject -> JS A ()     -- painting does not block
 
 {-
 arcA :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
@@ -294,7 +295,7 @@ lineP (x0,y0) (x1,y1) = \ c -> do
 ------------------------------------------------------------------
 -- Exeriment with new monad
 
-forkJS :: JSB () -> JS ()
+forkJS :: JSB () -> JS A ()
 forkJS (JSB m) = do
     f <- function $ \ () -> m return
     window # setTimeout f 0
@@ -334,10 +335,10 @@ instance Monad JSB where
         return a = JSB $ \ k -> k a
         (JSB m) >>= k = JSB $ \ k0 -> m (\ a -> unJSB (k a) k0)
 -}
-liftJSB :: JS a -> JSB a
+liftJSB :: JS A a -> JSB a
 liftJSB m = JSB $ \ k -> do
         r <- m
         k r
 
-blockJSB :: ((JSObject -> JS ()) -> JS ()) -> JSB JSObject
+blockJSB :: ((JSObject -> JS A ()) -> JS A ()) -> JSB JSObject
 blockJSB m = JSB m
