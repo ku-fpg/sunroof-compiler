@@ -19,10 +19,21 @@ loopJS m = do
     return ()
 
 
--- Returns the thread id.
-
 forkJS :: JSThread t => JS t () -> JS t2 ()
 forkJS m = do
         f <- function' $ \ () -> m
         liftJS $ window # setTimeout f 0
         return ()
+
+
+threadDelayJSB :: JSNumber -> JSB ()
+threadDelayJSB n = reifyccJS $ \ o -> do
+        liftJS $ window # setTimeout o n
+        return ()
+
+yieldJSB :: JSB ()
+yieldJSB = threadDelayJSB 0
+
+-- break out of the JSB
+stopJSB :: JSB ()
+stopJSB = reifyccJS $ \ _ -> return ()
