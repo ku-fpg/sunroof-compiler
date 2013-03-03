@@ -71,7 +71,7 @@ main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc 
     println "Window Size" $ show theOuterWidth <> " x " <> show theOuterHeight
     println "Viewport Size" $ show theInnerWidth <> " x " <> show theInnerHeight
 
-println :: (Show a, Eq a) => JSString -> a -> JS ()
+println :: (Show a, Eq a) => JSString -> a -> JSA ()
 println name val = do
   let valStr = show val
   let val' = if valStr == "" then "&lt;EMPTY&gt;" else valStr
