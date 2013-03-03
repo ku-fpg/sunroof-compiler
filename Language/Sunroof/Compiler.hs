@@ -83,6 +83,11 @@ compile = eval . view
                   (stmts0,val) <- compileExpr (unbox e)
                   return ( stmts0 ++ [ ReturnStmt val])
 
+          -- All assignments to () are not done.
+          eval (JS_Assign_ var a :>>= g) | typeOf a == Unit = do
+            stmts1 <- compile (g ())
+            return stmts1
+
           eval (JS_Assign_ var a :>>= g) = do
             (stmts0,val) <- compileExpr (unbox a)
             stmts1 <- compile (g ())
