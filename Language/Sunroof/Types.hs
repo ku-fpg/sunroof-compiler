@@ -713,7 +713,6 @@ instance JSThreadReturn B () where
     threadCloser () = return ()
 
 
-type JSB a = JS B a
 
 -- Control.Monad.Operational makes a monad out of JS for us
 data JS :: T -> * -> * where
@@ -825,3 +824,6 @@ instance Monad JSB where
         return a = JSB $ \ k -> k a
         (JSB m) >>= k = JSB $ \ k0 -> m (\ a -> unJSB (k a) k0)
 -}
+
+type JSA a = JS A a
+type JSB a = JS B a
