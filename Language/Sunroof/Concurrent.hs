@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DataKinds #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, ScopedTypeVariables #-}
 
 module Language.Sunroof.Concurrent where
 
@@ -10,11 +10,14 @@ import Language.Sunroof.JS.Browser(window,setTimeout,alert)
 
 
 
-loopJS :: JSB () -> JSB ()      -- does not terminate
-loopJS m = do
+loopJS :: (Sunroof a) => a -> (a -> JSB a) -> JSB ()      -- does not terminate
+loopJS start m = do
     v <- newJSRef (cast nullJS)
+    s <- newJSRef start
     f <- continuation $ \ () -> do
-            m
+            a <- readJSRef s
+            a' <- m a
+            writeJSRef s a'
             f <- readJSRef v
             liftJS $ window # setTimeout f 0
             return ()
@@ -38,19 +41,25 @@ threadDelayJSB n = reifyccJS $ \ o -> do
 yieldJSB :: JSB ()
 yieldJSB = threadDelayJSB 0
 
--- break out of the JSB
-stopJSB :: JSB ()
-stopJSB = reifyccJS $ \ _ -> return ()
 
-data JSChan a = JSChan (JSArray (JSFunction a ())) (JSArray ())
+data JSChan a = JSChan
+        (JSArray (JSFunction (JSFunction a ()) ()))     -- callbacks of written data
+        (JSArray (JSFunction a ()))                     -- callbacks of waiting readers
+
+newChan :: (JSArgument a) => JS t (JSChan a)
+newChan = do
+        written <- newArray
+        waiting <- newArray
+        return $ JSChan written waiting
 
 
-writeChan :: (JSThread t, JSArgument a) => JSChan a -> a -> JS t ()
-writeChan (JSChan recvs sends) a = do
-        ifB (lengthArray recvs ==* 0)
-            (do alert ("no one listening")
+writeChan :: forall t a . (JSThread t, JSArgument a) => JSChan a -> a -> JS t ()
+writeChan (JSChan written waiting) a = do
+        ifB (lengthArray waiting ==* 0)
+            (do f <- function' $ \ (k :: JSFunction a ()) -> apply k a :: JS B ()
+                written # pushArray (f :: JSFunction (JSFunction a ()) ())
             )
-            (do f <- popArray recvs
+            (do f <- shiftArray waiting
                 apply f a       -- actually runs this thread for a bit.
                                 -- remember, it can block, but the underlying
                                 -- javascript will yield.
@@ -58,11 +67,21 @@ writeChan (JSChan recvs sends) a = do
                                 -- There *is* no blocking, so I think not.
                 return ()
             )
+readChan :: forall a . (Sunroof a, JSArgument a) => JSChan a -> JS B a
+readChan (JSChan written waiting) = do
+        ifB (lengthArray written ==* 0)
+            (do -- Add yourself to the 'waiting for writer' Q.
+                reifyccJS $ \ k -> waiting # pushArray (k :: JSFunction a ())
+            )
+            (do f <- shiftArray written
+                -- Here, we add our continuation into the written Q.
+                reifyccJS $ \ k -> apply f k
+            )
 
 
 {-
 - reading a channel can block
-readChan :: JSChan a -> ThreadedJS a
+
 readChan (JSChan obj) = ThreadedJS $ \ k -> do
         --- first, figure out if there is anything in the queue
         sends :: JSArray JSObject <- evaluate $ obj ! "sends"
