@@ -125,38 +125,30 @@ compileBind :: (Sunroof a)
 compileBind e m2 = do
     a <- newVar
     (stmts0,val) <- compileExpr e
-    stmts1       <- compile (m2 a)
-    return (stmts0 ++ [VarStmt (varId a) val] ++ stmts1)
-{-
--- TODO: inline
-compileStatement :: (Sunroof a, Sunroof b)
-                 => ([Stmt], Expr) -> (a -> JS b) -> CompM ([Stmt], Expr)
-compileStatement (stmts0, e) m2 = do
-    (stmts,ret) <- compile $ m2 (box e)
-    return (stmts0 ++ stmts , ret)
--}
+    stmts1       <- compile (m2 (var a))
+    return (stmts0 ++ [VarStmt a val] ++ stmts1)
 
 compileBranch_A :: forall a bool t . (Sunroof a, Sunroof bool)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_A b c1 c2 k = do
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
-  (res :: a)   <- newVar
+  res          <- newVar
   (src0, res0) <- compileExpr (unbox b)
-  src1 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c1
-  src2 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ (varId res)) c2
-  rest <- compile (k res)
-  return ( [VarStmt (varId res) (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
+  src1 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ res) c1
+  src2 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ res) c2
+  rest <- compile (k (var res))
+  return ( [VarStmt res (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
 compileBranch_B :: forall a bool t . (Sunroof bool, JSArgument a, JSThread t)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_B b c1 c2 k = do
   fn_e <- compileFunction (JS_ . k)
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
-  (fn :: JSFunction a ())   <- newVar
+  fn           <- newVar
   (src0, res0) <- compileExpr (unbox b)
-  src1 <- compile $ extractProgram (apply fn) c1
-  src2 <- compile $ extractProgram (apply fn) c2
-  return ( [VarStmt (varId fn) fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
+  src1 <- compile $ extractProgram (apply (var fn)) c1
+  src2 <- compile $ extractProgram (apply (var fn)) c2
+  return ( [VarStmt fn fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
 
 compileBranch :: forall a bool t . (JSThread t, Sunroof bool, Sunroof a, JSArgument a)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
@@ -172,32 +164,27 @@ compileFunction m2 = do
     fStmts <- compile $ extractProgram (JS_ . threadCloser) (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) fStmts
 
+
 compileForeach :: forall a b t . (JSThread t, Sunroof a, Sunroof b)
                => JSArray a -> (a -> JS t b) -> CompM [Stmt]
 compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
-  (counter :: JSNumber) <- newVar
+  counter <- newVar
   -- Introduce a new name for the array, so a possible literal array
   -- is not reprinted for each access.
-  (arrVar :: JSArray a) <- newVar
+  arrVar <- newVar
 
-  let condRet = unbox (counter <* (cast arrVar ! attribute "length"))
+  let condRet = unbox ((var counter :: JSNumber) <* ((cast (var arrVar :: JSArray a) ! attribute "length") :: JSNumber) :: JSBool)
   bodyStmts <- compile $ extractProgram (const $ return ()) $ do
-    _ <- body (cast arrVar ! label (cast counter))
+    _ <- body (cast (var arrVar :: JSArray a) ! label (cast (var counter :: JSNumber)))
     return ()
-  let incCounterStmts =
-        [ AssignStmt_ (unbox counter) (unbox (counter + 1 :: JSNumber)) ]
+  let incCounterStmts = []
+--        [ AssignStmt_ (var counter) (unbox (var counter + 1 :: JSNumber)) ]
       loopStmts =
-        [ VarStmt (varId counter) (unbox (0 :: JSNumber))
-        , VarStmt (varId arrVar)  (unbox arr)
+        [ VarStmt counter (unbox (0 :: JSNumber))
+        , VarStmt arrVar  (unbox arr)
         -- Recalculate the condition, in case the loop changed it.
         , WhileStmt (condRet) (bodyStmts ++ incCounterStmts) ]
   return loopStmts
-
-box2 :: JSBool -> Expr
-box2 = undefined
-
--- turn an expression into a list of statements, followed by an expression.
--- allows for CSE inside Expr
 
 compileExpr :: Expr -> CompM ([Stmt], Expr)
 compileExpr e = do
@@ -328,11 +315,14 @@ instance UniqM CompM where
     modify (+1)
     return n
 
-newVar :: (Sunroof a) => CompM a
-newVar = jsVar
+newVar :: CompM Id
+newVar = uniqM >>= return . ("v" ++) . show
 
-varId :: Sunroof a => a -> Id
-varId = varIdE . unbox
+--varId :: Sunroof a => a -> Id
+--varId = varIdE . unbox
+
+var :: Sunroof a => Id -> a
+var = box . Var
 
 varIdE :: Expr -> Id
 varIdE e = case e of
