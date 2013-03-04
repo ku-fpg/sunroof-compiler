@@ -58,7 +58,7 @@ class Show a => Sunroof a where
 instance Sunroof () where
 --        showVar _ = ""
         box _ = ()
-        unbox () = Var ""
+        unbox () = Var "null"
         typeOf _ = Unit
 
 ---------------------------------------------------------------
