@@ -744,6 +744,10 @@ reifyccJS f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
                                ) (\ _ -> return ())
 
 
+abortJS :: JS B a
+abortJS = JS $ \ cc -> return ()
+
+
 -----------------------------------------------------------------
 --Utilties for B
 
