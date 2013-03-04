@@ -202,7 +202,7 @@ optExpr opts e = do
 
         Graph g start <- liftIO $ reifyGraph (ExprE e)
 
-        liftIO $ print (g,start)
+--        liftIO $ print (g,start)
 
         let db0 = Map.fromList [ (n,Inst e) | (n,e) <- g ]
 
