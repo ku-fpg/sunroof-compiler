@@ -27,8 +27,10 @@ import Web.Scotty (scotty, middleware)
 import Web.KansasComet hiding ( abort )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof
+import Language.Sunroof as SR
 import Language.Sunroof.JS.JQuery (jQuery)
+import qualified Language.Sunroof.JS.Browser as B
+
 
 import System.Random
 import System.IO
@@ -67,7 +69,7 @@ web_app doc = do
         let tA = ThreadProxy :: ThreadProxy A
         let tB = ThreadProxy :: ThreadProxy B
 
-        runTests doc
+        runTests doc $ drop 0 $
           [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
           , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
           , Test "Constant Boolean" (checkConstValue doc :: Bool -> Property)
@@ -79,6 +81,7 @@ web_app doc = do
           , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
           , Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
           , Test "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
+          , Test "Chan's"                     (checkArbitraryChan_Int doc)
           ]
         {-
         let assert True msg = return ()
@@ -186,9 +189,48 @@ checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
                               (numExprGen n :: Gen JSNumber)
   pre $ abs r1 < (100000000 :: Double)
   pre $ abs r2 < (100000000 :: Double)
-  run $ print ("e,e1,e2",e,e1,e2)
+--  run $ print ("e,e1,e2",e,e1,e2)
   r12' <- run $ sync doc (ifB e (return e1) (return e2) >>= return :: JS t JSNumber)
   assert $ (if b then r1 else r2) == r12'
+
+
+checkArbitraryChan_Int :: SunroofEngine -> Int -> Property
+checkArbitraryChan_Int doc seed = monadicIO $ do
+  let n = (abs seed `mod` 10) + 1
+  arr1 :: [Int] <- fmap (fmap abs . fmap (`mod` 100)) $ pick $ vector 10
+  arr2 :: [Int] <- fmap (fmap abs . fmap (`mod` 100)) $ pick $ vector 10
+  dat  :: [Int] <- fmap (fmap abs . fmap (`mod` 100)) $ pick $ vector 10
+  run $ print ("arr1",arr1,arr2,dat)
+  let prog :: JS B (JSArray JSNumber)
+      prog = do
+          note :: JSArray JSBool <- newArray
+          ch <- SR.newChan
+          forkJS $ sequence_ [ do threadDelayJSB (js x)
+                                  note # pushArray true
+                                  SR.writeChan ch (js y :: JSNumber)
+                             | (x,y) <- arr1 `zip` dat
+                             ]
+          arr :: JSArray JSNumber <- newArray
+          sequence_ [ do threadDelayJSB (js x)
+                         note # pushArray false
+                         z <- SR.readChan ch
+                         arr # pushArray z
+                    | x <- arr2
+                    ]
+
+{-
+          -- debugging Glyph; perhaps send to Haskell-land,
+          -- or somehow print on the screen?
+          B.console # B.log (mconcat [ ifB (lookupArray (js n :: JSNumber) note)
+                                                (">"::JSString)
+                                                "<"
+                                     | n <- [0..19::Int]
+                                     ])
+-}
+          return arr
+  res :: [Double] <- run $ sync doc prog
+  run $ print ("res",res)
+  assert $ map round res == dat
 
 -- -----------------------------------------------------------------------
 -- Test execution
