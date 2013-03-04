@@ -688,6 +688,12 @@ foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b) -> JS A ()
 foreach arr body = JS_ $ singleton $ JS_Foreach arr body
 
 infixl 1 #
+forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
+forEach body arr = do
+        f <- function body
+        method "forEach" f (cast arr) :: JS t ()
+        return ()
+
 
 -- We should use this operator for the obj.label concept.
 -- It has been used in other places (but I can not seems
