@@ -58,7 +58,7 @@ class Show a => Sunroof a where
 instance Sunroof () where
 --        showVar _ = ""
         box _ = ()
-        unbox () = Var "null"
+        unbox () = Lit "null"
         typeOf _ = Unit
 
 ---------------------------------------------------------------
@@ -203,7 +203,7 @@ instance Show (JSFunction a r) where
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
         box = JSFunction
         unbox (JSFunction e) = e
-        typeOf _ = Fun (length (jsArgs (undefined :: a)))
+        typeOf _ = Fun (length (jsArgs (error "instance Sunroof JSFunction" :: a)))
 
 type instance BooleanOf (JSFunction a r) = JSBool
 
@@ -509,7 +509,7 @@ label = JSSelector
 infixl 1 !
 
 (!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (undefined :: a))
+(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (error "(!)" :: a))
 
 ---------------------------------------------------------------
 
@@ -558,10 +558,9 @@ attribute attr = label $ string attr
 
 -- This is not the same as return; it evaluates
 -- the argument to value form.
-evaluate, var, value :: (Sunroof a) => a -> JS t a
+evaluate, value :: (Sunroof a) => a -> JS t a
 evaluate a  = JS_ $ singleton (JS_Eval a)
 
-var = evaluate
 value = evaluate
 
 ---------------------------------------------------------------
