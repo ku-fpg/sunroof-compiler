@@ -105,6 +105,10 @@ instance JSArgument JSObject where
       jsArgs a = [unbox a]
       jsValue = jsVar
 
+instance (JSArgument a, Sunroof b) => JSArgument (JSFunction a b) where
+      jsArgs a = [unbox a]
+      jsValue = jsVar
+
 instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
       jsArgs ~(a,b) = [unbox a, unbox b]
       jsValue = liftM2 (,) jsVar jsVar
