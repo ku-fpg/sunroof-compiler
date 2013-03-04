@@ -1,5 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Active
+-- Copyright   :  (c) 2011 The University of Kansas
+-- License     :  BSD-style (see LICENSE)
+-- Maintainer  :  ???
+--
+-- A reflection of the standard browser JavaScript API.
+--
+
 module Language.Sunroof.JS.Browser
   -- Top level API
   ( alert
@@ -38,6 +48,14 @@ module Language.Sunroof.JS.Browser
   , setTitle
   , title
   , url
+  -- * The JavaScript Console
+  , JSConsole
+  , console
+  , Language.Sunroof.JS.Browser.log
+  , debug
+  , info
+  , warn
+  , Language.Sunroof.JS.Browser.error
   ) where
 
 import Prelude hiding (isNaN)
@@ -55,6 +73,9 @@ import Language.Sunroof.Types
   , object
   , attribute
   , apply
+  , Sunroof(..)
+  , JSArgument
+  , (#)
   )
 
 -- -----------------------------------------------------------------------
@@ -229,3 +250,35 @@ title = attribute "title"
 --   For use with 'document'.
 url :: JSSelector JSString
 url = attribute "URL"
+
+-- -----------------------------------------------------------------------
+-- Console API
+-- -----------------------------------------------------------------------
+
+data JSConsole = JSConsole JSObject
+        deriving (Show)
+
+instance Sunroof JSConsole where
+        box = JSConsole . box
+        unbox (JSConsole e) = unbox e
+
+-- | The console object.
+console :: JSConsole
+console = JSConsole (object "console")
+
+log :: (JSArgument a) => a -> JSConsole -> JS t ()
+log a (JSConsole o) = o # method "log" a
+
+debug :: (JSArgument a) => a -> JSConsole -> JS t ()
+debug a (JSConsole o) = o # method "debug" a
+
+info :: (JSArgument a) => a -> JSConsole -> JS t ()
+info a (JSConsole o) = o # method "info" a
+
+warn :: (JSArgument a) => a -> JSConsole -> JS t ()
+warn a (JSConsole o) = o # method "warn" a
+
+error :: (JSArgument a) => a -> JSConsole -> JS t ()
+error a (JSConsole o) = o # method "error" a
+
+
