@@ -329,6 +329,13 @@ instance SunroofResult JSString where
   jsonToValue _ v = error $ "jsonToValue: JSON value is not a string: " ++ show v
   --toJS = fromString
 
+instance forall a . SunroofResult a => SunroofResult (JSArray a) where
+  type ResultOf (JSArray a) = [ResultOf a]
+  jsonToValue _ (Array ss) = map (jsonToValue (Proxy :: Proxy a)) $ V.toList ss
+  jsonToValue _ v = error $ "jsonToValue: JSON value is not an array : " ++ show v
+  --toJS = fromString
+
+
 -- | Converts a JSON value to a Sunroof Javascript expression.
 jsonToJS :: Value -> Expr
 jsonToJS (Bool b)       = unbox $ js b
