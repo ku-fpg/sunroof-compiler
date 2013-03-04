@@ -739,7 +739,7 @@ callcc' f = JS $ \ cc -> unJS (f (goto cc)) return
 -- | reify the current contination as a JavaScript function.
 -- unlike callcc, captures then discards the continuation.
 
-reifyccJS :: JSArgument a => (JSFunction a () -> JS B a) -> JS B a
+reifyccJS :: JSArgument a => (JSFunction a () -> JS B ()) -> JS B a
 reifyccJS f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
                                     f o
                                ) (\ _ -> return ())
