@@ -466,6 +466,9 @@ instance forall a . (Sunroof a) => Monoid (JSArray a) where
   mappend (JSArray e1) (JSArray e2) = JSArray $ binOp "[].concat" e1 e2
 
 -- Operations on arrays
+newArray :: (Sunroof a) => JS t (JSArray a)
+newArray = evaluate $ cast $ object "new Array()"
+
 emptyArray :: (Sunroof a) => JSArray a
 emptyArray = JSArray $ Lit "[]"
 
@@ -475,8 +478,14 @@ lengthArray o = cast o ! "length"
 pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 pushArray a = method "push" a . cast
 
+unshiftArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+unshiftArray a = method "unshift" a . cast
+
 popArray :: (Sunroof a) => JSArray a -> JS t a
 popArray = method "pop" () . cast
+
+shiftArray :: (Sunroof a) => JSArray a -> JS t a
+shiftArray = method "shift" () . cast
 
 ---------------------------------------------------------------
 
