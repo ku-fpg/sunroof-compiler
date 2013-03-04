@@ -24,7 +24,7 @@ import qualified Data.Boolean.Numbers as N
 import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.JS.Canvas as C
-import Language.Sunroof.JS.Browser
+import Language.Sunroof.JS.Browser as B
 import Language.Sunroof.JS.JQuery
 import Language.Sunroof.Active
 --import Language.Sunroof.Painting
@@ -32,12 +32,14 @@ import Language.Sunroof.Container
 import Data.VectorSpace (lerp)
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \ doc -> do
+main = do
+    staticCompiler def "main" example >>= writeFile "main.js"
+    sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \ doc -> do
         registerEvents (cometDocument doc) "body" (slide <> click)
-        async doc (example doc)
+        async doc example
 
-example :: SunroofEngine -> JS A ()
-example doc = do
+example :: JS A ()
+example = do
   canvas <- document # getElementById "canvas"
   c <- canvas # getContext "2d"
 
@@ -105,12 +107,29 @@ example doc = do
           printFixed "#time" 2 tm
           apply f tm
 
-  forkJS $ loopJS $ do
+  ch :: JSChan JSNumber <- newChan
+{-
+  forkJS $ loopJS 0 $ \ n -> do
+          threadDelayJSB 100
+          writeChan ch n
+          console # B.log ("written %f " :: JSString, n :: JSNumber)
+          return (n+1)
+
+  forkJS $ loopJS () $ \ () -> do
+          threadDelayJSB 500
+          n <- ch # readChan
+          console # B.log ("read %f " :: JSString, n :: JSNumber)
+          return ()
+-}
+  forkJS $ loopJS () $ \ () -> do
           res <- wait "body" (slide <> click)
           liftJS $ do
              val :: JSNumber <- evaluate (res ! "value")
              let nm = val / mul
+             console # B.log ("got %f " :: JSString, nm :: JSNumber)
              paint nm
+          return ()
+
 {-
           switchB ((res ! "id" :: JSString))
             [("slider", liftJSB $ do
