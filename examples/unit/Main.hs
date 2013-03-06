@@ -48,7 +48,7 @@ import Test.QuickCheck.Property
 import Test.QuickCheck.State ( State( numSuccessTests ) )
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseDir = ".." }) web_app
+main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) web_app
 
 default(JSNumber, JSString, String)
 
@@ -81,7 +81,7 @@ web_app doc = do
           , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
           , Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
           , Test "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
-          , Test "Chan's"                     (checkArbitraryChan_Int doc)
+          , Test "Chan"                (checkArbitraryChan_Int doc)
           ]
 
 -- -----------------------------------------------------------------------
@@ -151,21 +151,23 @@ checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
 checkArbitraryChan_Int :: SunroofEngine -> Int -> Property
 checkArbitraryChan_Int doc seed = monadicIO $ do
   let n = (abs seed `mod` 10) + 1
-  arr1 :: [Int] <- fmap (fmap abs . fmap (`mod` 100)) $ pick $ vector 10
-  arr2 :: [Int] <- fmap (fmap abs . fmap (`mod` 100)) $ pick $ vector 10
-  dat  :: [Int] <- fmap (fmap abs . fmap (`mod` 100)) $ pick $ vector 10
-  run $ print ("arr1",arr1,arr2,dat)
+  qPush <- pick $ frequency [(1,return False),(3,return True)]
+  qPull <- pick $ frequency [(1,return False),(3,return True)]
+  arr1 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
+  arr2 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
+  dat  :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
+
   let prog :: JS B (JSArray JSNumber)
       prog = do
           note :: JSArray JSBool <- newArray
           ch <- SR.newChan
-          forkJS $ sequence_ [ do threadDelayJSB (js x)
+          forkJS $ sequence_ [ do ifB (js (x >= 0 && qPush)) (threadDelayJSB (js x)) (return ())
                                   note # pushArray true
                                   ch # SR.writeChan (js y :: JSNumber)
                              | (x,y) <- arr1 `zip` dat
                              ]
           arr :: JSArray JSNumber <- newArray
-          sequence_ [ do threadDelayJSB (js x)
+          sequence_ [ do ifB (js (x >= 0 && qPull)) (threadDelayJSB (js x)) (return ())
                          note # pushArray false
                          z <- ch # SR.readChan
                          arr # pushArray z
@@ -180,10 +182,10 @@ checkArbitraryChan_Int doc seed = monadicIO $ do
                                                 "<"
                                      | n <- [0..19::Int]
                                      ])
+
 -}
           return arr
   res :: [Double] <- run $ sync doc prog
-  run $ print ("res",res)
   assert $ map round res == dat
 
 -- -----------------------------------------------------------------------
