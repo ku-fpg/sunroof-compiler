@@ -472,8 +472,8 @@ popArray = method "pop" () . cast
 shiftArray :: (Sunroof a) => JSArray a -> JS t a
 shiftArray = method "shift" () . cast
 
-lookupArray :: forall a b . (Sunroof a, Sunroof b) => a -> JSArray b -> b
-lookupArray idx arr = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (error "lookupArray" :: b))
+lookupArray :: forall a b . (Sunroof a) => JSNumber -> JSArray a -> a
+lookupArray idx arr = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (error "lookupArray" :: a))
 
 ---------------------------------------------------------------
 
