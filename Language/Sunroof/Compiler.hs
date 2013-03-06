@@ -171,12 +171,12 @@ compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
   -- is not reprinted for each access.
   arrVar <- newVar
 
-  let condRet = unbox ((var counter :: JSNumber) <* ((cast (var arrVar :: JSArray a) ! attribute "length") :: JSNumber) :: JSBool)
+  let condRet = unbox $ (var counter :: JSNumber) <* (var arrVar ! attribute "length")
   bodyStmts <- compile $ extractProgram (const $ return ()) $ do
-    _ <- body (cast (var arrVar :: JSArray a) ! label (cast (var counter :: JSNumber)))
+    elem <- evaluate $ var arrVar ! label (cast (var counter :: JSNumber))
+    _ <- body elem
     return ()
-  let incCounterStmts = []
---        [ AssignStmt_ (var counter) (unbox (var counter + 1 :: JSNumber)) ]
+  let incCounterStmts = [ VarStmt counter (unbox (var counter + 1 :: JSNumber)) ]
       loopStmts =
         [ VarStmt counter (unbox (0 :: JSNumber))
         , VarStmt arrVar  (unbox arr)
