@@ -161,13 +161,13 @@ checkArbitraryChan_Int doc seed = monadicIO $ do
           ch <- SR.newChan
           forkJS $ sequence_ [ do threadDelayJSB (js x)
                                   note # pushArray true
-                                  SR.writeChan ch (js y :: JSNumber)
+                                  ch # SR.writeChan (js y :: JSNumber)
                              | (x,y) <- arr1 `zip` dat
                              ]
           arr :: JSArray JSNumber <- newArray
           sequence_ [ do threadDelayJSB (js x)
                          note # pushArray false
-                         z <- SR.readChan ch
+                         z <- ch # SR.readChan
                          arr # pushArray z
                     | x <- arr2
                     ]

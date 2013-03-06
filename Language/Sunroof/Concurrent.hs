@@ -41,6 +41,7 @@ threadDelayJSB n = reifyccJS $ \ o -> do
 yieldJSB :: JSB ()
 yieldJSB = threadDelayJSB 0
 
+--------------------------------------------------------------------------------------
 
 data JSChan a = JSChan
         (JSArray (JSFunction (JSFunction a ()) ()))     -- callbacks of written data
@@ -52,21 +53,17 @@ newChan = do
         waiting <- newArray
         return $ JSChan written waiting
 
-
-writeChan :: forall t a . (JSThread t, JSArgument a) => JSChan a -> a -> JS t ()
-writeChan (JSChan written waiting) a = do
+writeChan :: forall t a . (JSThread t, JSArgument a) => a -> JSChan a -> JS t ()
+writeChan a (JSChan written waiting) = do
         ifB (lengthArray waiting ==* 0)
-            (do f <- function' $ \ (k :: JSFunction a ()) -> apply k a :: JS B ()
+            (do f <- function' $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()
                 written # pushArray (f :: JSFunction (JSFunction a ()) ())
             )
             (do f <- shiftArray waiting
-                apply f a       -- actually runs this thread for a bit.
-                                -- remember, it can block, but the underlying
-                                -- javascript will yield.
-                                -- not sure if this could cause race conditions?
-                                -- There *is* no blocking, so I think not.
+                forkJS (apply f a :: JSB ())
                 return ()
             )
+
 readChan :: forall a . (Sunroof a, JSArgument a) => JSChan a -> JS B a
 readChan (JSChan written waiting) = do
         ifB (lengthArray written ==* 0)
