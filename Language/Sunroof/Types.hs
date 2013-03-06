@@ -586,13 +586,7 @@ instance JSThreadReturn B () where
 
 -- Control.Monad.Operational makes a monad out of JS for us
 data JS :: T -> * -> * where
-
     JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())              -> JS t a            -- TO CALL JSB
---    JS_    :: Program (JSI t) a                                            -> JS t a            -- TO CALL JSA
-
---    JSA   :: Program (JSI t) a                                             -> JS t a
---    JSB   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())             -> JS t B
-
     (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject                   -> JS t ()
 
 -- replace calls to JS $ singleton with single
@@ -601,7 +595,6 @@ single i = JS $ \ k -> singleton i >>= k
 
 unJS :: JS t a -> (a -> Program (JSI t) ()) -> Program (JSI t) ()
 unJS (JS m) k = m k
---unJS (JS_ m) k = m >>= k
 unJS ((:=) sel a obj) k = singleton (JS_Assign sel a obj) >>= k
 
 instance Monad (JS t) where
