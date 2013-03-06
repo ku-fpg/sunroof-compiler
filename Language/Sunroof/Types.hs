@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings, GADTs, MultiParamTypeClasses, ScopedTypeVariables, RankNTypes, DataKinds, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverlappingInstances #-}
 
 -- This should only export user-facing types (as much as possible)
 module Language.Sunroof.Types where
@@ -85,29 +86,13 @@ class JSArgument args where
         jsArgs   :: args -> [Expr]        -- turn a value into a list of expressions
         jsValue  :: (UniqM m) => m args
 
+instance Sunroof a => JSArgument a where
+      jsArgs a = [unbox a]
+      jsValue = jsVar
+
 instance JSArgument () where
         jsArgs _ = []
         jsValue = return ()
-
-instance JSArgument JSBool where
-      jsArgs a = [unbox a]
-      jsValue = jsVar
-
-instance JSArgument JSNumber where
-      jsArgs a = [unbox a]
-      jsValue = jsVar
-
-instance JSArgument JSString where
-      jsArgs a = [unbox a]
-      jsValue = jsVar
-
-instance JSArgument JSObject where
-      jsArgs a = [unbox a]
-      jsValue = jsVar
-
-instance (JSArgument a, Sunroof b) => JSArgument (JSFunction a b) where
-      jsArgs a = [unbox a]
-      jsValue = jsVar
 
 instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
       jsArgs ~(a,b) = [unbox a, unbox b]
