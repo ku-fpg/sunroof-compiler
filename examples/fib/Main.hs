@@ -51,7 +51,7 @@ prog = do
               (return (1 :: JSNumber))
               (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
 
-      loopJS $ do
+      loopJS () $ \() -> do
           res <- wait "body" (slide <> click)
           model <- evaluate (obj ! "model") :: JSB JSNumber
 
