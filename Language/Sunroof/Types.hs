@@ -774,3 +774,17 @@ liftJS m = do
         o <- function (\ () -> m)
         apply o ()
 
+-- If something is a JSTuple, then it can be passed (amoung other things)
+-- as an argument by a javascript function.
+
+class Sunroof o => JSTuple o where
+        type Internals o
+        match :: (Sunroof o) => o -> Internals o
+        tuple :: Internals o -> JS t o
+
+instance JSTuple JSObject where
+        type Internals JSObject = ()
+        match o = ()
+        tuple () = new
+
+--------------------------------------------------------------------------------------

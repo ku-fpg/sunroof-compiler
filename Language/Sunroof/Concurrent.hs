@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DataKinds, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, ScopedTypeVariables, TypeFamilies, ViewPatterns #-}
 
 module Language.Sunroof.Concurrent where
 
@@ -43,18 +43,39 @@ yieldJSB = threadDelayJSB 0
 
 --------------------------------------------------------------------------------------
 
+{-
 data JSChan a = JSChan
         (JSArray (JSFunction (JSFunction a ()) ()))     -- callbacks of written data
         (JSArray (JSFunction a ()))                     -- callbacks of waiting readers
+-}
+
+newtype JSChan a = JSChan JSObject
+        deriving Show
+
+instance Sunroof (JSChan o) where
+        box = JSChan . box
+        unbox (JSChan o) = unbox o
+
+instance (JSArgument o) => JSTuple (JSChan o) where
+        type Internals (JSChan o) = ( (JSArray (JSFunction (JSFunction o ()) ()))     -- callbacks of written data
+                                    , (JSArray (JSFunction o ()))                     -- callbacks of waiting readers
+                                    )
+
+        match (JSChan o) = ( o ! "written", o ! "waiting" )
+        tuple (written,waiting) = do
+                o <- new
+                o # "written" := written
+                o # "waiting" := waiting
+                return (JSChan o)
 
 newChan :: (JSArgument a) => JS t (JSChan a)
 newChan = do
         written <- newArray
         waiting <- newArray
-        return $ JSChan written waiting
+        tuple (written, waiting)
 
 writeChan :: forall t a . (JSThread t, JSArgument a) => a -> JSChan a -> JS t ()
-writeChan a (JSChan written waiting) = do
+writeChan a (match -> (written,waiting)) = do
         ifB (lengthArray waiting ==* 0)
             (do f <- function' $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()
                 written # pushArray (f :: JSFunction (JSFunction a ()) ())
@@ -65,7 +86,7 @@ writeChan a (JSChan written waiting) = do
             )
 
 readChan :: forall a . (Sunroof a, JSArgument a) => JSChan a -> JS B a
-readChan (JSChan written waiting) = do
+readChan (match -> (written,waiting)) = do
         ifB (lengthArray written ==* 0)
             (do -- Add yourself to the 'waiting for writer' Q.
                 reifyccJS $ \ k -> waiting # pushArray (k :: JSFunction a ())
