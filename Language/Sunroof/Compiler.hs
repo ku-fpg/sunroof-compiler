@@ -49,9 +49,7 @@ compileJS_B :: (Sunroof a) => CompilerOpts -> Uniq -> JS B () -> IO ([Stmt], Uni
 compileJS_B opts uq = compileJSI opts uq . extractProgram (const $ return ())
 
 extractProgram :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
-extractProgram k m = case (m >>= k) of
-                       JS f -> f return
---                       JS_ p -> p
+extractProgram k m = unJS (m >>= k) return
 
 -- TODO: generalize with a closer
 compileJSI :: CompilerOpts -> Uniq -> Program (JSI t) () -> IO ([Stmt], Uniq)
