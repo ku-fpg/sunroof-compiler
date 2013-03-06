@@ -42,7 +42,7 @@ staticCompiler opts fName js = do
     return $ showStmt $ VarStmt fName $ Function [] stmts
 
 compileJS_A :: (Sunroof a) => CompilerOpts -> Uniq -> JS A a -> IO ([Stmt], Uniq)
-compileJS_A opts uq = compileJSI opts uq . extractProgram (JS_ . singleton . JS_Return)
+compileJS_A opts uq = compileJSI opts uq . extractProgram (single . JS_Return)
 
 -- It is not possible to compile JS B a, because where does the 'a' get returned to?
 compileJS_B :: (Sunroof a) => CompilerOpts -> Uniq -> JS B () -> IO ([Stmt], Uniq)
@@ -51,7 +51,7 @@ compileJS_B opts uq = compileJSI opts uq . extractProgram (const $ return ())
 extractProgram :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
 extractProgram k m = case (m >>= k) of
                        JS f -> f return
-                       JS_ p -> p
+--                       JS_ p -> p
 
 -- TODO: generalize with a closer
 compileJSI :: CompilerOpts -> Uniq -> Program (JSI t) () -> IO ([Stmt], Uniq)
@@ -134,15 +134,15 @@ compileBranch_A b c1 c2 k = do
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
   res          <- newVar
   (src0, res0) <- compileExpr (unbox b)
-  src1 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ res) c1
-  src2 <- compile $ extractProgram (JS_ . singleton . JS_Assign_ res) c2
+  src1 <- compile $ extractProgram (single . JS_Assign_ res) c1
+  src2 <- compile $ extractProgram (single . JS_Assign_ res) c2
   rest <- compile (k (var res))
   return ( [VarStmt res (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
 compileBranch_B :: forall a bool t . (Sunroof bool, JSArgument a, JSThread t)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_B b c1 c2 k = do
-  fn_e <- compileFunction (JS_ . k)
+  fn_e <- compileFunction (\ a -> JS $ \ k2 -> k a >>= k2)
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
   fn           <- newVar
   (src0, res0) <- compileExpr (unbox b)
@@ -161,7 +161,7 @@ compileFunction :: forall a b t . (JSThreadReturn t b, JSArgument a, Sunroof b)
                 -> CompM Expr
 compileFunction m2 = do
     (arg :: a) <- jsValue
-    fStmts <- compile $ extractProgram (JS_ . threadCloser) (m2 arg)
+    fStmts <- compile $ extractProgram (\ a -> JS $ \ k -> threadCloser a >>= k) (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) fStmts
 
 

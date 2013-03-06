@@ -526,7 +526,7 @@ call :: String -> JSFunction a r
 call = JSFunction . Lit
 
 with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
-with a fn = JS_ $ singleton $ JS_Invoke (jsArgs a) fn
+with a fn = single $ JS_Invoke (jsArgs a) fn
 
 -- TODO: should take String argument
 new :: JS t JSObject
@@ -547,7 +547,7 @@ attribute attr = label $ string attr
 -- This is not the same as return; it evaluates
 -- the argument to value form.
 evaluate, value :: (Sunroof a) => a -> JS t a
-evaluate a  = JS_ $ singleton (JS_Eval a)
+evaluate a  = single (JS_Eval a)
 
 value = evaluate
 
@@ -588,7 +588,7 @@ instance JSThreadReturn B () where
 data JS :: T -> * -> * where
 
     JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())              -> JS t a            -- TO CALL JSB
-    JS_    :: Program (JSI t) a                                            -> JS t a            -- TO CALL JSA
+--    JS_    :: Program (JSI t) a                                            -> JS t a            -- TO CALL JSA
 
 --    JSA   :: Program (JSI t) a                                             -> JS t a
 --    JSB   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())             -> JS t B
@@ -597,15 +597,15 @@ data JS :: T -> * -> * where
 
 -- replace calls to JS $ singleton with single
 single :: JSI t a -> JS t a
-single i = JS_ $ singleton i
+single i = JS $ \ k -> singleton i >>= k
 
 unJS :: JS t a -> (a -> Program (JSI t) ()) -> Program (JSI t) ()
 unJS (JS m) k = m k
-unJS (JS_ m) k = m >>= k
+--unJS (JS_ m) k = m >>= k
 unJS ((:=) sel a obj) k = singleton (JS_Assign sel a obj) >>= k
 
 instance Monad (JS t) where
-        return a = JS_ $ return a       -- preserves the threadary kind
+        return a = JS $ \ k -> return a >>= k
         m >>= k = JS $ \ k0 -> unJS m (\ r -> unJS (k r) k0)
 
 -- | We define the Semigroup instance for JS, where
@@ -661,7 +661,7 @@ continuation = function'
 -- The generalization of function and continuation.
 
 function' :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
-function' = JS_ . singleton . JS_Function
+function' = single . JS_Function
 
 infixl 1 `apply`
 
@@ -670,7 +670,7 @@ apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t r
 apply f args = f # with args
 
 foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b) -> JS A ()
-foreach arr body = JS_ $ singleton $ JS_Foreach arr body
+foreach arr body = single $ JS_Foreach arr body
 
 forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do
@@ -690,7 +690,7 @@ type instance BooleanOf (JS t a) = JSBool
 
 -- TODO: generalize
 instance (JSThread t, Sunroof a, JSArgument a) => IfB (JS t a) where
-    ifB i h e = JS_ $ singleton $ JS_Branch i h e
+    ifB i h e = single $ JS_Branch i h e
 
 switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b, JSArgument b, JSThread t) => a -> [(a,JS t b)] -> JS t b
 switch _a [] = return (cast (object "undefined"))
