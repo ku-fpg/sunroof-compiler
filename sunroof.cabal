@@ -24,8 +24,11 @@ Extra-source-files:
 Library
   Exposed-modules:     Language.Sunroof
                        Language.Sunroof.Active
-                       Language.Sunroof.Compiler
                        Language.Sunroof.Types
+                       Language.Sunroof.JavaScript
+                       Language.Sunroof.Compiler
+                       Language.Sunroof.Concurrent
+                       Language.Sunroof.Container
                        Language.Sunroof.KansasComet
                        Language.Sunroof.JS.Canvas
                        Language.Sunroof.JS.Browser
