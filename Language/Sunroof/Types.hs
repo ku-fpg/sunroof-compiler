@@ -23,10 +23,10 @@ import Data.AdditiveGroup
 import Data.VectorSpace hiding ((<.>))
 import Numeric ( showHex )
 import Data.Proxy
-import Data.Reify
-import Control.Applicative ( Applicative, pure, (<$>), (<*>))
-import Data.Traversable
-import Data.Foldable hiding (all, any)
+--import Data.Reify
+--import Control.Applicative ( Applicative, pure, (<$>), (<*>))
+--import Data.Traversable
+--import Data.Foldable hiding (all, any)
 
 type Uniq = Int         -- used as a unique label
 
@@ -52,7 +52,7 @@ class Show a => Sunroof a where
         showVar :: a -> String -- needed because show instance for unit is problematic
         showVar = show
 
-        typeOf :: a -> Type
+        typeOf :: Proxy a -> Type
         typeOf _ = Base
 
 -- unit is the oddball
@@ -139,6 +139,7 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunr
 ---------------------------------------------------------------
 
 --op :: String -> [Expr] -> Expr
+op :: Id -> [ExprE] -> Expr
 op n = Apply (ExprE $ Var n)
 
 data JSBool = JSBool Expr
@@ -472,8 +473,8 @@ popArray = method "pop" () . cast
 shiftArray :: (Sunroof a) => JSArray a -> JS t a
 shiftArray = method "shift" () . cast
 
-lookupArray :: forall a b . (Sunroof a) => JSNumber -> JSArray a -> a
-lookupArray idx arr = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (error "lookupArray" :: a))
+lookupArray :: forall a . (Sunroof a) => JSNumber -> JSArray a -> a
+lookupArray idx arr = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (Proxy :: Proxy a))
 
 ---------------------------------------------------------------
 
@@ -497,7 +498,7 @@ label = JSSelector
 infixl 1 !
 
 (!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (error "(!)" :: a))
+(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (Proxy :: Proxy a))
 
 ---------------------------------------------------------------
 
@@ -712,7 +713,7 @@ type JSB a = JS B a
 --   http://stackoverflow.com/questions/9050725/call-cc-implementation
 --
 goto :: (x ~ ()) => (a -> Program (JSI B) ()) -> a -> JS B x
-goto continuation argument = JS $ \ _ -> continuation argument
+goto cont argument = JS $ \ _ -> cont argument
 
 --callCC :: ((a -> JS 'B x) -> JS 'B a) -> JS 'B a
 callcc :: (x ~ ()) => ((a -> JS 'B x) -> JS 'B a) -> JS 'B a
@@ -732,7 +733,7 @@ reifyccJS f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
 
 
 abortJS :: JS B a
-abortJS = JS $ \ cc -> return ()
+abortJS = JS $ \ _ -> return ()
 
 
 -----------------------------------------------------------------
@@ -784,7 +785,14 @@ class Sunroof o => JSTuple o where
 
 instance JSTuple JSObject where
         type Internals JSObject = ()
-        match o = ()
+        match _ = ()
         tuple () = new
 
 --------------------------------------------------------------------------------------
+
+-- | Helps to get the proxy of a value.
+proxyOf :: a -> Proxy a
+proxyOf _ = Proxy
+
+
+

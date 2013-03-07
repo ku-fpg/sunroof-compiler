@@ -5,8 +5,8 @@ module Language.Sunroof.Concurrent where
 import Data.Boolean
 
 import Language.Sunroof.Types
-import Language.Sunroof.Types (T(A,B))
-import Language.Sunroof.JS.Browser(window,setTimeout,alert)
+--import Language.Sunroof.Types (T(A,B))
+import Language.Sunroof.JS.Browser(window,setTimeout)
 
 
 
@@ -19,7 +19,7 @@ loopJS start m = do
             a' <- m a
             writeJSRef s a'
             f <- readJSRef v
-            liftJS $ window # setTimeout f 0
+            _ <- liftJS $ window # setTimeout f 0
             return ()
     writeJSRef v f
     apply f ()  -- and call the function
@@ -29,13 +29,13 @@ loopJS start m = do
 forkJS :: JSThread t => JS t () -> JS t2 ()
 forkJS m = do
         f <- function' $ \ () -> m
-        liftJS $ window # setTimeout f 0
+        _ <- liftJS $ window # setTimeout f 0
         return ()
 
 
 threadDelayJSB :: JSNumber -> JSB ()
 threadDelayJSB n = reifyccJS $ \ o -> do
-        liftJS $ window # setTimeout o n
+        _ <- liftJS $ window # setTimeout o n
         return ()
 
 yieldJSB :: JSB ()

@@ -10,5 +10,5 @@ module Language.Sunroof.Container
         ) where
 
 import Language.Sunroof.Types
-import Language.Sunroof.Types (T(A,B))
+--import Language.Sunroof.Types (T(A,B))
 

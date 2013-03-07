@@ -20,9 +20,9 @@ import Data.Graph
 import Data.Maybe
 import qualified Data.Map as Map
 import Data.Default
-import Data.Proxy
+--import Data.Proxy
 import Data.Boolean
-import Debug.Trace
+--import Debug.Trace
 --import Web.KansasComet (Template(..), extract)
 
 data CompilerOpts = CompilerOpts
@@ -37,8 +37,8 @@ instance Default CompilerOpts where
 
 
 staticCompiler :: CompilerOpts -> String -> JS t () -> IO String
-staticCompiler opts fName js = do
-    (stmts,_) <- compileJSI opts 0 $ extractProgram return js
+staticCompiler opts fName jsm = do
+    (stmts,_) <- compileJSI opts 0 $ extractProgram return jsm
     return $ showStmt $ VarStmt fName $ Function [] stmts
 
 compileJS_A :: (Sunroof a) => CompilerOpts -> Uniq -> JS A a -> IO ([Stmt], Uniq)
@@ -83,7 +83,7 @@ compile = eval . view
           -- Return returns Haskell type JS A (), because there is nothing after a return.
           -- We ignore everything after a return.
           eval (JS_Return e :>>= _) = do
-            let ty = typeOf e
+            let ty = typeOf (proxyOf e)
             case ty of
                Unit -> return []                -- nothing to return
                _    -> do
@@ -91,14 +91,14 @@ compile = eval . view
                   return ( stmts0 ++ [ ReturnStmt val])
 
           -- All assignments to () are not done.
-          eval (JS_Assign_ var a :>>= g) | typeOf a == Unit = do
+          eval (JS_Assign_ _ a :>>= g) | typeOf (proxyOf a) == Unit = do
             stmts1 <- compile (g ())
             return stmts1
 
-          eval (JS_Assign_ var a :>>= g) = do
+          eval (JS_Assign_ v a :>>= g) = do
             (stmts0,val) <- compileExpr (unbox a)
             stmts1 <- compile (g ())
-            return ( stmts0 ++ [AssignStmt_ (Var var) val] ++ stmts1)
+            return ( stmts0 ++ [AssignStmt_ (Var v) val] ++ stmts1)
 
           eval (JS_Invoke args fn :>>= g) = do
             compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) g
@@ -173,8 +173,8 @@ compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
 
   let condRet = unbox $ (var counter :: JSNumber) <* (var arrVar ! attribute "length")
   bodyStmts <- compile $ extractProgram (const $ return ()) $ do
-    elem <- evaluate $ var arrVar ! label (cast (var counter :: JSNumber))
-    _ <- body elem
+    e <- evaluate $ var arrVar ! label (cast (var counter :: JSNumber))
+    _ <- body e
     return ()
   let incCounterStmts = [ VarStmt counter (unbox (var counter + 1 :: JSNumber)) ]
       loopStmts =
@@ -183,6 +183,7 @@ compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
         -- Recalculate the condition, in case the loop changed it.
         , WhileStmt (condRet) (bodyStmts ++ incCounterStmts) ]
   return loopStmts
+compileForeach _arr _body = error "compileForeach: Threading model wrong."
 
 compileExpr :: Expr -> CompM ([Stmt], Expr)
 compileExpr e = do
@@ -196,13 +197,13 @@ data Inst i e = Inst (i e)
 
 optExpr :: CompilerOpts -> Expr -> CompM ([Stmt], Expr)
 optExpr opts e | not (co_on opts) = return ([],e)
-optExpr opts e = do
+optExpr _opts e = do
 
         Graph g start <- liftIO $ reifyGraph (ExprE e)
 
 --        liftIO $ print (g,start)
 
-        let db0 = Map.fromList [ (n,Inst e) | (n,e) <- g ]
+        let db0 = Map.fromList [ (n,Inst e') | (n,e') <- g ]
 
         let out = stronglyConnComp
                         [ (n,n,case e' of
@@ -226,7 +227,7 @@ optExpr opts e = do
               case Map.lookup n vars of
                   Just v -> Var v
                   Nothing  -> case Map.lookup n db of
-                                Just (Inst op) -> fmap (ExprE . findExpr vars db) op
+                                Just (Inst oper) -> fmap (ExprE . findExpr vars db) oper
                                 Just (Copy n') -> findExpr vars db n'
 --                                Just op -> fmap (ExprE . findExpr db) op
                                 Nothing -> error $ "optExpr: findExpr failed for " ++ show n
@@ -237,27 +238,27 @@ optExpr opts e = do
                    -> [n]
                    -> (e -> Map.Map n e -> Maybe e)
                    -> Map.Map n e
-            folder db [] f = db
+            folder db [] _f = db
             folder db (n:ns) f = case Map.lookup n db of
                                    Nothing -> error "bad folder"
-                                   Just e -> case f e db of
+                                   Just e' -> case f e' db of
                                                Nothing -> folder db ns f
-                                               Just e' -> folder (Map.insert n e' db) ns f
+                                               Just e'' -> folder (Map.insert n e'' db) ns f
 
 
-        let db1 = folder db0 ids $ \ e db ->
-                     let getExpr :: Uniq -> Expr
-                         getExpr = findExpr Map.empty db
+        let db1 = folder db0 ids $ \ e' db ->
+                     let --getExpr :: Uniq -> Expr
+                         --getExpr = findExpr Map.empty db
 
                          getVar :: Uniq -> Maybe String
-                         getVar e = case findExpr jsVars db e of { Var x -> return x ; _ -> Nothing }
+                         getVar expr = case findExpr jsVars db expr of { Var x -> return x ; _ -> Nothing }
 
                          getLit :: Uniq -> Maybe String
-                         getLit e = case findExpr Map.empty db e of { Lit x -> return x ; _ -> Nothing }
+                         getLit expr = case findExpr Map.empty db expr of { Lit x -> return x ; _ -> Nothing }
 
-                     in case e of
+                     in case e' of
                              -- var c4770 = 0.0<=0.0;
-                          (Inst (Apply g [x,y])) | getVar g == Just "<="
+                          (Inst (Apply g' [x,y])) | getVar g' == Just "<="
                                        && isJust (getLit x)
                                        && isJust (getLit y)
                                        && getLit x == getLit y
@@ -265,10 +266,10 @@ optExpr opts e = do
                              -- var c4770 = true;
                              -- var c4771 = c4770?0.0:0.0;
 
-                          Inst (Apply g [x,y,z])
-                                | getVar g == Just "?:" && getLit x == return "true"
+                          Inst (Apply g' [x,y,z])
+                                | getVar g' == Just "?:" && getLit x == return "true"
                                        -> return (Copy y)
-                                | getVar g == Just "?:" && getLit x == return "false"
+                                | getVar g' == Just "?:" && getLit x == return "false"
                                        -> return (Copy z)
 
                           _ -> Nothing
@@ -284,14 +285,14 @@ optExpr opts e = do
         -- Next, do a forward push of value numbering
         let dbF = db1
 
-        return undefined
-        return ([ VarStmt c $ case e of
+        _ <- return undefined
+        return ([ VarStmt c $ case e' of
                                 Inst expr -> fmap (ExprE . findExpr jsVars dbF) expr
                                 Copy n'   -> -- Apply (ExprE (Var "COPY")) [ ExprE $ findExpr jsVars dbF n' ]
                                              findExpr jsVars dbF n'
                 | n <- ids
                 , Just c    <- return $ Map.lookup n jsVars
-                , Just e <- return $ Map.lookup n dbF
+                , Just e' <- return $ Map.lookup n dbF
                 ], findExpr jsVars dbF start)
 --        return ([],e)
 

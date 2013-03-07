@@ -48,7 +48,7 @@ import Web.KansasComet
   , Scope
   , send
   , connect
-  , queryGlobal
+  --, queryGlobal
   , Document
   , Options
   , kCometPlugin
@@ -57,7 +57,7 @@ import Web.KansasComet
   )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Compiler ( compileJS_A, compileJSI, extractProgram, CompilerOpts(..) )
+import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.Types
 import Language.Sunroof.JavaScript
 
@@ -145,7 +145,7 @@ rsync engine jsm = do
 --   if possible (see 'SunroofResult').
 
 sync :: forall a t . (SunroofResult a) => SunroofEngine -> JS t a -> IO (ResultOf a)
-sync engine jsm | typeOf (error "witness" :: a) == Unit = do
+sync engine jsm | typeOf (Proxy :: Proxy a) == Unit = do
   _ <- sync engine (jsm >> return (0 :: JSNumber))
   return $ jsonToValue (Proxy :: Proxy a) Null
 
@@ -389,7 +389,7 @@ getUplink (Uplink eng u) = do
 data Downlink a = Downlink SunroofEngine Int
 
 newDownlink :: SunroofEngine -> IO (Downlink a)
-newDownlink eng = do undefined
+newDownlink _eng = do undefined
 
 putDownlink :: (Sunroof a) => Downlink a -> a -> IO ()
 putDownlink = undefined
