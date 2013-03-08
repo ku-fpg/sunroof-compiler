@@ -145,4 +145,25 @@ data Type
         show (Op fn args) = fn ++ "(" ++ intercalate "," (map show args) ++ ")"
 --        show (Cast e) = show e
 -}
+-- Trivial pretty printer
+
+data Doc = Text String           -- plain text (assume no newlines)
+         | Indent Int Doc        -- indent document by n
+         | Sep [Doc]             -- on seperate lines
+
+text :: String -> Doc
+text = Text
+
+--indent :: Int -> Doc -> Doc
+--indent = Indent
+
+sep :: [Doc] -> Doc
+sep = Sep
+
+pretty :: Doc -> String
+pretty (Text txt) = txt
+pretty (Sep docs) = unlines $ map pretty docs
+pretty (Indent n doc) = unlines $ map (take n (cycle "  ") ++) $ lines $ pretty doc
+
+
 
