@@ -134,17 +134,6 @@ data Type
  | Unit
  | Fun Int      -- f (a_1,..,a_n), n == number in int
   deriving (Eq,Ord, Show)
-
-{-
-        show (Lit a)  = a
-        show (Var v) = v
-        show (Op "[]" [a,x]) = "(" ++ show a ++ ")[" ++ show x ++ "]"
-        show (Op "?:" [a,x,y]) = "((" ++ show a ++ ")?(" ++ show x ++ "):(" ++ show y ++ "))"
---        show (Op "(,)" [x,y]) = "[" ++ show x ++ "," ++ show y ++ "]"
-        show (Op x [a,b]) | all (not . isAlpha) x = "(" ++ show a ++ ")" ++ x ++ "(" ++ show b ++ ")"
-        show (Op fn args) = fn ++ "(" ++ intercalate "," (map show args) ++ ")"
---        show (Cast e) = show e
--}
 -- Trivial pretty printer
 
 data Doc = Text String           -- plain text (assume no newlines)
