@@ -31,6 +31,7 @@ data CompilerOpts = CompilerOpts
         , co_const   :: Bool        -- do we constant fold?
         , co_verbose :: Int         -- how verbose is the compiler when running? standard 0 - 3 scale
         }
+        deriving Show
 
 instance Default CompilerOpts where
         def = CompilerOpts True False False 0
