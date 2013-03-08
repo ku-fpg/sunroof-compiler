@@ -133,7 +133,13 @@ data Type
  = Base         -- base type, like object
  | Unit
  | Fun Int      -- f (a_1,..,a_n), n == number in int
-  deriving (Eq,Ord, Show)
+  deriving (Eq,Ord)
+
+instance Show Type where
+  show Base    = "*"
+  show Unit    = "()"
+  show (Fun n) = show n ++ " -> -"
+
 -- Trivial pretty printer
 
 data Doc = Text String           -- plain text (assume no newlines)
