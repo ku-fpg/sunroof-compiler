@@ -54,6 +54,10 @@ default(JSNumber, JSString, String)
 
 type instance BooleanOf () = JSBool
 
+data TestEngine = TestEngine { srEngine :: SunroofEngine
+                             , teLog    :: Bool                 -- do you send information about each test to a log
+                             }
+
 -- This is run each time the page is first accessed
 web_app :: SunroofEngine -> IO ()
 web_app doc = do
