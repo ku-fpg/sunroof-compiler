@@ -41,6 +41,11 @@ staticCompiler opts fName jsm = do
     (stmts,_) <- compileJSI opts 0 $ extractProgram return jsm
     return $ showStmt $ VarStmt fName $ Function [] stmts
 
+sunroofCompiler :: (JSThreadReturn t b, JSArgument a, Sunroof b) => CompilerOpts -> String -> (a -> JS t b) -> IO String
+sunroofCompiler opts fName f = do
+    (stmts,_) <- compileJSI opts 0 $ extractProgram (single . JS_Return) (function' f)
+    return $ showStmt $ VarStmt fName $ Apply (ExprE $ Function [] stmts) []
+
 compileJS_A :: (Sunroof a) => CompilerOpts -> Uniq -> JS A a -> IO ([Stmt], Uniq)
 compileJS_A opts uq = compileJSI opts uq . extractProgram (single . JS_Return)
 
