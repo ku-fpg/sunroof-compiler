@@ -504,7 +504,7 @@ infixl 1 !
 
 infix  5 :=
 
-type Action a r = a -> JS A r
+--type Action a r = a -> JS A r
 
 ---------------------------------------------------------------
 

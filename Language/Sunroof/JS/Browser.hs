@@ -66,7 +66,6 @@ import Language.Sunroof.Types
   , JSObject, JSBool
   , JSFunction
   , JS, JSSelector
-  , Action
   , JS ( (:=) )
   , call
   , method
@@ -136,17 +135,17 @@ window = object "window"
 -- | Calls a function at specified intervals in milliseconds.
 --   It will continue calling the function until 'clearInterval' is called,
 --   or the window is closed. The returned number is needed for 'clearInterval'.
-setInterval :: (Sunroof r) => JSFunction () r -> JSNumber -> Action JSObject JSNumber
+setInterval :: (Sunroof r) => JSFunction () r -> JSNumber -> JSObject -> JS t JSNumber
 setInterval f interval = method "setInterval" (f, interval)
 
 -- | Clears a timer set with the 'setInterval' method.
-clearInterval :: JSNumber -> Action JSObject ()
+clearInterval :: JSNumber -> JSObject -> JS t ()
 clearInterval ident = method "clearInterval" (ident)
 
-setTimeout :: (Sunroof r) => JSFunction () r -> JSNumber -> Action JSObject JSNumber
+setTimeout :: (Sunroof r) => JSFunction () r -> JSNumber -> JSObject -> JS t JSNumber
 setTimeout f interval = method "setTimeout" (f, interval)
 
-clearTimeout :: JSNumber -> Action JSObject ()
+clearTimeout :: JSNumber -> JSObject -> JS t ()
 clearTimeout ident = method "clearTimeout" (ident)
 
 -- -----------------------------------------------------------------------
@@ -168,62 +167,62 @@ document = object "document"
 -- | Get the DOM object of the element with the given id.
 --   For use with 'document'.
 getElementById :: JSString -- ^ The id.
-               -> Action JSObject JSObject
+               -> JSObject -> JS t JSObject
 getElementById ident = method "getElementById" (ident)
 
 -- | Get the DOM objects of the elements with the given name.
 --   For use with 'document'.
 getElementsByName :: JSString -- ^ The name.
-                  -> Action JSObject JSObject
+                  -> JSObject -> JS t JSObject
 getElementsByName name = method "getElementsByName" (name)
 
 -- | Get the DOM objects of the elements with the given tag.
 --   For use with 'document'.
 getElementsByTagName :: JSString -- ^ The tag name.
-                     -> Action JSObject JSObject
+                     -> JSObject -> JS t JSObject
 getElementsByTagName tag = method "getElementsByTagName" (tag)
 
 -- | Create a attribute DOM node with the given name.
 --   For use with 'document'.
 createAttribute :: JSString -- ^ The name of the new attribute.
-                -> Action JSObject JSObject
+                -> JSObject -> JS t JSObject
 createAttribute attr = method "createAttribute" (attr)
 
 -- | Create a element DOM node with the given tag name.
 --   For use with 'document'.
 createElement :: JSString -- ^ The tag name of the new element.
-                -> Action JSObject JSObject
+              -> JSObject -> JS t JSObject
 createElement e = method "createElement" (e)
 
 -- | Create a text DOM node with the given string as text.
 --   For use with 'document'.
 createTextNode :: JSString -- ^ The text of the new text node.
-                -> Action JSObject JSObject
+               -> JSObject -> JS t JSObject
 createTextNode text = method "createTextNode" (text)
 
 -- | Opens the document for writing.
 --   For use with 'document'.
-open :: Action JSObject ()
+open :: JSObject -> JS t ()
 open = method "open" ()
 
 -- | Closes the document after writing.
 --   For use with 'document'.
-close :: Action JSObject ()
+close :: JSObject -> JS t ()
 close = method "close" ()
 
 -- | Writes something into the document.
 --   For use with 'document'.
-write :: JSString -> Action JSObject ()
+write :: JSString -> JSObject -> JS t ()
 write str = method "write" (str)
 
 -- | Write something into the document and appends a new line.
 --   For use with 'document'.
-writeln :: JSString -> Action JSObject ()
+writeln :: JSString -> JSObject -> JS t ()
 writeln str = method "writeln" (str)
 
 -- | Sets the value of the cookie.
 --   For use with 'document'.
-setCookie :: JSString -> Action JSObject ()
+setCookie :: JSString -> JSObject -> JS t ()
 setCookie c = "cookie" := c
 
 -- | Returns the value of the cookie.
@@ -238,7 +237,7 @@ referrer = attribute "referrer"
 
 -- | Sets the title of the document.
 --   For use with 'document'.
-setTitle :: JSString -> Action JSObject ()
+setTitle :: JSString -> JSObject -> JS t ()
 setTitle t = "title" := t
 
 -- | Returns the title of the document.

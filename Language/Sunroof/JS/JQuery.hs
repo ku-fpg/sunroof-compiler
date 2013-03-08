@@ -14,7 +14,6 @@ import Language.Sunroof.Types
   , JSObject
   , JSFunction
   , JS
-  , Action
   , call
   , method
   , apply
@@ -43,11 +42,11 @@ jq = jQuery
 -- -----------------------------------------------------------------------
 
 -- | See <http://api.jquery.com/append/>.
-append :: JSObject -> Action JSObject ()
+append :: JSObject -> JSObject -> JS t ()
 append x = method "append" x
 
-html :: JSString -> Action JSObject JSObject
+html :: JSString -> JSObject -> JS t JSObject
 html nm = method "html"  nm
 
-text :: JSString -> Action JSObject JSObject
+text :: JSString -> JSObject -> JS t JSObject
 text = method "text"
