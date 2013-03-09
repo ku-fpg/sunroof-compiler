@@ -663,12 +663,22 @@ function' = single . JS_Function
 
 infixl 1 `apply`
 
--- | Call a function with the given arguments.
+-- | @apply f a@ applies the function @f@ to the given arguments @a@.
+--   A typical use case looks like this:
+--   
+-- > foo `apply` (x,y)
+--   
+--   See '($$)' for a convenient infix operator to du this.
 apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 apply f args = f # with args
   where
     with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
     with a fn = single $ JS_Invoke (jsArgs a) fn
+
+-- | @f $$ a@ applies the function 'f' to the given arguments @a@.
+--   See 'apply'.
+($$) :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
+($$) = apply
 
 foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b) -> JS A ()
 foreach arr body = single $ JS_Foreach arr body
