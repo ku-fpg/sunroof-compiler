@@ -37,7 +37,7 @@ cast = box . unbox
 
 -- cast to int?
 int :: (Sunroof a) => a -> JSNumber
-int = box . (\ e -> op "(int)" [ExprE e]) . unbox
+int = box . (\ e -> uniOp "(int)" e) . unbox
 
 mkVar :: Sunroof a => Uniq -> a
 mkVar = box . Var . ("v" ++) . show
@@ -109,10 +109,6 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunr
 
 ---------------------------------------------------------------
 
---op :: String -> [Expr] -> Expr
-op :: Id -> [ExprE] -> Expr
-op n = Apply (ExprE $ Var n)
-
 data JSBool = JSBool Expr
 
 instance Show JSBool where
@@ -125,7 +121,7 @@ instance Sunroof JSBool where
 instance Boolean JSBool where
   true          = JSBool (Lit "true")
   false         = JSBool (Lit "false")
-  notB  (JSBool e1) = JSBool $ op "!" [ExprE e1]
+  notB  (JSBool e1) = JSBool $ uniOp "!" e1
   (&&*) (JSBool e1)
         (JSBool e2) = JSBool $ binOp "&&" e1 e2
   (||*) (JSBool e1)
@@ -141,7 +137,7 @@ instance EqB JSBool where
   (/=*) e1 e2 = JSBool $ binOp "!=" (unbox e1) (unbox e2)
 
 js_ifB :: (Sunroof a) => JSBool -> a -> a -> a
-js_ifB (JSBool c) t e = box $ op "?:" [ExprE c,ExprE $ unbox t,ExprE $ unbox e]
+js_ifB (JSBool c) t e = box $ operator "?:" [c, unbox t, unbox e]
 
 instance SunroofValue Bool where
   type ValueOf Bool = JSBool
@@ -170,14 +166,6 @@ instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
 instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
   type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
   js = function
-
----------------------------------------------------------------
-
-binOp :: String -> Expr -> Expr -> E ExprE
-binOp o e1 e2 = op o [ExprE e1, ExprE e2]
-
-uniOp :: String -> Expr -> E ExprE
-uniOp o e = op o [ExprE e]
 
 ---------------------------------------------------------------
 
@@ -241,7 +229,7 @@ instance RealFloatB JSNumber where
     where isFinite (JSNumber a) = JSBool $ uniOp "isFinite" a
   isNegativeZero n = isInfinite n &&* n <* 0
   isIEEE _ = true -- AFAIK
-  atan2 (JSNumber a) (JSNumber b) = JSNumber $ op "Math.atan2" [ExprE a, ExprE b]
+  atan2 (JSNumber a) (JSNumber b) = JSNumber $ binOp "Math.atan2" a b
 
 type instance BooleanOf JSNumber = JSBool
 
@@ -508,7 +496,7 @@ fun = JSFunction . Lit
 -- Problem: new "Object" ()  -->  "(new Object)()" which will fail.
 -- Should turn into "new Object()"
 new :: (JSArgument a) => String -> a -> JS t JSObject
-new cons args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ cons) `apply` args
+new cons _args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ cons) `apply` args
 
 attribute :: String -> JSSelector a
 attribute attr = label $ string attr
