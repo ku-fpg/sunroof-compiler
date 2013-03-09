@@ -126,62 +126,6 @@ instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
   type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
   js = function
 
--- -------------------------------------------------------------
--- Javascript Arrays
--- -------------------------------------------------------------
-
-data JSArray a = JSArray Expr
-
-instance Show (JSArray a) where
-        show (JSArray v) = showExpr False v
-
-instance (Sunroof a) => Sunroof (JSArray a) where
-        box = JSArray
-        unbox (JSArray o) = o
-
-type instance BooleanOf (JSArray a) = JSBool
-
-instance (Sunroof a) => IfB (JSArray a) where
-    ifB = jsIfB
-{- This conflicts with the string instance.
-instance (SunroofValue a) => SunroofValue [a] where
-  type ValueOf [a] = JSArray (ValueOf a)
-  -- Uses JSON
-  js l  = JSArray $ literal $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
--}
-
-array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
-array l  = JSArray $ literal $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
-
-instance forall a . (Sunroof a) => Monoid (JSArray a) where
-  mempty = emptyArray
-  mappend (JSArray e1) (JSArray e2) = JSArray $ binOp "[].concat" e1 e2
-
--- Operations on arrays
-newArray :: (Sunroof a) => JS t (JSArray a)
-newArray = evaluate $ cast $ object "new Array()"
-
-emptyArray :: (Sunroof a) => JSArray a
-emptyArray = JSArray $ literal "[]"
-
-lengthArray :: (Sunroof a) => JSArray a -> JSNumber
-lengthArray o = cast o ! "length"
-
-pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
-pushArray a = invoke "push" a
-
-unshiftArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
-unshiftArray a = invoke "unshift" a
-
-popArray :: (Sunroof a) => JSArray a -> JS t a
-popArray = invoke "pop" ()
-
-shiftArray :: (Sunroof a) => JSArray a -> JS t a
-shiftArray = invoke "shift" ()
-
-lookupArray :: forall a . (Sunroof a) => JSNumber -> JSArray a -> a
-lookupArray idx arr = cast arr ! index idx
-
 ---------------------------------------------------------------
 
 infix  5 :=
@@ -358,12 +302,6 @@ apply f args = f # with args
 --   See 'apply'.
 ($$) :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 ($$) = apply
-
-forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
-forEach body arr = do
-        f <- function body
-        arr # invoke "forEach" f :: JS t ()
-        return ()
 
 infixr 0 #
 

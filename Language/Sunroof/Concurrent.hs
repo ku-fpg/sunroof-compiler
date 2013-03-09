@@ -11,6 +11,10 @@ import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Browser ( window, setTimeout )
+import Language.Sunroof.JS.Array 
+  ( JSArray
+  , newArray, lengthArray
+  , pushArray, shiftArray )
 
 loopJS :: (Sunroof a) => a -> (a -> JSB a) -> JSB ()      -- does not terminate
 loopJS start m = do
