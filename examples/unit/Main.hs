@@ -114,7 +114,8 @@ web_app doc = do
                 , Test "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
                 ])
           , ("Channels and MVars",
-                [ Test "Chan"                (checkArbitraryChan_Int doc)
+                [ Test "Chan (rand)"              (checkArbitraryChan_Int doc False SR.writeChan SR.readChan)
+                , Test "Chan (write before read)" (checkArbitraryChan_Int doc True SR.writeChan SR.readChan)
                 ])
           ]
 
@@ -182,10 +183,24 @@ checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
   r12' <- run $ sync (srEngine doc) (ifB e (return e1) (return e2) >>= return :: JS t JSNumber)
   assert $ (if b then r1 else r2) == r12'
 
-
-checkArbitraryChan_Int :: TestEngine -> Int -> Property
-checkArbitraryChan_Int doc seed = monadicIO $ do
+{-
+checkArbitraryArray_Int
+checkArbitraryArray_Int doc seed = monadicIO $ do
   let n = (abs seed `mod` 10) + 1
+  sz <- pick $ choose (0,100)
+  dat  :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector sz
+-}
+
+
+checkArbitraryChan_Int
+        :: TestEngine
+        -> Bool -- write before any read
+        -> (JSNumber -> JSChan JSNumber -> JS B ())
+        -> (JSChan JSNumber -> JS 'B JSNumber)
+        -> Int
+        -> Property
+checkArbitraryChan_Int doc wbr writeChan readChan seed = monadicIO $ do
+  let n = (abs seed `mod` 8) + 1
   qPush <- pick $ frequency [(1,return False),(3,return True)]
   qPull <- pick $ frequency [(1,return False),(3,return True)]
   arr1 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
@@ -196,15 +211,16 @@ checkArbitraryChan_Int doc seed = monadicIO $ do
       prog = do
           note :: JSArray JSBool <- newArray
           ch <- SR.newChan
-          forkJS $ sequence_ [ do ifB (js (x >= 0 && qPush)) (threadDelayJSB (js x)) (return ())
+          (if wbr then id else forkJS) $
+                   sequence_ [ do ifB (js (x >= 0 && qPush)) (threadDelayJSB (js x)) (return ())
                                   note # pushArray true
-                                  ch # SR.writeChan (js y :: JSNumber)
+                                  ch # writeChan (js y :: JSNumber)
                              | (x,y) <- arr1 `zip` dat
                              ]
           arr :: JSArray JSNumber <- newArray
           sequence_ [ do ifB (js (x >= 0 && qPull)) (threadDelayJSB (js x)) (return ())
                          note # pushArray false
-                         z <- ch # SR.readChan
+                         z <- ch # readChan
                          arr # pushArray z
                     | x <- arr2
                     ]
