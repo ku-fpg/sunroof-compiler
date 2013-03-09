@@ -5,9 +5,6 @@ module Language.Sunroof.Compiler
 --  ) where
         where
 
-import Language.Sunroof.Types
-import Language.Sunroof.JavaScript
-
 --import qualified Control.Applicative as App
 import Control.Monad.Operational
 import Control.Monad.State
@@ -24,6 +21,9 @@ import Data.Default
 --import Debug.Trace
 --import Web.KansasComet (Template(..), extract)
 
+import Language.Sunroof.Types
+import Language.Sunroof.JavaScript
+import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.Internal ( proxyOf )
 
 data CompilerOpts = CompilerOpts

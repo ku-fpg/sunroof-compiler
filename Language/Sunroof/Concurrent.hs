@@ -6,6 +6,7 @@ import Data.Boolean
 
 import Language.Sunroof.Types
 --import Language.Sunroof.Types (T(A,B))
+import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.JS.Browser(window,setTimeout)
 
 

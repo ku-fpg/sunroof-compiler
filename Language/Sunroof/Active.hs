@@ -3,6 +3,7 @@
 module Language.Sunroof.Active where
 
 import Language.Sunroof.Types
+import Language.Sunroof.Classes ( Sunroof, SunroofValue(..) )
 --import Language.Sunroof.Compiler
 
 import Control.Newtype

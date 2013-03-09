@@ -57,9 +57,10 @@ import Web.KansasComet
   )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.Types
 import Language.Sunroof.JavaScript
+import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
+import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 
 -- | The 'SunroofEngine' provides the verbosity level and
 --   kansas comet document to the 'SunroofApp'.

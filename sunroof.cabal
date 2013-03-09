@@ -25,6 +25,7 @@ Library
   Exposed-modules:     Language.Sunroof
                        Language.Sunroof.Active
                        Language.Sunroof.Types
+                       Language.Sunroof.Classes
                        Language.Sunroof.JavaScript
                        Language.Sunroof.Compiler
                        Language.Sunroof.Concurrent

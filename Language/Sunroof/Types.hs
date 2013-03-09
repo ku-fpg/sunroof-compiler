@@ -5,8 +5,6 @@
 -- This should only export user-facing types (as much as possible)
 module Language.Sunroof.Types where
 
-import Language.Sunroof.JavaScript
-
 import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
 import GHC.Exts
 --import Data.Char ( isDigit, isControl, isAscii, ord )
@@ -28,6 +26,8 @@ import Data.Proxy
 --import Data.Traversable
 --import Data.Foldable hiding (all, any)
 
+import Language.Sunroof.JavaScript
+import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.Internal ( litparen )
 
 type Uniq = Int         -- used as a unique label
@@ -42,22 +42,6 @@ int = box . (\ e -> op "(int)" [ExprE e]) . unbox
 mkVar :: Sunroof a => Uniq -> a
 mkVar = box . Var . ("v" ++) . show
 
-class Show a => Sunroof a where
-        box :: Expr -> a
-        unbox :: a -> Expr
-
-        showVar :: a -> String -- needed because show instance for unit is problematic
-        showVar = show
-
-        typeOf :: Proxy a -> Type
-        typeOf _ = Base
-
--- unit is the oddball
-instance Sunroof () where
---        showVar _ = ""
-        box _ = ()
-        unbox () = Lit "null"
-        typeOf _ = Unit
 
 ---------------------------------------------------------------
 
@@ -66,16 +50,6 @@ class Monad m => UniqM m where
 
 jsVar :: (Sunroof a, UniqM m) => m a
 jsVar = uniqM >>= return . mkVar
-
----------------------------------------------------------------
-
-class SunroofValue a where
-  type ValueOf a :: *
-  js :: a -> ValueOf a
-
-instance SunroofValue () where
-  type ValueOf () = ()
-  js () = ()
 
 ---------------------------------------------------------------
 
