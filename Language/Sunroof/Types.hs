@@ -28,6 +28,8 @@ import Data.Proxy
 --import Data.Traversable
 --import Data.Foldable hiding (all, any)
 
+import Language.Sunroof.Internal ( litparen )
+
 type Uniq = Int         -- used as a unique label
 
 cast :: (Sunroof a, Sunroof b) => a -> b
@@ -36,11 +38,6 @@ cast = box . unbox
 -- cast to int?
 int :: (Sunroof a) => a -> JSNumber
 int = box . (\ e -> op "(int)" [ExprE e]) . unbox
-
-
-litparen :: String -> String
-litparen nm | all (\ c -> isDigit c || c == '.') nm = nm
-            | otherwise      = "(" ++ nm ++ ")"
 
 mkVar :: Sunroof a => Uniq -> a
 mkVar = box . Var . ("v" ++) . show
@@ -802,9 +799,7 @@ instance JSTuple JSObject where
 
 --------------------------------------------------------------------------------------
 
--- | Helps to get the proxy of a value.
-proxyOf :: a -> Proxy a
-proxyOf _ = Proxy
+
 
 
 

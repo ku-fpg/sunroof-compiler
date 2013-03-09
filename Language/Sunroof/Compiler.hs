@@ -24,6 +24,8 @@ import Data.Default
 --import Debug.Trace
 --import Web.KansasComet (Template(..), extract)
 
+import Language.Sunroof.Internal ( proxyOf )
+
 data CompilerOpts = CompilerOpts
         { co_on      :: Bool        -- do we reify to capture Haskell-level lets / CSEs?
         , co_cse     :: Bool        -- do we also capture non-reified CSE, using Value Numbering?
