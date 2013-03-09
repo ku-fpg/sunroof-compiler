@@ -24,7 +24,7 @@ import Control.Applicative ( Applicative, pure, (<$>), (<*>))
 import Data.Traversable ( Traversable(..) )
 import Data.Foldable ( Foldable(..) )
 import Data.Monoid ( Monoid(..) )
-import Data.Char ( isAlpha )
+import Data.Char ( isAlpha, isAlphaNum )
 
 -- -------------------------------------------------------------
 -- Javascript Expressions
@@ -83,6 +83,8 @@ showExpr b e = p $ case e of
 --   (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
    (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
+   -- We have a constructor call:
+   (Apply (ExprE (Lit op)) args) | isNewConstructor op -> op ++ showArgs args
    (Apply (ExprE fn) args) -> showFun fn args
    (Dot (ExprE a) (ExprE x) Base) -> showIdx a x
         -- This is a shortcomming in Javascript, where grabbing a indirected function
@@ -105,12 +107,21 @@ showExpr b e = p $ case e of
 showIdx :: Expr -> Expr -> String
 showIdx a x = showExpr True a ++ "[" ++ showExpr False x ++ "]"
 
+showArgs :: [ExprE] -> String
+showArgs args = "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
+
 -- Show a function argument,
 showFun :: Expr -> [ExprE] -> String
 showFun e args = case e of
-    (Dot (ExprE a) (ExprE x) _) -> "(" ++ showIdx a x ++ ")" ++ args_text
-    _                           -> showExpr True e ++ args_text
-  where args_text = "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
+    (Dot (ExprE a) (ExprE x) _) -> "(" ++ showIdx a x ++ ")" ++ showArgs args
+    _                           -> showExpr True e ++ showArgs args 
+
+isIdentifier :: Id -> Bool
+isIdentifier x | not (null x) = isAlpha (head x) && all isAlphaNum (drop 1 x)
+isIdentifier _ = False
+
+isNewConstructor :: Id -> Bool
+isNewConstructor x = take 4 x == "new " && isIdentifier (drop 4 x)
 
 -- -------------------------------------------------------------
 -- Helper Combinators

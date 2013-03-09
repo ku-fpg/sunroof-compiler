@@ -293,11 +293,13 @@ attribute attr = label $ string attr
 invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
 invoke str args obj = (cast obj ! attribute str) `apply` args
 
--- TODO: BROKEN: Ignores the argument
--- Problem: new "Object" ()  -->  "(new Object)()" which will fail.
--- Should turn into "new Object()"
+-- | @new n a@ calls the new operator on the constructor @n@
+--   supplying the argument @a@. A typical use would look like this:
+--   
+-- > new "Object" ()
+--   
 new :: (JSArgument a) => String -> a -> JS t JSObject
-new cons _args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ cons) `apply` args
+new cons args = fun ("new " ++ cons) `apply` args
 
 -- This is not the same as return; it evaluates
 -- the argument to value form.
