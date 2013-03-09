@@ -102,7 +102,7 @@ compileRequest engine jsm = do
   -- Compile
   (stmts, uq') <- compileJSI (compilerOpts engine) uq $ extractProgram return jsm
   -- Check if the allocated amount was sufficient
-  let txt = unlines $ fmap showStmt stmts
+  let txt = showExpr False $ scopeForEffect stmts
 
   if (uq' < uq + compileUniqAlloc)
     -- It was sufficient we are finished
@@ -114,7 +114,7 @@ compileRequest engine jsm = do
       newUq <- docUniqs (uq' - uq) (cometDocument engine)
       -- Compile again
       (stmts', _) <- compileJSI (compilerOpts engine) newUq $ extractProgram return jsm
-      let txt' = unlines $ fmap showStmt stmts'
+      let txt' = showExpr False $ scopeForEffect stmts'
       compileLog engine txt'
       return txt'
 
