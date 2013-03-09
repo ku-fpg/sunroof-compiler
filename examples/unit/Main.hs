@@ -229,12 +229,12 @@ runTests doc all_tests = do
 
   -- set them all to 100 max
   sync doc $ do
-    () <- jQuery ".progressbar" >>= method "progressbar" ()  :: JS t ()
-    () <- jQuery ".progressbar" >>= method "progressbar" ( "option" :: JSString
+    () <- jQuery ".progressbar" >>= invoke "progressbar" ()  :: JS t ()
+    () <- jQuery ".progressbar" >>= invoke "progressbar" ( "option" :: JSString
                                                    , "max" :: JSString
                                                    , 100 :: JSNumber
                                                    )
-    () <- jQuery ".progressbar" >>= method "progressbar" ( "value" :: JSString
+    () <- jQuery ".progressbar" >>= invoke "progressbar" ( "value" :: JSString
                                                    , 0 :: JSNumber
                                                    )
     return ()
@@ -302,7 +302,7 @@ pbObject i j = jQuery $ js $ ('.' :) $ pbName i j
 progressVal :: SunroofEngine -> Int -> Int -> Int -> IO ()
 progressVal doc i j n = async doc $ do
   p <- pbObject i j
-  p # method "progressbar" ( "option" :: JSString
+  p # invoke "progressbar" ( "option" :: JSString
                            , "value" :: JSString
                            , js n :: JSNumber)
 

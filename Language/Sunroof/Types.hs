@@ -28,6 +28,8 @@ import Data.Proxy
 --import Data.Traversable
 --import Data.Foldable hiding (all, any)
 
+import Language.Sunroof.Internal ( litparen )
+
 type Uniq = Int         -- used as a unique label
 
 cast :: (Sunroof a, Sunroof b) => a -> b
@@ -36,11 +38,6 @@ cast = box . unbox
 -- cast to int?
 int :: (Sunroof a) => a -> JSNumber
 int = box . (\ e -> op "(int)" [ExprE e]) . unbox
-
-
-litparen :: String -> String
-litparen nm | all (\ c -> isDigit c || c == '.') nm = nm
-            | otherwise      = "(" ++ nm ++ ")"
 
 mkVar :: Sunroof a => Uniq -> a
 mkVar = box . Var . ("v" ++) . show
@@ -497,16 +494,16 @@ lengthArray :: (Sunroof a) => JSArray a -> JSNumber
 lengthArray o = cast o ! "length"
 
 pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
-pushArray a = method "push" a . cast
+pushArray a = invoke "push" a
 
 unshiftArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
-unshiftArray a = method "unshift" a . cast
+unshiftArray a = invoke "unshift" a
 
 popArray :: (Sunroof a) => JSArray a -> JS t a
-popArray = method "pop" () . cast
+popArray = invoke "pop" ()
 
 shiftArray :: (Sunroof a) => JSArray a -> JS t a
-shiftArray = method "shift" () . cast
+shiftArray = invoke "shift" ()
 
 lookupArray :: forall a . (Sunroof a) => JSNumber -> JSArray a -> a
 lookupArray idx arr = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (Proxy :: Proxy a))
@@ -543,12 +540,19 @@ infix  5 :=
 
 ---------------------------------------------------------------
 
--- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
---method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
-
--- SBC: call
-method :: (JSArgument a, Sunroof r) => String -> a -> JSObject -> JS t r
-method str args obj = (obj ! attribute str) `apply` args
+-- | @invoke s a o@ calls the method with name @s@ using the arguments @a@
+--   on the object @o@. A typical use would look like this:
+--   
+-- > o # invoke "foo" (x, y)
+--   
+--   Another use case is writing Javascript API bindings for common methods:
+--   
+-- > getElementById :: JSString -> JSObject -> JS t JSObject
+-- > getElementById s = invoke "getElementById" s
+--   
+--   Like this the flexible type signature gets fixed.
+invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
+invoke str args obj = (cast obj ! attribute str) `apply` args
 
 string :: String -> JSString
 string = fromString
@@ -558,15 +562,14 @@ object = JSObject . Lit
 
 -- perhaps call this invoke, or fun
 -- SBC: fun
-call :: String -> JSFunction a r
-call = JSFunction . Lit
+fun :: (JSArgument a, Sunroof r) => String -> JSFunction a r
+fun = JSFunction . Lit
 
-with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
-with a fn = single $ JS_Invoke (jsArgs a) fn
-
--- TODO: should take String argument
-new :: JS t JSObject
-new = evaluate $ object "new Object()"
+-- TODO: BROKEN: Ignores the argument
+-- Problem: new "Object" ()  -->  "(new Object)()" which will fail.
+-- Should turn into "new Object()"
+new :: (JSArgument a) => String -> a -> JS t JSObject
+new cons args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ cons) `apply` args
 
 attribute :: String -> JSSelector a
 attribute attr = label $ string attr
@@ -665,8 +668,6 @@ data JSI :: T -> * -> * where
     JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
     JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
-    -- A loop primitive.
-    JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b)  -> JSI A ()        -- to visit / generalize later
 
     -- syntaxtical return in javascript; only used in code generator for now.
     JS_Return  :: (Sunroof a) => a                                      -> JSI t ()      -- literal return
@@ -694,17 +695,27 @@ function' = single . JS_Function
 
 infixl 1 `apply`
 
--- | Call a function with the given arguments.
+-- | @apply f a@ applies the function @f@ to the given arguments @a@.
+--   A typical use case looks like this:
+--   
+-- > foo `apply` (x,y)
+--   
+--   See '($$)' for a convenient infix operator to du this.
 apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 apply f args = f # with args
+  where
+    with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
+    with a fn = single $ JS_Invoke (jsArgs a) fn
 
-foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b) -> JS A ()
-foreach arr body = single $ JS_Foreach arr body
+-- | @f $$ a@ applies the function 'f' to the given arguments @a@.
+--   See 'apply'.
+($$) :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
+($$) = apply
 
 forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do
         f <- function body
-        method "forEach" f (cast arr) :: JS t ()
+        arr # invoke "forEach" f :: JS t ()
         return ()
 
 infixr 0 #
@@ -779,7 +790,7 @@ newtype JSRef a = JSRef JSObject
 
 newJSRef :: (Sunroof a) => a -> JS t (JSRef a)
 newJSRef a = do
-        obj <- new
+        obj <- new "Object" ()
         obj # "val" := a
         return $ JSRef obj
 
@@ -821,13 +832,11 @@ class Sunroof o => JSTuple o where
 instance JSTuple JSObject where
         type Internals JSObject = ()
         match _ = ()
-        tuple () = new
+        tuple () = new "Object" ()
 
 --------------------------------------------------------------------------------------
 
--- | Helps to get the proxy of a value.
-proxyOf :: a -> Proxy a
-proxyOf _ = Proxy
+
 
 
 

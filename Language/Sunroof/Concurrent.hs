@@ -63,7 +63,7 @@ instance (JSArgument o) => JSTuple (JSChan o) where
 
         match (JSChan o) = ( o ! "written", o ! "waiting" )
         tuple (written,waiting) = do
-                o <- new
+                o <- new "Object" ()
                 o # "written" := written
                 o # "waiting" := waiting
                 return (JSChan o)

@@ -14,8 +14,8 @@ import Language.Sunroof.Types
   , JSObject
   , JSFunction
   , JS
-  , call
-  , method
+  , fun
+  , invoke
   , apply
   )
 
@@ -26,7 +26,7 @@ import Language.Sunroof.Types
 -- | The dollar function.
 --   See <http://api.jquery.com/jQuery/>.
 dollar :: JSFunction JSString JSObject
-dollar = call "$"
+dollar = fun "$"
 
 -- | Calls the JQuery dollar function.
 --   See <http://api.jquery.com/jQuery/>.
@@ -43,10 +43,10 @@ jq = jQuery
 
 -- | See <http://api.jquery.com/append/>.
 append :: JSObject -> JSObject -> JS t ()
-append x = method "append" x
+append x = invoke "append" x
 
 html :: JSString -> JSObject -> JS t JSObject
-html nm = method "html"  nm
+html nm = invoke "html"  nm
 
 text :: JSString -> JSObject -> JS t JSObject
-text = method "text"
+text = invoke "text"

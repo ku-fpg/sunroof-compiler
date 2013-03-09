@@ -21,9 +21,10 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Data.Default
 --import Data.Proxy
-import Data.Boolean
 --import Debug.Trace
 --import Web.KansasComet (Template(..), extract)
+
+import Language.Sunroof.Internal ( proxyOf )
 
 data CompilerOpts = CompilerOpts
         { co_on      :: Bool        -- do we reify to capture Haskell-level lets / CSEs?
@@ -110,17 +111,17 @@ compile = eval . view
           eval (JS_Invoke args fn :>>= g) = do
             compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) g
 
-          eval (JS_Function fun :>>= g) = do
-            e <- compileFunction fun
+          eval (JS_Function f :>>= g) = do
+            e <- compileFunction f
             compileBind e g
 
           eval (JS_Branch b c1 c2 :>>= g) = compileBranch b c1 c2 g
-
+          {-
           eval (JS_Foreach arr body :>>= g) = do
             loop <- compileForeach arr body
             rest <- compile (g ())
             return (loop ++ rest)
-
+          -}
 
 
 compileBind :: (Sunroof a)
@@ -169,7 +170,7 @@ compileFunction m2 = do
     fStmts <- compile $ extractProgram (\ a -> JS $ \ k -> threadCloser a >>= k) (m2 arg)
     return $ Function (map varIdE $ jsArgs arg) fStmts
 
-
+{-
 compileForeach :: forall a b t . (JSThread t, Sunroof a, Sunroof b)
                => JSArray a -> (a -> JS t b) -> CompM [Stmt]
 compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
@@ -191,6 +192,7 @@ compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
         , WhileStmt (condRet) (bodyStmts ++ incCounterStmts) ]
   return loopStmts
 compileForeach _arr _body = error "compileForeach: Threading model wrong."
+-}
 
 compileExpr :: Expr -> CompM ([Stmt], Expr)
 compileExpr e = do

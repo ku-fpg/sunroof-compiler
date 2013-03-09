@@ -67,10 +67,10 @@ example = do
 --  alert("Count" <> cast s <> " " <> cast e)
 
   date            <- evaluate $ object "new Date()"
-  tm0 :: JSNumber <- date # method "getTime" ()
+  tm0 :: JSNumber <- date # invoke "getTime" ()
 
-  jQuery "#slider" >>= method "slider" ("option" :: JSString, "min" :: JSString, s * mul :: JSNumber) :: JS A ()
-  jQuery "#slider" >>= method "slider" ("option" :: JSString, "max" :: JSString, e * mul :: JSNumber) :: JS A ()
+  jQuery "#slider" >>= invoke "slider" ("option" :: JSString, "min" :: JSString, s * mul :: JSNumber) :: JS A ()
+  jQuery "#slider" >>= invoke "slider" ("option" :: JSString, "max" :: JSString, e * mul :: JSNumber) :: JS A ()
 
 {-
   n <- new
@@ -79,14 +79,14 @@ example = do
       speed = 20        -- FPS target
   loop <- function $ \ () -> do
                 date            <- evaluate $ object "new Date()"
-                tm1 :: JSNumber <- date # method "getTime" ()
+                tm1 :: JSNumber <- date # invoke "getTime" ()
                 let tm = (tm1 - tm0) / 1000
                 ifB (tm >* e)
                     (window # clearInterval (n ! "callsign"))
                     (return ())
                 printFixed "#time" 2 tm
                 apply f tm
-                jQuery "#slider"  >>= method "slider" ("option" :: JSString, "value" :: JSString, Deep.floor (tm * mul) :: JSNumber) :: JS ()
+                jQuery "#slider"  >>= invoke "slider" ("option" :: JSString, "value" :: JSString, Deep.floor (tm * mul) :: JSNumber) :: JS ()
                 return ()
 -}
 
@@ -153,7 +153,7 @@ switchB tag ((a,b):xs) = ifB (tag ==* a) b (switchB tag xs)
 
 printFixed :: JSString -> JSNumber -> JSNumber -> JS A ()
 printFixed tag prec val = do
-        val' <- cast val # method "toFixed" prec
+        val' <- val # invoke "toFixed" prec
         jQuery tag >>= text val'
         return ()
 
@@ -219,7 +219,7 @@ counter (width,height)
 --                                        alert(cast n)
                                         c # fillText (cast (Deep.floor (n*100))) (n*100,0)
                                         date <- evaluate $ object "new Date()"
-                                        s <- date # method "getSeconds" ()
+                                        s <- date # invoke "getSeconds" ()
                                         c # fillText (cast (s :: JSNumber)) (n*100,100)
 --                                        alert("X" <> cast n)
                      ) <$> ui
