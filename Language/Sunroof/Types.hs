@@ -14,7 +14,6 @@ import Data.Monoid
 import qualified Data.Semigroup as Semi
 import Control.Monad.Operational
 import Data.Boolean
-import Data.Boolean.Numbers
 import Control.Monad
 import Data.AdditiveGroup
 import Data.VectorSpace hiding ((<.>))
@@ -30,6 +29,7 @@ import Language.Sunroof.Internal ( litparen )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( JSString )
+import Language.Sunroof.JS.Number ( JSNumber )
 
 type Uniq = Int         -- used as a unique label
 
@@ -130,114 +130,6 @@ instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
 instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
   type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
   js = function
-
----------------------------------------------------------------
-
-data JSNumber = JSNumber Expr
-
-instance Show JSNumber where
-        show (JSNumber v) = showExpr False v
-
-instance Sunroof JSNumber where
-        box = JSNumber
-        unbox (JSNumber e) = e
-
-instance Num JSNumber where
-        (JSNumber e1) + (JSNumber e2) = JSNumber $ binOp "+" e1 e2
-        (JSNumber e1) - (JSNumber e2) = JSNumber $ binOp "-" e1 e2
-        (JSNumber e1) * (JSNumber e2) = JSNumber $ binOp "*" e1 e2
-        abs (JSNumber e1) = JSNumber $ uniOp "Math.abs" e1
-        signum (JSNumber _e1) = error "signum" -- JSNumber $ uniOp "ERROR" e1
-        fromInteger = JSNumber . literal . litparen . show
-
-instance IntegralB JSNumber where
-  quot a b = ifB ((a / b) <* 0)
-                 (JSNumber $ uniOp "Math.ceil" (let JSNumber res = a / b in res))
-                 (a `div` b)
-  rem a b = a - (a `quot` b)*b
-  div a b = JSNumber $ uniOp "Math.floor" (let JSNumber res = a / b in res)
-  mod (JSNumber a) (JSNumber b) = JSNumber $ binOp "%" a b
-
-
-instance Fractional JSNumber where
-        (JSNumber e1) / (JSNumber e2) = JSNumber $ binOp "/" e1 e2
-        fromRational = JSNumber . literal . litparen . show . (fromRational :: Rational -> Double)
-
-instance Floating JSNumber where
-        pi = JSNumber $ literal $ "Math.PI"
-        sin   (JSNumber e) = JSNumber $ uniOp "Math.sin"   e
-        cos   (JSNumber e) = JSNumber $ uniOp "Math.cos"   e
-        asin  (JSNumber e) = JSNumber $ uniOp "Math.asin"  e
-        acos  (JSNumber e) = JSNumber $ uniOp "Math.acos"  e
-        atan  (JSNumber e) = JSNumber $ uniOp "Math.atan"  e
-        sinh  (JSNumber e) = JSNumber $ uniOp "Math.sinh"  e
-        cosh  (JSNumber e) = JSNumber $ uniOp "Math.cosh"  e
-        asinh (JSNumber e) = JSNumber $ uniOp "Math.asinh" e
-        acosh (JSNumber e) = JSNumber $ uniOp "Math.acosh" e
-        atanh (JSNumber e) = JSNumber $ uniOp "Math.atanh" e
-        exp   (JSNumber e) = JSNumber $ uniOp "Math.exp"   e
-        log   (JSNumber e) = JSNumber $ uniOp "Math.log"   e
-
-instance RealFracB JSNumber where
-  properFraction n =
-    ( ifB (n >=* 0) (floor n) (ceiling n)
-    , ifB (n >=* 0) (n - floor n) (n - ceiling n)
-    )
-  round   (JSNumber e) = JSNumber $ uniOp "Math.round" e
-  ceiling (JSNumber e) = JSNumber $ uniOp "Math.ceil"  e
-  floor   (JSNumber e) = JSNumber $ uniOp "Math.floor" e
-
-instance RealFloatB JSNumber where
-  isNaN (JSNumber a) = box $ uniOp "isNaN" a
-  isInfinite n = notB (isFinite n) &&* notB (isNaN n)
-    where isFinite (JSNumber a) = box $ uniOp "isFinite" a
-  isNegativeZero n = isInfinite n &&* n <* 0
-  isIEEE _ = true -- AFAIK
-  atan2 (JSNumber a) (JSNumber b) = JSNumber $ binOp "Math.atan2" a b
-
-type instance BooleanOf JSNumber = JSBool
-
-instance IfB JSNumber where
-  ifB = jsIfB
-
-instance EqB JSNumber where
-  (==*) e1 e2 = box $ binOp "==" (unbox e1) (unbox e2)
-  (/=*) e1 e2 = box $ binOp "!=" (unbox e1) (unbox e2)
-
-instance OrdB JSNumber where
-  (>*)  e1 e2 = box $ binOp ">"  (unbox e1) (unbox e2)
-  (>=*) e1 e2 = box $ binOp ">=" (unbox e1) (unbox e2)
-  (<*)  e1 e2 = box $ binOp "<"  (unbox e1) (unbox e2)
-  (<=*) e1 e2 = box $ binOp "<=" (unbox e1) (unbox e2)
-
-instance AdditiveGroup JSNumber where
-        zeroV = 0
-        (^+^) = (+)
-        negateV = negate
-
-instance VectorSpace JSNumber where
-  type Scalar JSNumber = JSNumber
-  s *^ d = s * d
-
-instance SunroofValue Double where
-  type ValueOf Double = JSNumber
-  js = box . literal . litparen . show
-
-instance SunroofValue Float where
-  type ValueOf Float = JSNumber
-  js = box . literal . litparen . show
-
-instance SunroofValue Int where
-  type ValueOf Int = JSNumber
-  js = fromInteger . toInteger
-
-instance SunroofValue Integer where
-  type ValueOf Integer = JSNumber
-  js = fromInteger . toInteger
-
-instance SunroofValue Rational where
-  type ValueOf Rational = JSNumber
-  js = box . literal . litparen . (show :: Double -> String) . fromRational
 
 -- -------------------------------------------------------------
 -- Javascript Arrays

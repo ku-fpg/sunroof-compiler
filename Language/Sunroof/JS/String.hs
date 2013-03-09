@@ -19,37 +19,36 @@ import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
 -- -------------------------------------------------------------
--- Javascript Strings
+-- JSString Type
 -- -------------------------------------------------------------
 
 data JSString = JSString Expr
 
 instance Show JSString where
-        show (JSString v) = showExpr False v
+  show (JSString v) = showExpr False v
 
 instance Sunroof JSString where
-        box = JSString
-        unbox (JSString e) = e
+  box = JSString
+  unbox (JSString e) = e
 
 instance Semigroup JSString where
-        (JSString e1) <> (JSString e2) = JSString $ binOp "+" e1 e2
-
+  (JSString e1) <> (JSString e2) = box $ binOp "+" e1 e2
 
 instance Monoid JSString where
-        mempty = fromString ""
-        mappend (JSString e1) (JSString e2) = JSString $ binOp "+" e1 e2
+  mempty = fromString ""
+  mappend (JSString e1) (JSString e2) = box $ binOp "+" e1 e2
 
 instance IsString JSString where
-    fromString = JSString . literal . jsLiteralString
+  fromString = box . literal . jsLiteralString
 
 type instance BooleanOf JSString = JSBool
 
 instance IfB JSString where
-    ifB = jsIfB
+  ifB = jsIfB
 
 instance EqB JSString where
-    (==*) e1 e2 = box $ binOp "==" (unbox e1) (unbox e2)
-    (/=*) e1 e2 = box $ binOp "!=" (unbox e1) (unbox e2)
+  (==*) e1 e2 = box $ binOp "==" (unbox e1) (unbox e2)
+  (/=*) e1 e2 = box $ binOp "!=" (unbox e1) (unbox e2)
 
 instance SunroofValue [Char] where
   type ValueOf [Char] = JSString

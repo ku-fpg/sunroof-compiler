@@ -8,6 +8,7 @@ import Language.Sunroof.Types
 --import Language.Sunroof.Types (T(A,B))
 import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Browser ( window, setTimeout )
 
 loopJS :: (Sunroof a) => a -> (a -> JSB a) -> JSB ()      -- does not terminate

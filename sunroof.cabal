@@ -35,6 +35,7 @@ Library
                        Language.Sunroof.JS.Bool
                        Language.Sunroof.JS.Object
                        Language.Sunroof.JS.String
+                       Language.Sunroof.JS.Number
                        Language.Sunroof.JS.Canvas
                        Language.Sunroof.JS.Browser
                        Language.Sunroof.JS.JQuery
