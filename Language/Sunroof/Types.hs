@@ -533,9 +533,6 @@ object = JSObject . Lit
 call :: String -> JSFunction a r
 call = JSFunction . Lit
 
-with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
-with a fn = single $ JS_Invoke (jsArgs a) fn
-
 -- TODO: should take String argument
 new :: JS t JSObject
 new = evaluate $ object "new Object()"
@@ -669,6 +666,9 @@ infixl 1 `apply`
 -- | Call a function with the given arguments.
 apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 apply f args = f # with args
+  where
+    with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
+    with a fn = single $ JS_Invoke (jsArgs a) fn
 
 foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b) -> JS A ()
 foreach arr body = single $ JS_Foreach arr body
