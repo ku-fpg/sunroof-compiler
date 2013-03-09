@@ -149,7 +149,7 @@ instance Num JSNumber where
         (JSNumber e1) * (JSNumber e2) = JSNumber $ binOp "*" e1 e2
         abs (JSNumber e1) = JSNumber $ uniOp "Math.abs" e1
         signum (JSNumber _e1) = error "signum" -- JSNumber $ uniOp "ERROR" e1
-        fromInteger = JSNumber . Lit . litparen . show
+        fromInteger = JSNumber . literal . litparen . show
 
 instance IntegralB JSNumber where
   quot a b = ifB ((a / b) <* 0)
@@ -162,10 +162,10 @@ instance IntegralB JSNumber where
 
 instance Fractional JSNumber where
         (JSNumber e1) / (JSNumber e2) = JSNumber $ binOp "/" e1 e2
-        fromRational = JSNumber . Lit . litparen . show . (fromRational :: Rational -> Double)
+        fromRational = JSNumber . literal . litparen . show . (fromRational :: Rational -> Double)
 
 instance Floating JSNumber where
-        pi = JSNumber $ Lit $ "Math.PI"
+        pi = JSNumber $ literal $ "Math.PI"
         sin   (JSNumber e) = JSNumber $ uniOp "Math.sin"   e
         cos   (JSNumber e) = JSNumber $ uniOp "Math.cos"   e
         asin  (JSNumber e) = JSNumber $ uniOp "Math.asin"  e
@@ -222,11 +222,11 @@ instance VectorSpace JSNumber where
 
 instance SunroofValue Double where
   type ValueOf Double = JSNumber
-  js = box . Lit . litparen . show
+  js = box . literal . litparen . show
 
 instance SunroofValue Float where
   type ValueOf Float = JSNumber
-  js = box . Lit . litparen . show
+  js = box . literal . litparen . show
 
 instance SunroofValue Int where
   type ValueOf Int = JSNumber
@@ -238,7 +238,7 @@ instance SunroofValue Integer where
 
 instance SunroofValue Rational where
   type ValueOf Rational = JSNumber
-  js = box . Lit . litparen . (show :: Double -> String) . fromRational
+  js = box . literal . litparen . (show :: Double -> String) . fromRational
 
 -- -------------------------------------------------------------
 -- Javascript Strings
@@ -262,7 +262,7 @@ instance Monoid JSString where
         mappend (JSString e1) (JSString e2) = JSString $ binOp "+" e1 e2
 
 instance IsString JSString where
-    fromString = JSString . Lit . jsLiteralString
+    fromString = JSString . literal . jsLiteralString
 
 type instance BooleanOf JSString = JSBool
 
@@ -343,11 +343,11 @@ instance (Sunroof a) => IfB (JSArray a) where
 instance (SunroofValue a) => SunroofValue [a] where
   type ValueOf [a] = JSArray (ValueOf a)
   -- Uses JSON
-  js l  = JSArray $ Lit $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
+  js l  = JSArray $ literal $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
 -}
 
 array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
-array l  = JSArray $ Lit $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
+array l  = JSArray $ literal $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
 
 instance forall a . (Sunroof a) => Monoid (JSArray a) where
   mempty = emptyArray
@@ -358,7 +358,7 @@ newArray :: (Sunroof a) => JS t (JSArray a)
 newArray = evaluate $ cast $ object "new Array()"
 
 emptyArray :: (Sunroof a) => JSArray a
-emptyArray = JSArray $ Lit "[]"
+emptyArray = JSArray $ literal "[]"
 
 lengthArray :: (Sunroof a) => JSArray a -> JSNumber
 lengthArray o = cast o ! "length"
@@ -428,12 +428,12 @@ string :: String -> JSString
 string = fromString
 
 object :: String -> JSObject
-object = box . Lit
+object = box . literal
 
 -- perhaps call this invoke, or fun
 -- SBC: fun
 fun :: (JSArgument a, Sunroof r) => String -> JSFunction a r
-fun = JSFunction . Lit
+fun = JSFunction . literal
 
 -- TODO: BROKEN: Ignores the argument
 -- Problem: new "Object" ()  -->  "(new Object)()" which will fail.
@@ -681,7 +681,7 @@ modifyJSRef ref f = do
 --
 
 nullJS :: JSObject
-nullJS = box $ Lit "null"
+nullJS = box $ literal "null"
 
 -----------------------------------------------------------------
 --
