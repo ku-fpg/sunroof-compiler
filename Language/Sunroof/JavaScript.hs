@@ -82,7 +82,7 @@ showExpr b e = p $ case e of
    (Dot (ExprE a) (ExprE x) (Fun xs _)) ->
                 "function(" ++ intercalate "," args ++ ") { return (" ++
                         showIdx a x ++ ")(" ++ intercalate "," args ++ "); }"
-            where args = [ "a" ++ show i | i <- take n ([0..] :: [Int])]
+            where args = [ "a" ++ show i | i <- take (length xs) ([0..] :: [Int])]
    -- This pattern was missing too.
    (Dot (ExprE _a) (ExprE _x) Unit) -> 
      error "Dot pattern on unit type. Don't know what to do."
