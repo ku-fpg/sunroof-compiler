@@ -13,6 +13,10 @@ import Language.Sunroof.JavaScript ( Expr, showExpr )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
+-- -------------------------------------------------------------
+-- JSObject Type
+-- -------------------------------------------------------------
+
 data JSObject = JSObject Expr
 
 instance Show JSObject where

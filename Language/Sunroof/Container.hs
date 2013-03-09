@@ -7,6 +7,7 @@ module Language.Sunroof.Container
         , newJSRef
         , readJSRef
         , writeJSRef
+        , modifyJSRef
         ) where
 
 import Language.Sunroof.Classes ( Sunroof(..) )
