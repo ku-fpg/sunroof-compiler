@@ -29,6 +29,7 @@ import Data.Proxy
 import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.Internal ( litparen )
+import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
 type Uniq = Int         -- used as a unique label
 
@@ -109,43 +110,6 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunr
 
 ---------------------------------------------------------------
 
-data JSBool = JSBool Expr
-
-instance Show JSBool where
-        show (JSBool e) = showExpr False e
-
-instance Sunroof JSBool where
-        box = JSBool
-        unbox (JSBool v)  = v
-
-instance Boolean JSBool where
-  true          = JSBool (Lit "true")
-  false         = JSBool (Lit "false")
-  notB  (JSBool e1) = JSBool $ uniOp "!" e1
-  (&&*) (JSBool e1)
-        (JSBool e2) = JSBool $ binOp "&&" e1 e2
-  (||*) (JSBool e1)
-        (JSBool e2) = JSBool $ binOp "||" e1 e2
-
-type instance BooleanOf JSBool = JSBool
-
-instance IfB JSBool where
-    ifB = js_ifB
-
-instance EqB JSBool where
-  (==*) e1 e2 = JSBool $ binOp "==" (unbox e1) (unbox e2)
-  (/=*) e1 e2 = JSBool $ binOp "!=" (unbox e1) (unbox e2)
-
-js_ifB :: (Sunroof a) => JSBool -> a -> a -> a
-js_ifB (JSBool c) t e = box $ operator "?:" [c, unbox t, unbox e]
-
-instance SunroofValue Bool where
-  type ValueOf Bool = JSBool
-  js True = true
-  js False = false
-
----------------------------------------------------------------
-
 -- The first type argument is the type of function argument;
 -- The second type argument of JSFunction is what the function returns.
 data JSFunction args ret = JSFunction Expr
@@ -161,7 +125,7 @@ instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) wher
 type instance BooleanOf (JSFunction a r) = JSBool
 
 instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
-    ifB = js_ifB
+    ifB = jsIfB
 
 instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
   type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
@@ -224,9 +188,9 @@ instance RealFracB JSNumber where
   floor   (JSNumber e) = JSNumber $ uniOp "Math.floor" e
 
 instance RealFloatB JSNumber where
-  isNaN (JSNumber a) = JSBool $ uniOp "isNaN" a
+  isNaN (JSNumber a) = box $ uniOp "isNaN" a
   isInfinite n = notB (isFinite n) &&* notB (isNaN n)
-    where isFinite (JSNumber a) = JSBool $ uniOp "isFinite" a
+    where isFinite (JSNumber a) = box $ uniOp "isFinite" a
   isNegativeZero n = isInfinite n &&* n <* 0
   isIEEE _ = true -- AFAIK
   atan2 (JSNumber a) (JSNumber b) = JSNumber $ binOp "Math.atan2" a b
@@ -234,17 +198,17 @@ instance RealFloatB JSNumber where
 type instance BooleanOf JSNumber = JSBool
 
 instance IfB JSNumber where
-  ifB = js_ifB
+  ifB = jsIfB
 
 instance EqB JSNumber where
-  (==*) e1 e2 = JSBool $ binOp "==" (unbox e1) (unbox e2)
-  (/=*) e1 e2 = JSBool $ binOp "!=" (unbox e1) (unbox e2)
+  (==*) e1 e2 = box $ binOp "==" (unbox e1) (unbox e2)
+  (/=*) e1 e2 = box $ binOp "!=" (unbox e1) (unbox e2)
 
 instance OrdB JSNumber where
-  (>*)  e1 e2 = JSBool $ binOp ">"  (unbox e1) (unbox e2)
-  (>=*) e1 e2 = JSBool $ binOp ">=" (unbox e1) (unbox e2)
-  (<*)  e1 e2 = JSBool $ binOp "<"  (unbox e1) (unbox e2)
-  (<=*) e1 e2 = JSBool $ binOp "<=" (unbox e1) (unbox e2)
+  (>*)  e1 e2 = box $ binOp ">"  (unbox e1) (unbox e2)
+  (>=*) e1 e2 = box $ binOp ">=" (unbox e1) (unbox e2)
+  (<*)  e1 e2 = box $ binOp "<"  (unbox e1) (unbox e2)
+  (<=*) e1 e2 = box $ binOp "<=" (unbox e1) (unbox e2)
 
 instance AdditiveGroup JSNumber where
         zeroV = 0
@@ -302,11 +266,11 @@ instance IsString JSString where
 type instance BooleanOf JSString = JSBool
 
 instance IfB JSString where
-    ifB = js_ifB
+    ifB = jsIfB
 
 instance EqB JSString where
-    (==*) e1 e2 = JSBool $ binOp "==" (unbox e1) (unbox e2)
-    (/=*) e1 e2 = JSBool $ binOp "!=" (unbox e1) (unbox e2)
+    (==*) e1 e2 = box $ binOp "==" (unbox e1) (unbox e2)
+    (/=*) e1 e2 = box $ binOp "!=" (unbox e1) (unbox e2)
 
 instance SunroofValue [Char] where
   type ValueOf [Char] = JSString
@@ -373,7 +337,7 @@ instance Sunroof JSObject where
 type instance BooleanOf JSObject = JSBool
 
 instance IfB JSObject where
-    ifB = js_ifB
+    ifB = jsIfB
 
 instance SunroofValue Expr where
   type ValueOf Expr = JSObject
@@ -395,7 +359,7 @@ instance (Sunroof a) => Sunroof (JSArray a) where
 type instance BooleanOf (JSArray a) = JSBool
 
 instance (Sunroof a) => IfB (JSArray a) where
-    ifB = js_ifB
+    ifB = jsIfB
 {- This conflicts with the string instance.
 instance (SunroofValue a) => SunroofValue [a] where
   type ValueOf [a] = JSArray (ValueOf a)

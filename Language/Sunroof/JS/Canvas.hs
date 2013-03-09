@@ -3,6 +3,7 @@
 module Language.Sunroof.JS.Canvas where
 
 import Language.Sunroof.Types
+import Language.Sunroof.JS.Bool ( JSBool )
 
 getContext :: JSString -> JSObject -> JS t JSObject
 getContext nm = invoke "getContext" (nm)
