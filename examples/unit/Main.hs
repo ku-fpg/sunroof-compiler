@@ -18,7 +18,7 @@ import Data.Boolean
 
 import Control.Concurrent
 
---import Control.Monad
+import Control.Monad
 --import Control.Applicative
 --import Control.Monad.IO.Class
 
@@ -209,16 +209,16 @@ checkArbitraryChan_Int doc seed = monadicIO $ do
                     | x <- arr2
                     ]
 
-{-
-          -- debugging Glyph; perhaps send to Haskell-land,
-          -- or somehow print on the screen?
-          B.console # B.log (mconcat [ ifB (lookupArray (js n :: JSNumber) note)
-                                                (">"::JSString)
-                                                "<"
-                                     | n <- [0..19::Int]
-                                     ])
+          when (teLog doc) $ do
+                 -- debugging Glyph; perhaps send to Haskell-land,
+                 -- or somehow print on the screen?
+                 B.console # B.log (mconcat [ ifB (lookupArray (js n :: JSNumber) note)
+                                                  (">"::JSString)
+                                                  "<"
+                                            | n <- [0..19::Int]
+                                            ])
 
--}
+
           return arr
   res :: [Double] <- run $ sync (srEngine doc) prog
   assert $ map round res == dat
