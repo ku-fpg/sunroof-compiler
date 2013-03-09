@@ -534,8 +534,8 @@ call :: String -> JSFunction a r
 call = JSFunction . Lit
 
 -- TODO: should take String argument
-new :: JS t JSObject
-new = evaluate $ object "new Object()"
+new :: (JSArgument a) => String -> a -> JS t JSObject
+new cons args = call ("new " ++ cons) `apply` args
 
 attribute :: String -> JSSelector a
 attribute attr = label $ string attr
@@ -751,7 +751,7 @@ newtype JSRef a = JSRef JSObject
 
 newJSRef :: (Sunroof a) => a -> JS t (JSRef a)
 newJSRef a = do
-        obj <- new
+        obj <- new "Object" ()
         obj # "val" := a
         return $ JSRef obj
 
@@ -793,7 +793,7 @@ class Sunroof o => JSTuple o where
 instance JSTuple JSObject where
         type Internals JSObject = ()
         match _ = ()
-        tuple () = new
+        tuple () = new "Object" ()
 
 --------------------------------------------------------------------------------------
 
