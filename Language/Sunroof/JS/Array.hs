@@ -20,10 +20,10 @@ import Data.Boolean ( BooleanOf, IfB(..) )
 
 import Language.Sunroof.JavaScript ( Expr, showExpr, literal, binOp )
 import Language.Sunroof.Types 
-  ( JS, JSArgument(..), T(A)
+  ( JS, T(A)
   , cast, invoke, function, evaluate, object, attribute
   , (#) )
-import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), JSArgument(..) )
 import Language.Sunroof.Selector ( index, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Number ( JSNumber )

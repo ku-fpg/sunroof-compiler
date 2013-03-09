@@ -9,87 +9,19 @@ import Data.Monoid
 import qualified Data.Semigroup as Semi
 import Control.Monad.Operational
 import Data.Boolean
-import Control.Monad
 
 import Language.Sunroof.JavaScript
-import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
+import Language.Sunroof.Classes 
+  ( Sunroof(..), SunroofValue(..), JSArgument
+  , jsArgs )
 import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( string )
 
-type Uniq = Int         -- used as a unique label
 
 cast :: (Sunroof a, Sunroof b) => a -> b
 cast = box . unbox
-
-mkVar :: Sunroof a => Uniq -> a
-mkVar = box . Var . ("v" ++) . show
-
-
----------------------------------------------------------------
-
-class Monad m => UniqM m where
-        uniqM :: m Uniq
-
-jsVar :: (Sunroof a, UniqM m) => m a
-jsVar = uniqM >>= return . mkVar
-
----------------------------------------------------------------
-
-class JSArgument args where
-        jsArgs   :: args -> [Expr]        -- turn a value into a list of expressions
-        jsValue  :: (UniqM m) => m args
-
-instance Sunroof a => JSArgument a where
-      jsArgs a = [unbox a]
-      jsValue = jsVar
-
-instance JSArgument () where
-        jsArgs _ = []
-        jsValue = return ()
-
-instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
-      jsArgs ~(a,b) = [unbox a, unbox b]
-      jsValue = liftM2 (,) jsVar jsVar
-
-instance (Sunroof a, Sunroof b, Sunroof c) => JSArgument (a,b,c) where
-      jsArgs ~(a,b,c) = [unbox a, unbox b, unbox c]
-      jsValue = liftM3 (,,) jsVar jsVar jsVar
-
-instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d) => JSArgument (a,b,c,d) where
-      jsArgs ~(a,b,c,d) = [unbox a, unbox b, unbox c, unbox d]
-      jsValue = liftM4 (,,,) jsVar jsVar jsVar jsVar
-
-instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e) => JSArgument (a,b,c,d,e) where
-      jsArgs ~(a,b,c,d,e) = [unbox a, unbox b, unbox c, unbox d, unbox e]
-      jsValue = liftM5 (,,,,) jsVar jsVar jsVar jsVar jsVar
-
-instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f) => JSArgument (a,b,c,d,e,f) where
-      jsArgs ~(a,b,c,d,e,f) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f]
-      jsValue = return (,,,,,) `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar
-
--- Need to add the 7 & 8 tuple (not used in this package - yet)
-
-instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunroof g, Sunroof h, Sunroof i) => JSArgument (a,b,c,d,e,f,g,h,i) where
-      jsArgs ~(a,b,c,d,e,f,g,h,i) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f, unbox g, unbox h, unbox i]
-      jsValue = return (,,,,,,,,)
-                        `ap` jsVar
-                        `ap` jsVar
-                        `ap` jsVar
-                        `ap` jsVar
-                        `ap` jsVar
-                        `ap` jsVar
-                        `ap` jsVar
-                        `ap` jsVar
-                        `ap` jsVar
-
-----    jsValue :: val -> JSValue
-
---instance JSType JSBool where
---    jsValue (JSBool expr) = JSValue expr
-
---instance JSPrimitive a => JSArgument a where
 
 ---------------------------------------------------------------
 

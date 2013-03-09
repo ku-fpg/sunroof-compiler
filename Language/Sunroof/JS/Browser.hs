@@ -69,10 +69,9 @@ import Language.Sunroof.Types
   , object
   , attribute
   , apply
-  , JSArgument
   , (#)
   )
-import Language.Sunroof.Classes ( Sunroof(..) )
+import Language.Sunroof.Classes ( Sunroof(..), JSArgument )
 import Language.Sunroof.Selector ( JSSelector )
 import Language.Sunroof.JS.Bool ( JSBool )
 import Language.Sunroof.JS.Object ( JSObject )

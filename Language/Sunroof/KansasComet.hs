@@ -59,7 +59,7 @@ import qualified Web.KansasComet as KC
 
 import Language.Sunroof.Types
 import Language.Sunroof.JavaScript
-import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), Uniq )
 import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
 import Language.Sunroof.JS.Object ( JSObject )

@@ -10,7 +10,7 @@ import Data.AffineSpace
 import Data.Boolean
 
 import Language.Sunroof.Types
-import Language.Sunroof.Classes ( Sunroof, SunroofValue(..) )
+import Language.Sunroof.Classes ( Sunroof, SunroofValue(..), JSArgument(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
 import Language.Sunroof.JS.Number ( JSNumber )
 --import Language.Sunroof.Compiler
