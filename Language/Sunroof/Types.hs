@@ -5,22 +5,15 @@
 -- This should only export user-facing types (as much as possible)
 module Language.Sunroof.Types where
 
---import Data.Char ( isDigit, isControl, isAscii, ord )
-import Data.List ( intercalate )
---import qualified Data.Map as Map
 import Data.Monoid
 import qualified Data.Semigroup as Semi
 import Control.Monad.Operational
 import Data.Boolean
 import Control.Monad
---import Data.Reify
---import Control.Applicative ( Applicative, pure, (<$>), (<*>))
---import Data.Traversable
---import Data.Foldable hiding (all, any)
 
 import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
-import Language.Sunroof.Selector ( JSSelector, index, label, (!) )
+import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( string )
