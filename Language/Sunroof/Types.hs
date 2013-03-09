@@ -15,8 +15,6 @@ import qualified Data.Semigroup as Semi
 import Control.Monad.Operational
 import Data.Boolean
 import Control.Monad
-import Data.AdditiveGroup
-import Data.VectorSpace hiding ((<.>))
 import Data.Proxy
 --import Data.Reify
 --import Control.Applicative ( Applicative, pure, (<$>), (<*>))
@@ -25,7 +23,6 @@ import Data.Proxy
 
 import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
-import Language.Sunroof.Internal ( litparen )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( JSString )
@@ -185,31 +182,38 @@ shiftArray :: (Sunroof a) => JSArray a -> JS t a
 shiftArray = invoke "shift" ()
 
 lookupArray :: forall a . (Sunroof a) => JSNumber -> JSArray a -> a
-lookupArray idx arr = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (Proxy :: Proxy a))
+lookupArray idx arr = cast arr ! index idx
 
 ---------------------------------------------------------------
 
 -- | a 'JSSelector' selects a field from a JSObject.
 -- The phantom is the type of the selected value.
-data JSSelector :: * -> * where
-        JSSelector :: JSString           -> JSSelector a
+{-data JSSelector :: * -> * where
+        JSSelector :: JSString           -> JSSelector a-}
+data JSSelector a = JSSelector Expr
 
 instance IsString (JSSelector a) where
-    fromString = JSSelector . fromString
+  fromString = JSSelector . unbox . string
 
 instance Show (JSSelector a) where
-    show (JSSelector str) = show str
+  show (JSSelector ids) = show ids
 
 
 label :: JSString -> JSSelector a
-label = JSSelector
+label = JSSelector . unbox
+
+index :: JSNumber -> JSSelector a
+index = JSSelector . unbox
+
+unboxSelector :: JSSelector a -> Expr
+unboxSelector (JSSelector e) = e
 
 ---------------------------------------------------------------
 
 infixl 1 !
 
 (!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (Proxy :: Proxy a))
+(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ idx) (typeOf (Proxy :: Proxy a))
 
 ---------------------------------------------------------------
 

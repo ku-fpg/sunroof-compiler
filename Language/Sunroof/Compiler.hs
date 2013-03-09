@@ -77,16 +77,16 @@ compile = eval . view
           eval (JS_Eval e :>>= g) = do
             compileBind (unbox e) g
 
-          eval (JS_Assign (JSSelector sel) a obj :>>= g) = do
+          eval (JS_Assign sel a obj :>>= g) = do
             -- note, this is where we need to optimize/CSE  the a value.
             -- TODO: this constructor should return unit, not the updated value
             (stmts0,val) <- compileExpr (unbox a)
             stmts1 <- compile (g ())
-            return ( stmts0 ++ [AssignStmt (unbox obj) (unbox sel) val] ++ stmts1)
+            return ( stmts0 ++ [AssignStmt (unbox obj) (unboxSelector sel) val] ++ stmts1)
 
             -- TODO: this is wrong : use Dot
-          eval (JS_Select (JSSelector sel) obj :>>= g) = do
-            compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unbox sel]) g
+          eval (JS_Select sel obj :>>= g) = do
+            compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unboxSelector sel]) g
 
           -- Return returns Haskell type JS A (), because there is nothing after a return.
           -- We ignore everything after a return.
