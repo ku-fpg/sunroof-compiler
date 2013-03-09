@@ -108,6 +108,7 @@ data Stmt
         | ReturnStmt Expr           -- return Expr
         | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
         | WhileStmt Expr [Stmt]     -- while (Expr) { Stmts }
+        | CommentStmt String        -- A comment in the code
 
 instance Show Stmt where
         show = showStmt
@@ -127,7 +128,7 @@ showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n"
 showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
   ++ indent 2 (unlines (map showStmt stmts))
   ++ "}"
-
+showStmt (CommentStmt msg) = "{- " ++ msg ++ " -}"
 
 data Type
  = Base                  -- base type, like object
