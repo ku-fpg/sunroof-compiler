@@ -152,7 +152,7 @@ checkBasicArith doc op x y = monadicIO $ do
 --   after sync.
 checkArbitraryArith :: TestEngine -> Int -> Property
 checkArbitraryArith doc seed = monadicIO $ do
-  let n = (abs seed `mod` 10) + 1
+  let n = (abs seed `mod` 8) + 1
   (r, e) <- pick $ sameSeed (numExprGen n :: Gen Double)
                             (numExprGen n :: Gen JSNumber)
   pre $ abs r < (100000000 :: Double)
@@ -161,7 +161,7 @@ checkArbitraryArith doc seed = monadicIO $ do
 
 checkArbitraryBool :: TestEngine -> Int -> Property
 checkArbitraryBool doc seed = monadicIO $ do
-  let n = (abs seed `mod` 10) + 1
+  let n = (abs seed `mod` 8) + 1
   (b, e) <- pick $ sameSeed (boolExprGen n :: Gen Bool)
                             (boolExprGen n :: Gen JSBool)
   b' <- run $ sync (srEngine doc) (return e)
@@ -169,7 +169,7 @@ checkArbitraryBool doc seed = monadicIO $ do
 
 checkArbitraryIfThenElse_Int :: forall t . (JSThread t) => TestEngine -> ThreadProxy t -> Int -> Property
 checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
-  let n = (abs seed `mod` 10) + 1
+  let n = (abs seed `mod` 8) + 1
   (b, e) <- pick $ sameSeed (boolExprGen n :: Gen Bool)
                             (boolExprGen n :: Gen JSBool)
   (r1, e1) <- pick $ sameSeed (numExprGen n :: Gen Double)
