@@ -634,8 +634,6 @@ data JSI :: T -> * -> * where
     JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
     -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
     JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
-    -- A loop primitive.
-    JS_Foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b)  -> JSI A ()        -- to visit / generalize later
 
     -- syntaxtical return in javascript; only used in code generator for now.
     JS_Return  :: (Sunroof a) => a                                      -> JSI t ()      -- literal return
@@ -679,9 +677,6 @@ apply f args = f # with args
 --   See 'apply'.
 ($$) :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 ($$) = apply
-
-foreach :: (Sunroof a, Sunroof b) => JSArray a -> (a -> JS A b) -> JS A ()
-foreach arr body = single $ JS_Foreach arr body
 
 forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do
