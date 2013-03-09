@@ -3,19 +3,13 @@
 
 module Main where
 
-import Web.Scotty (scotty, middleware)
 import Data.Default
-import Control.Monad
-import Data.Monoid
-import Control.Monad.IO.Class
-import Network.Wai.Middleware.Static
 import Data.Boolean
 
 import Web.KansasComet
-import qualified Web.KansasComet as KC
 
 import Language.Sunroof
-import Language.Sunroof.Types
+import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery
@@ -23,7 +17,7 @@ import Language.Sunroof.JS.JQuery
 -- This is a transcription of the http://www.html5canvastutorials.com/ demos/tutorials.
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \ doc -> do
+main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \ doc -> do
   registerEvents (cometDocument doc) "body" click
   sequence_ $ map (\ex -> whenEvent (cometDocument doc) "body" click 
                         $ async doc $ onClick $ ex)

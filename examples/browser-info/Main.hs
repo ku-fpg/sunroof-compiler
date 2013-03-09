@@ -2,22 +2,20 @@
 
 module Main where
 
-import Data.Default
-import Data.Semigroup
+import Data.Default ( Default(..) )
+import Data.Semigroup ( (<>) )
 import Data.Boolean
 import Data.Maybe ( fromJust )
-import Data.String
+import Data.String ( IsString(..) )
 
-import Control.Monad
+import Control.Monad ( liftM2 )
 import Control.Monad.IO.Class
 
-import Network.Wai.Middleware.Static
-import Web.Scotty (scotty, middleware)
-import Web.KansasComet
+import Web.KansasComet ( registerEvents, event, (<&>), (.=) )
 import qualified Web.KansasComet as KC
 
 import Language.Sunroof
-import Language.Sunroof.Types
+import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery
@@ -25,7 +23,7 @@ import Language.Sunroof.JS.JQuery
 default(JSNumber, JSString, String)
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
+main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \doc -> do
 --  registerEvents (cometDocument doc) "body" mempty
 
   theCookie <- sync doc $ evaluate $ document ! cookie

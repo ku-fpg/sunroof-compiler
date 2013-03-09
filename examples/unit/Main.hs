@@ -1,4 +1,8 @@
-{-# LANGUAGE OverloadedStrings, TypeFamilies, ScopedTypeVariables, RankNTypes, DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ImpredicativeTypes #-}
@@ -18,16 +22,11 @@ import Data.Boolean
 
 import Control.Concurrent
 
---import Control.Monad
---import Control.Applicative
---import Control.Monad.IO.Class
-
-import Network.Wai.Middleware.Static
-import Web.Scotty (scotty, middleware)
 import Web.KansasComet hiding ( abort )
 import qualified Web.KansasComet as KC
 
 import Language.Sunroof as SR
+import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.JQuery (jQuery)
 import qualified Language.Sunroof.JS.Browser as B
 
@@ -48,7 +47,7 @@ import Test.QuickCheck.Property
 import Test.QuickCheck.State ( State( numSuccessTests ) )
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) web_app
+main = sunroofServer (def { sunroofVerbose = 0, cometResourceBaseDir = ".." }) web_app
 
 default(JSNumber, JSString, String)
 
