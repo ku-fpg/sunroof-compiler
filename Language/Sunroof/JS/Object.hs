@@ -29,4 +29,4 @@ instance IfB JSObject where
 
 instance SunroofValue Expr where
   type ValueOf Expr = JSObject
-  js = box 
+  js = box

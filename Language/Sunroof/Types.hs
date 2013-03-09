@@ -22,89 +22,15 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( string )
 
-
-cast :: (Sunroof a, Sunroof b) => a -> b
-cast = box . unbox
-
--- -------------------------------------------------------------
--- JSFunction Type
--- -------------------------------------------------------------
-
--- The first type argument is the type of function argument;
--- The second type argument of JSFunction is what the function returns.
-data JSFunction args ret = JSFunction Expr
-
-instance Show (JSFunction a r) where
-  show (JSFunction v) = showExpr False v
-
-instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
-  box = JSFunction
-  unbox (JSFunction e) = e
-  typeOf _ = Fun (length (jsArgs (error "instance Sunroof JSFunction" :: a)))
-
-type instance BooleanOf (JSFunction a r) = JSBool
-
-instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
-  ifB = jsIfB
-
-instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
-  type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
-  js = function
-
 ---------------------------------------------------------------
-
-infix  5 :=
 
 --type Action a r = a -> JS A r
 
----------------------------------------------------------------
-
--- | @invoke s a o@ calls the method with name @s@ using the arguments @a@
---   on the object @o@. A typical use would look like this:
---   
--- > o # invoke "foo" (x, y)
---   
---   Another use case is writing Javascript API bindings for common methods:
---   
--- > getElementById :: JSString -> JSObject -> JS t JSObject
--- > getElementById s = invoke "getElementById" s
---   
---   Like this the flexible type signature gets fixed.
-invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
-invoke str args obj = (cast obj ! attribute str) `apply` args
-
-object :: String -> JSObject
-object = box . literal
-
--- perhaps call this invoke, or fun
--- SBC: fun
-fun :: (JSArgument a, Sunroof r) => String -> JSFunction a r
-fun = JSFunction . literal
-
--- TODO: BROKEN: Ignores the argument
--- Problem: new "Object" ()  -->  "(new Object)()" which will fail.
--- Should turn into "new Object()"
-new :: (JSArgument a) => String -> a -> JS t JSObject
-new cons _args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ cons) `apply` args
-
-attribute :: String -> JSSelector a
-attribute attr = label $ string attr
-
 --vector :: [JSValue] -> JSVector
 --vector = ...
----------------------------------------------------------------
 
 --select :: (Sunroof a) => JSSelector a -> JSObject -> JS a
 --select sel obj = evaluate (obj ! sel) JS $ singleton $ JS_Select sel obj
-
----------------------------------------------------------------
-
--- This is not the same as return; it evaluates
--- the argument to value form.
-evaluate, value :: (Sunroof a) => a -> JS t a
-evaluate a  = single (JS_Eval a)
-
-value = evaluate
 
 ---------------------------------------------------------------
 
@@ -137,7 +63,7 @@ instance (Sunroof a) => JSThreadReturn A a where
 instance JSThreadReturn B () where
     threadCloser () = return ()
 
-
+infix  5 :=
 
 -- Control.Monad.Operational makes a monad out of JS for us
 data JS :: T -> * -> * where
@@ -192,59 +118,13 @@ data JSI :: T -> * -> * where
 
 ---------------------------------------------------------------
 
--- | We can compile A-tomic functions.
 
-function :: (JSArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
-function = function'
-
--- | We can compile B-lockable functions that return ().
--- Note that, with the 'B'-style threads, we return from a call at the first block,
--- not at completion of the call.
-
-continuation :: (JSArgument a) => (a -> JS B ()) -> JS t (JSFunction a ())
-continuation = function'
-
--- The generalization of function and continuation.
-
-function' :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
-function' = single . JS_Function
-
-infixl 1 `apply`
-
--- | @apply f a@ applies the function @f@ to the given arguments @a@.
---   A typical use case looks like this:
---   
--- > foo `apply` (x,y)
---   
---   See '($$)' for a convenient infix operator to du this.
-apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
-apply f args = f # with args
-  where
-    with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
-    with a fn = single $ JS_Invoke (jsArgs a) fn
-
--- | @f $$ a@ applies the function 'f' to the given arguments @a@.
---   See 'apply'.
-($$) :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
-($$) = apply
-
-infixr 0 #
-
--- We should use this operator for the obj.label concept.
--- It has been used in other places (but I can not seems
--- to find a library for it)
-(#) :: a -> (a -> JS t b) -> JS t b
-(#) obj act = act obj
 
 type instance BooleanOf (JS t a) = JSBool
 
 -- TODO: generalize
 instance (JSThread t, Sunroof a, JSArgument a) => IfB (JS t a) where
     ifB i h e = single $ JS_Branch i h e
-
-switch :: (EqB a, BooleanOf a ~ JSBool, Sunroof a, Sunroof b, JSArgument b, JSThread t) => a -> [(a,JS t b)] -> JS t b
-switch _a [] = return (cast (object "undefined"))
-switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
 ---------------------------------------------------------------
 {-
@@ -295,6 +175,146 @@ abortJS = JS $ \ _ -> return ()
 -----------------------------------------------------------------
 --Utilties for B
 
+-- This is hacked right now
+liftJS :: (Sunroof a) => JS A a -> JS t a
+liftJS m = do
+        o <- function (\ () -> m)
+        apply o ()
+
+-- -------------------------------------------------------------
+-- JSFunction Type
+-- -------------------------------------------------------------
+
+-- The first type argument is the type of function argument;
+-- The second type argument of JSFunction is what the function returns.
+data JSFunction args ret = JSFunction Expr
+
+instance Show (JSFunction a r) where
+  show (JSFunction v) = showExpr False v
+
+instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
+  box = JSFunction
+  unbox (JSFunction e) = e
+  typeOf _ = Fun (length (jsArgs (error "instance Sunroof JSFunction" :: a)))
+
+type instance BooleanOf (JSFunction a r) = JSBool
+
+instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
+  ifB = jsIfB
+
+instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
+  type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
+  js = function
+
+-- -------------------------------------------------------------
+-- JSFunction Combinators
+-- -------------------------------------------------------------
+
+-- perhaps call this invoke, or fun
+-- SBC: fun
+fun :: (JSArgument a, Sunroof r) => String -> JSFunction a r
+fun = JSFunction . literal
+
+-- | We can compile A-tomic functions.
+function :: (JSArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
+function = function'
+
+-- | We can compile B-lockable functions that return ().
+-- Note that, with the 'B'-style threads, we return from a call at the first block,
+-- not at completion of the call.
+
+continuation :: (JSArgument a) => (a -> JS B ()) -> JS t (JSFunction a ())
+continuation = function'
+
+-- The generalization of function and continuation.
+
+function' :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
+function' = single . JS_Function
+
+infixl 1 `apply`
+
+-- | @apply f a@ applies the function @f@ to the given arguments @a@.
+--   A typical use case looks like this:
+--   
+-- > foo `apply` (x,y)
+--   
+--   See '($$)' for a convenient infix operator to du this.
+apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
+apply f args = f # with args
+  where
+    with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
+    with a fn = single $ JS_Invoke (jsArgs a) fn
+
+-- | @f $$ a@ applies the function 'f' to the given arguments @a@.
+--   See 'apply'.
+($$) :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
+($$) = apply
+
+-- -------------------------------------------------------------
+-- Basic Combinators
+-- -------------------------------------------------------------
+
+-- | Cast one Sunroof value into another.
+cast :: (Sunroof a, Sunroof b) => a -> b
+cast = box . unbox
+
+infixr 0 #
+
+-- We should use this operator for the obj.label concept.
+-- It has been used in other places (but I can not seems
+-- to find a library for it)
+(#) :: a -> (a -> JS t b) -> JS t b
+(#) obj act = act obj
+
+-- | Create an arbitrary object from a literal in form of a string.
+object :: String -> JSObject
+object = box . literal
+
+attribute :: String -> JSSelector a
+attribute attr = label $ string attr
+
+-- | @invoke s a o@ calls the method with name @s@ using the arguments @a@
+--   on the object @o@. A typical use would look like this:
+--   
+-- > o # invoke "foo" (x, y)
+--   
+--   Another use case is writing Javascript API bindings for common methods:
+--   
+-- > getElementById :: JSString -> JSObject -> JS t JSObject
+-- > getElementById s = invoke "getElementById" s
+--   
+--   Like this the flexible type signature gets fixed.
+invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
+invoke str args obj = (cast obj ! attribute str) `apply` args
+
+-- TODO: BROKEN: Ignores the argument
+-- Problem: new "Object" ()  -->  "(new Object)()" which will fail.
+-- Should turn into "new Object()"
+new :: (JSArgument a) => String -> a -> JS t JSObject
+new cons _args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ cons) `apply` args
+
+-- This is not the same as return; it evaluates
+-- the argument to value form.
+evaluate, value :: (Sunroof a) => a -> JS t a
+evaluate a  = single (JS_Eval a)
+
+value = evaluate
+
+switch :: ( EqB a, BooleanOf a ~ JSBool
+          , Sunroof a, Sunroof b
+          , JSArgument b
+          , JSThread t
+          ) => a -> [(a,JS t b)] -> JS t b
+switch _a [] = return (cast (object "undefined"))
+switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
+
+nullJS :: JSObject
+nullJS = box $ literal "null"
+
+-- -------------------------------------------------------------
+-- JSRef Type
+-- -------------------------------------------------------------
+
 -- | This is the IORef of Sunroof.
 newtype JSRef a = JSRef JSObject
 
@@ -315,36 +335,24 @@ writeJSRef (JSRef obj) a = obj # "val" := a
 modifyJSRef :: (Sunroof a) => JSRef a -> (a -> JS A a) -> JS A ()
 modifyJSRef ref f = do
         val <- readJSRef ref
-        f val >>= writeJSRef ref
+        f val >>= writeJSRef ref 
 
------------------------------------------------------------------
---
-
-nullJS :: JSObject
-nullJS = box $ literal "null"
-
------------------------------------------------------------------
---
--- This is hacked right now
-liftJS :: (Sunroof a) => JS A a -> JS t a
-liftJS m = do
-        o <- function (\ () -> m)
-        apply o ()
+-- -------------------------------------------------------------
+-- JSTuple Type Class
+-- -------------------------------------------------------------
 
 -- If something is a JSTuple, then it can be passed (amoung other things)
 -- as an argument by a javascript function.
-
 class Sunroof o => JSTuple o where
         type Internals o
         match :: (Sunroof o) => o -> Internals o
         tuple :: Internals o -> JS t o
 
 instance JSTuple JSObject where
-        type Internals JSObject = ()
-        match _ = ()
-        tuple () = new "Object" ()
+  type Internals JSObject = ()
+  match _ = ()
+  tuple () = new "Object" ()
 
---------------------------------------------------------------------------------------
 
 
 
