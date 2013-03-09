@@ -33,6 +33,7 @@ Library
                        Language.Sunroof.KansasComet
                        Language.Sunroof.Internal
                        Language.Sunroof.JS.Bool
+                       Language.Sunroof.JS.Object
                        Language.Sunroof.JS.Canvas
                        Language.Sunroof.JS.Browser
                        Language.Sunroof.JS.JQuery

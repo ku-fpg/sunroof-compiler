@@ -30,6 +30,7 @@ import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.Internal ( litparen )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
+import Language.Sunroof.JS.Object ( JSObject )
 
 type Uniq = Int         -- used as a unique label
 
@@ -322,28 +323,6 @@ jsEscapeString (c:cs) = case c of
   c' -> jsUnicodeChar c' ++ jsEscapeString cs
 
 -- -------------------------------------------------------------
--- Javascript Objects
--- -------------------------------------------------------------
-
-data JSObject = JSObject Expr
-
-instance Show JSObject where
-        show (JSObject v) = showExpr False v
-
-instance Sunroof JSObject where
-        box = JSObject
-        unbox (JSObject o) = o
-
-type instance BooleanOf JSObject = JSBool
-
-instance IfB JSObject where
-    ifB = jsIfB
-
-instance SunroofValue Expr where
-  type ValueOf Expr = JSObject
-  js = box
-
--- -------------------------------------------------------------
 -- Javascript Arrays
 -- -------------------------------------------------------------
 
@@ -449,7 +428,7 @@ string :: String -> JSString
 string = fromString
 
 object :: String -> JSObject
-object = JSObject . Lit
+object = box . Lit
 
 -- perhaps call this invoke, or fun
 -- SBC: fun

@@ -11,13 +11,13 @@ module Language.Sunroof.JS.JQuery
 
 import Language.Sunroof.Types
   ( JSString
-  , JSObject
   , JSFunction
   , JS
   , fun
   , invoke
   , apply
   )
+import Language.Sunroof.JS.Object ( JSObject )
 
 -- -----------------------------------------------------------------------
 -- JQuery interface

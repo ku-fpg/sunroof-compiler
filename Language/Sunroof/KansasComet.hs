@@ -62,6 +62,7 @@ import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
+import Language.Sunroof.JS.Object ( JSObject )
 
 -- | The 'SunroofEngine' provides the verbosity level and
 --   kansas comet document to the 'SunroofApp'.

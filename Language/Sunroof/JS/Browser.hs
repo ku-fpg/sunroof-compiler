@@ -62,7 +62,6 @@ import Prelude hiding (isNaN)
 
 import Language.Sunroof.Types
   ( JSString, JSNumber
-  , JSObject
   , JSFunction
   , JS, JSSelector
   , JS ( (:=) )
@@ -76,6 +75,7 @@ import Language.Sunroof.Types
   )
 import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
+import Language.Sunroof.JS.Object ( JSObject )
 
 -- -----------------------------------------------------------------------
 -- Object Independent Functions
