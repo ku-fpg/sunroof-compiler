@@ -65,9 +65,13 @@ instance Functor E where
 -- | Boolean argument says non-trivial arguments need parenthesis.
 
 showExpr :: Bool -> Expr -> String
-showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
-showExpr _ (Var v) = v  -- always stand alone
+-- These being up here, cause a GHC warning for missing patterns.
+-- So they are moved down.
+--showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
+--showExpr _ (Var v) = v  -- always stand alone
 showExpr b e = p $ case e of
+   (Lit a) -> a -- always stand alone, or pre-parenthesised
+   (Var v) -> v -- always stand alone
 --   (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
    (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
@@ -78,7 +82,10 @@ showExpr b e = p $ case e of
    (Dot (ExprE a) (ExprE x) (Fun n)) ->
                 "function(" ++ intercalate "," args ++ ") { return (" ++
                         showIdx a x ++ ")(" ++ intercalate "," args ++ "); }"
-         where args = [ "a" ++ show i | i <- take n [0..]]
+            where args = [ "a" ++ show i | i <- take n ([0..] :: [Int])]
+   -- This pattern was missing too.
+   (Dot (ExprE _a) (ExprE _x) Unit) -> 
+     error "Dot pattern on unit type. Don't know what to do."
    (Function args body) ->
                 "function" ++
                 "(" ++ intercalate "," args ++ ") {\n" ++
