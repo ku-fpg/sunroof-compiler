@@ -247,6 +247,12 @@ data Test = forall a. Testable a => Test String a
 
 runTests :: TestEngine -> [(String,[Test])] -> IO ()
 runTests doc all_tests = do
+  sync (srEngine doc) $ do
+          -- Set the fatal callback to continue, because we are testing things.
+          fatal <- function $ \ (_::JSObject,_::JSObject,_::JSObject,f::JSFunction () ()) -> apply f ()
+          () <- fun "$.kc.failure"  `apply` fatal
+          return ()
+
   sequence_ [ do let
                      t  = "<h1>" ++ txt ++ "</h1>" ++
                           "<table>" ++ concat
