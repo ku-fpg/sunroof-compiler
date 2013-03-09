@@ -85,34 +85,60 @@ instance SunroofValue () where
 class JSArgument args where
         jsArgs   :: args -> [Expr]        -- turn a value into a list of expressions
         jsValue  :: (UniqM m) => m args
+        typesOf  :: Proxy args -> [Type]
 
 instance Sunroof a => JSArgument a where
       jsArgs a = [unbox a]
       jsValue = jsVar
+      typesOf p = [typeOf p]
 
 instance JSArgument () where
         jsArgs _ = []
         jsValue = return ()
+        typesOf p = []
 
 instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
       jsArgs ~(a,b) = [unbox a, unbox b]
       jsValue = liftM2 (,) jsVar jsVar
+      typesOf Proxy = [typeOf (Proxy :: Proxy a),typeOf (Proxy :: Proxy b)]
 
 instance (Sunroof a, Sunroof b, Sunroof c) => JSArgument (a,b,c) where
       jsArgs ~(a,b,c) = [unbox a, unbox b, unbox c]
       jsValue = liftM3 (,,) jsVar jsVar jsVar
-
+      typesOf Proxy = [typeOf (Proxy :: Proxy a)
+                      ,typeOf (Proxy :: Proxy b)
+                      ,typeOf (Proxy :: Proxy c)
+                      ]
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d) => JSArgument (a,b,c,d) where
       jsArgs ~(a,b,c,d) = [unbox a, unbox b, unbox c, unbox d]
       jsValue = liftM4 (,,,) jsVar jsVar jsVar jsVar
+      typesOf Proxy = [typeOf (Proxy :: Proxy a)
+                      ,typeOf (Proxy :: Proxy b)
+                      ,typeOf (Proxy :: Proxy c)
+                      ,typeOf (Proxy :: Proxy d)
+                      ]
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e) => JSArgument (a,b,c,d,e) where
       jsArgs ~(a,b,c,d,e) = [unbox a, unbox b, unbox c, unbox d, unbox e]
       jsValue = liftM5 (,,,,) jsVar jsVar jsVar jsVar jsVar
+      typesOf Proxy = [typeOf (Proxy :: Proxy a)
+                      ,typeOf (Proxy :: Proxy b)
+                      ,typeOf (Proxy :: Proxy c)
+                      ,typeOf (Proxy :: Proxy d)
+                      ,typeOf (Proxy :: Proxy e)
+                      ]
 
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f) => JSArgument (a,b,c,d,e,f) where
       jsArgs ~(a,b,c,d,e,f) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f]
       jsValue = return (,,,,,) `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar
+      typesOf Proxy = [typeOf (Proxy :: Proxy a)
+                      ,typeOf (Proxy :: Proxy b)
+                      ,typeOf (Proxy :: Proxy c)
+                      ,typeOf (Proxy :: Proxy d)
+                      ,typeOf (Proxy :: Proxy e)
+                      ,typeOf (Proxy :: Proxy f)
+                      ]
+
 
 -- Need to add the 7 & 8 tuple (not used in this package - yet)
 
@@ -128,7 +154,16 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunr
                         `ap` jsVar
                         `ap` jsVar
                         `ap` jsVar
-
+      typesOf Proxy = [typeOf (Proxy :: Proxy a)
+                      ,typeOf (Proxy :: Proxy b)
+                      ,typeOf (Proxy :: Proxy c)
+                      ,typeOf (Proxy :: Proxy d)
+                      ,typeOf (Proxy :: Proxy e)
+                      ,typeOf (Proxy :: Proxy f)
+                      ,typeOf (Proxy :: Proxy g)
+                      ,typeOf (Proxy :: Proxy h)
+                      ,typeOf (Proxy :: Proxy i)
+                      ]
 ----    jsValue :: val -> JSValue
 
 --instance JSType JSBool where
@@ -189,7 +224,7 @@ instance Show (JSFunction a r) where
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
         box = JSFunction
         unbox (JSFunction e) = e
-        typeOf _ = Fun (length (jsArgs (error "instance Sunroof JSFunction" :: a)))
+        typeOf _ = Fun (typesOf (Proxy :: Proxy a)) (typeOf (Proxy :: Proxy r))
 
 type instance BooleanOf (JSFunction a r) = JSBool
 

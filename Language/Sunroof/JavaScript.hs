@@ -75,10 +75,10 @@ showExpr b e = p $ case e of
    (Dot (ExprE a) (ExprE x) Base) -> showIdx a x
         -- This is a shortcomming in Javascript, where grabbing a indirected function
         -- throws away the context (self/this). So we force storage of the context, using a closure.
-   (Dot (ExprE a) (ExprE x) (Fun n)) ->
+   (Dot (ExprE a) (ExprE x) (Fun xs _)) ->
                 "function(" ++ intercalate "," args ++ ") { return (" ++
                         showIdx a x ++ ")(" ++ intercalate "," args ++ "); }"
-         where args = [ "a" ++ show i | i <- take n [0..]]
+         where args = [ "a" ++ show i | i <- take (length xs) [0..]]
    (Function args body) ->
                 "function" ++
                 "(" ++ intercalate "," args ++ ") {\n" ++
@@ -130,15 +130,15 @@ showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
 
 
 data Type
- = Base         -- base type, like object
+ = Base                  -- base type, like object
  | Unit
- | Fun Int      -- f (a_1,..,a_n), n == number in int
+ | Fun [Type] Type      -- (t_1,..,t_n) -> t
   deriving (Eq,Ord)
 
 instance Show Type where
   show Base    = "*"
   show Unit    = "()"
-  show (Fun n) = show n ++ " -> -"
+  show (Fun xs t) = show xs ++ " -> " ++ show t
 
 -- Trivial pretty printer
 
