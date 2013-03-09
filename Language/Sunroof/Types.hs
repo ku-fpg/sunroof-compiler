@@ -17,16 +17,11 @@ import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( string )
-import Language.Sunroof.JS.Number ( JSNumber )
 
 type Uniq = Int         -- used as a unique label
 
 cast :: (Sunroof a, Sunroof b) => a -> b
 cast = box . unbox
-
--- cast to int?
-int :: (Sunroof a) => a -> JSNumber
-int = box . (\ e -> uniOp "(int)" e) . unbox
 
 mkVar :: Sunroof a => Uniq -> a
 mkVar = box . Var . ("v" ++) . show

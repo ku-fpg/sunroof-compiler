@@ -3,6 +3,7 @@
 
 module Language.Sunroof.JS.Number
   ( JSNumber
+  , int
   ) where
 
 import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
@@ -128,3 +129,18 @@ instance (Integral a) => SunroofValue (Ratio a) where
   type ValueOf (Ratio a) = JSNumber
   js = box . literal . litparen . (show :: Double -> String) . fromRational . toRational
  
+-- -------------------------------------------------------------
+-- JSNumber Combinators
+-- -------------------------------------------------------------
+
+-- | A explicit cast to int.
+int :: (Sunroof a) => a -> JSNumber
+int = box . uniOp "(int)" . unbox
+
+
+
+
+
+
+
+
