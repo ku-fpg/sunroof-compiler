@@ -22,53 +22,47 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( string )
 
----------------------------------------------------------------
+-- -------------------------------------------------------------
+-- Thread Model
+-- -------------------------------------------------------------
 
---type Action a r = a -> JS A r
-
---vector :: [JSValue] -> JSVector
---vector = ...
-
---select :: (Sunroof a) => JSSelector a -> JSObject -> JS a
---select sel obj = evaluate (obj ! sel) JS $ singleton $ JS_Select sel obj
-
----------------------------------------------------------------
-
---data A = AX  -- Atomic
---data B = BX  -- Blocking
-
-data T = A | B
-        deriving (Eq, Ord, Show)
+data T = A -- Atomic
+       | B -- Blocking
+       deriving (Eq, Ord, Show)
 
 data ThreadProxy (t :: T) = ThreadProxy
 
 class JSThreadReturn t () => JSThread (t :: T) where
-    evalStyle    :: ThreadProxy t -> T
-
---class JSThreadReturn t () => JSThread' (t :: T) where
---    evalStyle'    :: ThreadProxy t -> T
+  evalStyle    :: ThreadProxy t -> T
 
 instance JSThread A where
-    evalStyle _ = A
+  evalStyle _ = A
 
 instance JSThread B where
-    evalStyle _ = B
+  evalStyle _ = B
 
 class (Sunroof a) => JSThreadReturn (t :: T) a where
-    threadCloser :: a -> Program (JSI t) ()
+  threadCloser :: a -> Program (JSI t) ()
 
 instance (Sunroof a) => JSThreadReturn A a where
-    threadCloser = singleton . JS_Return
+  threadCloser = singleton . JS_Return
 
 instance JSThreadReturn B () where
-    threadCloser () = return ()
+  threadCloser () = return ()
+
+-- -------------------------------------------------------------
+-- JS Monad - The Javascript Monad
+-- -------------------------------------------------------------
 
 infix  5 :=
 
 -- Control.Monad.Operational makes a monad out of JS for us
 data JS :: T -> * -> * where
-    JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())              -> JS t a            -- TO CALL JSB
-    (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject                   -> JS t ()
+  JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())              -> JS t a            -- TO CALL JSB
+  (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject                   -> JS t ()
+
+type JSA a = JS A a
+type JSB a = JS B a
 
 -- replace calls to JS $ singleton with single
 single :: JSI t a -> JS t a
@@ -79,71 +73,59 @@ unJS (JS m) k = m k
 unJS ((:=) sel a obj) k = singleton (JS_Assign sel a obj) >>= k
 
 instance Monad (JS t) where
-        return a = JS $ \ k -> return a >>= k
-        m >>= k = JS $ \ k0 -> unJS m (\ r -> unJS (k r) k0)
-
--- | We define the Semigroup instance for JS, where
---  the first result (but not the first effect) is discarded.
---  Thus, '<>' is the analog of the monadic '>>'.
-instance Semigroup (JS t a) where
-        js1 <> js2 = js1 >> js2
-
-instance Monoid (JS t ()) where
-        mempty = return ()
-        mappend = (<>)
-
--- define primitive effects / "instructions" for the JS monad
-data JSI :: T -> * -> * where
-
-    -- apply an action to an 'a', and compute a b
---    JS_App    :: (Sunroof a, Sunroof b) => a -> Action a b      -> JSI b
-
-    JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject  -> JSI t ()
-
-    JS_Select  :: (Sunroof a) => JSSelector a -> JSObject      -> JSI t a
-
-    JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r  -> JSI t r        -- Perhaps take the overloaded vs [Expr]
-                                                                                -- and use jsArgs in the compiler?
-    -- Not the same as return; does evaluation of argument
-    JS_Eval   :: (Sunroof a) => a                                       -> JSI t a
-
-    JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
-    -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-    JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
-
-    -- syntaxtical return in javascript; only used in code generator for now.
-    JS_Return  :: (Sunroof a) => a                                      -> JSI t ()      -- literal return
-    JS_Assign_ :: (Sunroof a) => Id -> a                                -> JSI t ()     -- a classical effect
-                        -- TODO: generalize Assign[_] to have a RHS
-
----------------------------------------------------------------
-
-
+  return a = JS $ \ k -> return a >>= k
+  m >>= k = JS $ \ k0 -> unJS m (\ r -> unJS (k r) k0)
 
 type instance BooleanOf (JS t a) = JSBool
 
--- TODO: generalize
 instance (JSThread t, Sunroof a, JSArgument a) => IfB (JS t a) where
     ifB i h e = single $ JS_Branch i h e
 
----------------------------------------------------------------
-{-
--- The JS (Blocking) is continuation based.
-newtype JSB a = JSB { unJSB :: (a -> JS A ()) -> JS A () }
+-- | We define the Semigroup instance for JS, where
+--   the first result (but not the first effect) is discarded.
+--   Thus, '<>' is the analog of the monadic '>>'.
+instance Semigroup (JS t a) where
+  js1 <> js2 = js1 >> js2
 
-instance Monad JSB where
-        return a = JSB $ \ k -> k a
-        (JSB m) >>= k = JSB $ \ k0 -> m (\ a -> unJSB (k a) k0)
--}
+instance Monoid (JS t ()) where
+  mempty = return ()
+  mappend = (<>)
 
-type JSA a = JS A a
-type JSB a = JS B a
+-- | 'JSI' represents the primitive effects or instructions for 
+--   the JS monad.
+data JSI :: T -> * -> * where
+  -- | @JS_Assign s v o@ assigns a value @v@ to the selected field @s@ 
+  --   in the object @o@.
+  JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject -> JSI t ()
+  -- | @JS_Select s o@ returns the value of the selected field @s@ 
+  --   in the object @o@.
+  JS_Select  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t a
+  -- | @JS_Invoke a f@ calls the function @f@ with the arguments @a@.
+  JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
+  -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
+  
+  -- | @JS_Eval v@ evaluates the value @v@. Subsequent instructions
+  --   use the value instead of reevaluating the expression.
+  JS_Eval   :: (Sunroof a) => a -> JSI t a
+  -- | @JS_Function f@ creates a Javascript function 
+  --   from the Haskell function @f@.
+  JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
+  -- | @JS_Branch b t f@ creates a @if-then-else@ statement in Javascript.
+  --   In that statement @b@ is the condition, @t@ is the true branch and
+  --   @f@ is the false branch.
+  JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
+  -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
+  
+  -- | @JS_Return v@ translates into an actual @return@ statement that
+  --   returns the value @v@ in Javascript.
+  JS_Return  :: (Sunroof a) => a                                      -> JSI t ()
+  -- | @JS_Assign_ v x@ assigns the value @x@ to the variable with name @v@.
+  JS_Assign_ :: (Sunroof a) => Id -> a                                -> JSI t ()
+  -- TODO: generalize Assign[_] to have a RHS
 
----------------------------------------------------------------
-
-         --  ((a -> M ()) -> M ()) -> JS t a
---continue :: ((forall a . (JSArgument a) => a -> JS B ()) -> JS B ()) -> JS B ()
---continue f = JS $ \ k -> down (undefined) -- f (down . k))
+-- -------------------------------------------------------------
+-- Continuation Combinators
+-- -------------------------------------------------------------
 
 -- Implementation of goto and callCC from
 --   http://stackoverflow.com/questions/9050725/call-cc-implementation
@@ -167,13 +149,8 @@ reifyccJS f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
                                     f o
                                ) (\ _ -> return ())
 
-
 abortJS :: JS B a
 abortJS = JS $ \ _ -> return ()
-
-
------------------------------------------------------------------
---Utilties for B
 
 -- This is hacked right now
 liftJS :: (Sunroof a) => JS A a -> JS t a
