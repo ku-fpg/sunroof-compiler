@@ -462,16 +462,16 @@ lengthArray :: (Sunroof a) => JSArray a -> JSNumber
 lengthArray o = cast o ! "length"
 
 pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
-pushArray a = method "push" a . cast
+pushArray a = invoke "push" a
 
 unshiftArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
-unshiftArray a = method "unshift" a . cast
+unshiftArray a = invoke "unshift" a
 
 popArray :: (Sunroof a) => JSArray a -> JS t a
-popArray = method "pop" () . cast
+popArray = invoke "pop" ()
 
 shiftArray :: (Sunroof a) => JSArray a -> JS t a
-shiftArray = method "shift" () . cast
+shiftArray = invoke "shift" ()
 
 lookupArray :: forall a . (Sunroof a) => JSNumber -> JSArray a -> a
 lookupArray idx arr = box $ Dot (ExprE $ unbox arr) (ExprE $ unbox idx) (typeOf (Proxy :: Proxy a))
@@ -508,12 +508,19 @@ infix  5 :=
 
 ---------------------------------------------------------------
 
--- TODO: not sure about the string => JSSelector (JSFunction a) overloading.
---method :: JSSelector (JSFunction a) -> [JSValue] -> Action JSObject a
-
--- SBC: call
-method :: (JSArgument a, Sunroof r) => String -> a -> JSObject -> JS t r
-method str args obj = (obj ! attribute str) `apply` args
+-- | @invoke s a o@ calls the method with name @s@ using the arguments @a@
+--   on the object @o@. A typical use would look like this:
+--   
+-- > o # invoke "foo" (x, y)
+--   
+--   Another use case is writing Javascript API bindings for common methods:
+--   
+-- > getElementById :: JSString -> JSObject -> JS t JSObject
+-- > getElementById s = invoke "getElementById" s
+--   
+--   Like this the flexible type signature gets fixed.
+invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
+invoke str args obj = (cast obj ! attribute str) `apply` args
 
 string :: String -> JSString
 string = fromString
@@ -669,7 +676,7 @@ foreach arr body = single $ JS_Foreach arr body
 forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do
         f <- function body
-        method "forEach" f (cast arr) :: JS t ()
+        arr # invoke "forEach" f :: JS t ()
         return ()
 
 infixr 0 #

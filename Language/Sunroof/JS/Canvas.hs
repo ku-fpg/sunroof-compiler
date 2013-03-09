@@ -5,7 +5,7 @@ module Language.Sunroof.JS.Canvas where
 import Language.Sunroof.Types
 
 getContext :: JSString -> JSObject -> JS t JSObject
-getContext nm = method "getContext" (nm)
+getContext nm = invoke "getContext" (nm)
 
 -- -----------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ arc :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
     -> (JSNumber,JSNumber) -- ^ The angle to start and the angle to stop drawing.
     -> JSObject -> JS t ()
 arc (cx,cy) r (sa,ea) =
-  method "arc" (cx, cy, r, sa, ea)
+  invoke "arc" (cx, cy, r, sa, ea)
 
 -- | Draws a circular arc.
 arc' :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
@@ -24,7 +24,7 @@ arc' :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.
     -> JSBool              -- ^ If the arc shall be drawn counterclockwise.
     -> JSObject -> JS t ()
 arc' (cx,cy) r (sa,ea) cc =
-  method "arc" (cx, cy, r, sa, ea, cc)
+  invoke "arc" (cx, cy, r, sa, ea, cc)
 
 -- | Creates an arc between two tangents on the canvas.
 arcTo :: (JSNumber, JSNumber) -- ^ The x and y coordinate of the beginning of the arc.
@@ -32,11 +32,11 @@ arcTo :: (JSNumber, JSNumber) -- ^ The x and y coordinate of the beginning of th
       -> JSNumber             -- ^ The radius of the arc.
       -> JSObject -> JS t ()
 arcTo (x1, y1) (x2, y2) r =
-  method "arcTo" (x1, y1, x2, y2, r)
+  invoke "arcTo" (x1, y1, x2, y2, r)
 
 -- | Begins drawing a path or resets the current path
 beginPath :: JSObject -> JS t ()
-beginPath = method "beginPath" ()
+beginPath = invoke "beginPath" ()
 
 -- | Draws a bezier curve beginning at the current position of the context.
 bezierCurveTo :: (JSNumber,JSNumber) -- ^ The first control point.
@@ -44,45 +44,45 @@ bezierCurveTo :: (JSNumber,JSNumber) -- ^ The first control point.
               -> (JSNumber,JSNumber) -- ^ The endpoint of the curve.
               -> JSObject -> JS t ()
 bezierCurveTo (a,b) (c,d) (e,f) =
-  method "bezierCurveTo" (a, b, c, d, e, f)
+  invoke "bezierCurveTo" (a, b, c, d, e, f)
 
 -- | Clears the rectangle given by its location and size.
 clearRect :: (JSNumber,JSNumber) -- ^ The top left corner of the rectanlge to clear.
           -> (JSNumber,JSNumber) -- ^ The width and height of the rectangle to clear.
           -> JSObject -> JS t ()
-clearRect (x,y) (w,h) = method "clearRect" (x, y, w, h)
+clearRect (x,y) (w,h) = invoke "clearRect" (x, y, w, h)
 
 -- | Clips a region of any shape and size from the context.
 clip :: JSObject -> JS t ()
-clip = method "clip" ()
+clip = invoke "clip" ()
 
 -- | Closes the current path by drawing a straight line back to its beginning.
 closePath :: JSObject -> JS t ()
-closePath = method "closePath" ()
+closePath = invoke "closePath" ()
 
 -- | Create a new image data object with the given size.
 createImageData :: (JSNumber, JSNumber)     -- ^ The width and hight of the new object.
                 -> JSObject -> JS t JSObject -- ^ Returns the new image data object.
-createImageData (w,h) = method "createImageData" (w, h)
+createImageData (w,h) = invoke "createImageData" (w, h)
 
 -- | Creates a new image data object with the same dimension as the given
 --   image data object. This does not copy the contents of the other object.
 createImageData' :: JSObject                 -- ^ The other image data object.
                  -> JSObject -> JS t JSObject -- ^ Returns the new image data object.
-createImageData' imgData = method "createImageData" (imgData)
+createImageData' imgData = invoke "createImageData" (imgData)
 
 -- | Draws an image, video or canvas to the canvas.
 drawImage :: JSObject             -- ^ The graphical object to draw.
           -> (JSNumber, JSNumber) -- ^ The x and y coordinate of the top left corner.
           -> JSObject -> JS t ()
-drawImage img (x,y) = method "drawImage" (img, x, y)
+drawImage img (x,y) = invoke "drawImage" (img, x, y)
 
 drawImage' :: JSObject             -- ^ The graphical object to draw.
            -> (JSNumber, JSNumber) -- ^ The x and y coordinate of the top left corner.
            -> (JSNumber, JSNumber) -- ^ The width and height to scale the image to.
            -> JSObject -> JS t ()
 drawImage' img (x,y) (w,h) =
-  method "drawImage" (img, x, y, w, h)
+  invoke "drawImage" (img, x, y, w, h)
 
 drawImageClip :: JSObject          -- ^ The graphical object to draw.
               -> (JSNumber, JSNumber) -- ^ The x and y coordinate of the top
@@ -92,7 +92,7 @@ drawImageClip :: JSObject          -- ^ The graphical object to draw.
               -> (JSNumber, JSNumber) -- ^ The width and height to scale the image to.
               -> JSObject -> JS t ()
 drawImageClip img (cx, cy) (cw, ch) (x,y) (w,h) =
-  method "drawImage" ( img
+  invoke "drawImage" ( img
                      , cx, cy
                      , cw, ch
                      , x, y
@@ -100,14 +100,14 @@ drawImageClip img (cx, cy) (cw, ch) (x,y) (w,h) =
 
 -- | Fills the current path with the current fill style.
 fill :: JSObject -> JS t ()
-fill = method "fill" ()
+fill = invoke "fill" ()
 
 -- | Draws a filled rectangle given by its top left corner and size with the
 --   current fill style.
 fillRect :: (JSNumber,JSNumber) -- ^ The top left corner of the rectangle.
          -> (JSNumber,JSNumber) -- ^ The width and height of the rectangle.
          -> JSObject -> JS t ()
-fillRect (x,y) (w,h) = method "fillRect" (x, y, w, h)
+fillRect (x,y) (w,h) = invoke "fillRect" (x, y, w, h)
 
 -- | Sets the fill style of the context. A color value of the form "#XXXXXX"
 --   is expected.
@@ -120,7 +120,7 @@ fillText :: JSString            -- ^ The text to fill.
          -> (JSNumber,JSNumber) -- ^ The x and y position of the
                                 --   bottom left corner of the text.
          -> JSObject -> JS t ()
-fillText s (x,y) = method "fillText" (s, x, y)
+fillText s (x,y) = invoke "fillText" (s, x, y)
 
 -- | Fills a text with the current fill style.
 fillText' :: JSString             -- ^ The text to fill.
@@ -128,7 +128,7 @@ fillText' :: JSString             -- ^ The text to fill.
                                   --   bottom left corner of the text.
           -> JSNumber             -- ^ The maximum allowed width of the text.
           -> JSObject -> JS t ()
-fillText' s (x,y) maxW = method "fillText" (s, x, y, maxW)
+fillText' s (x,y) maxW = invoke "fillText" (s, x, y, maxW)
 
 -- | Sets the font used by the context.
 setFont :: JSString -> JSObject -> JS t ()
@@ -141,7 +141,7 @@ getImageData :: (JSNumber, JSNumber)     -- ^ The x and y coordinate of the top 
              -> JSObject -> JS t JSObject -- ^ Returns the image data object
                                          --   with the extracted information.
 getImageData (x,y) (w,h) =
-  method "getImageData" (x, y, w , h)
+  invoke "getImageData" (x, y, w , h)
 
 -- | Sets the global alpha value.
 setGlobalAlpha :: JSNumber -> JSObject -> JS t ()
@@ -150,7 +150,7 @@ setGlobalAlpha a = "globalAlpha" := a
 -- | Returns true if the given point is in the path and false otherwise.
 isPointInPath :: (JSNumber, JSNumber)   -- ^ The x and y coordinate of the point to check
               -> JSObject -> JS t JSBool
-isPointInPath (x,y) = method "isPointInPath" (x, y)
+isPointInPath (x,y) = invoke "isPointInPath" (x, y)
 
 -- | Sets the line cap style to use.
 --   Possible values are: "butt", "round", "square";
@@ -165,7 +165,7 @@ setLineJoin lj = "lineJoin" := lj
 -- | Create a straight line path from the current point to the given point.
 lineTo :: (JSNumber,JSNumber) -- ^ The x and y location the line is drawn to.
        -> JSObject -> JS t ()
-lineTo (x,y) = method "lineTo" (x, y)
+lineTo (x,y) = invoke "lineTo" (x, y)
 
 -- | Sets the line width used when stroking.
 setLineWidth :: JSNumber           -- ^ The line new line width in pixels.
@@ -185,45 +185,45 @@ setMiterLimit ml = "miterLimit" := ml
 --   See 'width' selector.
 measureText :: JSString                 -- ^ The text to be measured.
             -> JSObject -> JS t JSObject
-measureText s = method "measureText" (s)
+measureText s = invoke "measureText" (s)
 
 -- | Move the path to the given location.
 moveTo :: (JSNumber,JSNumber) -- ^ The new x and y location of the path.
        -> JSObject -> JS t ()
-moveTo (x,y) = method "moveTo" (x, y)
+moveTo (x,y) = invoke "moveTo" (x, y)
 
 -- | Uses the given image data to replace the rectangle of the
 --   canvas at the given position.
 putImageData :: JSObject             -- ^ The new image data.
              -> (JSNumber, JSNumber) -- ^ The x and y coordinate of the top left corner.
              -> JSObject -> JS t ()
-putImageData imgData (x,y) = method "putImageData" (imgData, x, y)
+putImageData imgData (x,y) = invoke "putImageData" (imgData, x, y)
 
 -- | Creates a rectangle in the current context.
 rect :: (JSNumber,JSNumber) -- ^ The top left corner of the rectangle.
      -> (JSNumber,JSNumber) -- ^ The width and height of the rectangle.
      -> JSObject -> JS t ()
-rect (x,y) (w,h) = method "rect" (x, y, w, h)
+rect (x,y) (w,h) = invoke "rect" (x, y, w, h)
 
 -- | Restores the last saved paths and state of the context.
 restore :: JSObject -> JS t ()
-restore = method "restore" ()
+restore = invoke "restore" ()
 
 -- | Rotates the current drawing. The rotation will only affect drawings
 --   made after the rotation.
 rotate :: JSNumber           -- ^ The rotation angle in radians.
        -> JSObject -> JS t ()
-rotate a = method "rotate" (a)
+rotate a = invoke "rotate" (a)
 
 -- | Scales the current drawing.
 scale :: (JSNumber,JSNumber) -- ^ The factors to scale the
                              --   width and the height with.
       -> JSObject -> JS t ()
-scale (sw,sh) = method "scale" (sw, sh)
+scale (sw,sh) = invoke "scale" (sw, sh)
 
 -- | Saves the state of the current context.
 save :: JSObject -> JS t ()
-save = method "save" ()
+save = invoke "save" ()
 
 -- | Resets the transformation matrix to identity and then applies
 --   'transform' with the given paramters to it.
@@ -235,7 +235,7 @@ setTransform :: JSNumber -- ^ Scales the drawings horizontally.
              -> JSNumber -- ^ Moves the drawings vertically.
              -> JSObject -> JS t ()
 setTransform a b c d e f =
-  method "setTransform" (a, b, c, d, e, f)
+  invoke "setTransform" (a, b, c, d, e, f)
 
 -- | Sets the shadow color property.
 --   The given string has to be a valid CSS color value or a
@@ -261,19 +261,19 @@ setShadowOffsetY y = "shadowOffsetY" := y
 
 -- | Draws the current path using the current stroke style.
 stroke :: JSObject -> JS t ()
-stroke = method "stroke" ()
+stroke = invoke "stroke" ()
 
 -- | Strokes a rectanlge using the current stroke style.
 strokeRect :: (JSNumber,JSNumber) -- ^ The x and y coordinate of the top left corner.
            -> (JSNumber,JSNumber) -- ^ The width and height of the rectangle.
            -> JSObject -> JS t ()
-strokeRect (x,y) (w,h) = method "strokeRect" (x, y, w, h)
+strokeRect (x,y) (w,h) = invoke "strokeRect" (x, y, w, h)
 
 -- | Strokes a text using the current stroke style.
 strokeText :: JSString            -- ^ The text to stroke.
            -> (JSNumber,JSNumber) -- ^ The x and y coordinate to stroke the text at.
            -> JSObject -> JS t ()
-strokeText s (x,y) = method "strokeText" (s, x, y)
+strokeText s (x,y) = invoke "strokeText" (s, x, y)
 
 -- | Sets the stroke style of the context. A color value of the form "#XXXXXX"
 --   is expected.
@@ -306,19 +306,19 @@ transform :: JSNumber -- ^ The 'a' value.
           -> JSNumber -- ^ The 'f' value.
           -> JSObject -> JS t ()
 transform a b c d e f =
-  method "transform" (a, b, c, d, e, f)
+  invoke "transform" (a, b, c, d, e, f)
 
 -- | Translate the current drawing.
 translate :: (JSNumber,JSNumber) -- ^ The x and y values to translate by.
           -> JSObject -> JS t ()
-translate (x,y) = method "translate" (x, y)
+translate (x,y) = invoke "translate" (x, y)
 
 -- | Create a quadratic curve to extend the current path.
 quadraticCurveTo :: (JSNumber, JSNumber) -- ^ The control point of the curve.
                  -> (JSNumber, JSNumber) -- ^ The endpoint of the curve.
                  -> JSObject -> JS t ()
 quadraticCurveTo (cx, cy) (ex, ey) =
-  method "quadraticCurveTo" (cx, cy, ex, ey)
+  invoke "quadraticCurveTo" (cx, cy, ex, ey)
 
 -- | Selects the width attribute.
 width :: JSSelector JSNumber

@@ -68,7 +68,7 @@ import Language.Sunroof.Types
   , JS, JSSelector
   , JS ( (:=) )
   , call
-  , method
+  , invoke
   , object
   , attribute
   , apply
@@ -136,17 +136,17 @@ window = object "window"
 --   It will continue calling the function until 'clearInterval' is called,
 --   or the window is closed. The returned number is needed for 'clearInterval'.
 setInterval :: (Sunroof r) => JSFunction () r -> JSNumber -> JSObject -> JS t JSNumber
-setInterval f interval = method "setInterval" (f, interval)
+setInterval f interval = invoke "setInterval" (f, interval)
 
 -- | Clears a timer set with the 'setInterval' method.
 clearInterval :: JSNumber -> JSObject -> JS t ()
-clearInterval ident = method "clearInterval" (ident)
+clearInterval ident = invoke "clearInterval" (ident)
 
 setTimeout :: (Sunroof r) => JSFunction () r -> JSNumber -> JSObject -> JS t JSNumber
-setTimeout f interval = method "setTimeout" (f, interval)
+setTimeout f interval = invoke "setTimeout" (f, interval)
 
 clearTimeout :: JSNumber -> JSObject -> JS t ()
-clearTimeout ident = method "clearTimeout" (ident)
+clearTimeout ident = invoke "clearTimeout" (ident)
 
 -- -----------------------------------------------------------------------
 -- Screen API
@@ -168,57 +168,57 @@ document = object "document"
 --   For use with 'document'.
 getElementById :: JSString -- ^ The id.
                -> JSObject -> JS t JSObject
-getElementById ident = method "getElementById" (ident)
+getElementById ident = invoke "getElementById" (ident)
 
 -- | Get the DOM objects of the elements with the given name.
 --   For use with 'document'.
 getElementsByName :: JSString -- ^ The name.
                   -> JSObject -> JS t JSObject
-getElementsByName name = method "getElementsByName" (name)
+getElementsByName name = invoke "getElementsByName" (name)
 
 -- | Get the DOM objects of the elements with the given tag.
 --   For use with 'document'.
 getElementsByTagName :: JSString -- ^ The tag name.
                      -> JSObject -> JS t JSObject
-getElementsByTagName tag = method "getElementsByTagName" (tag)
+getElementsByTagName tag = invoke "getElementsByTagName" (tag)
 
 -- | Create a attribute DOM node with the given name.
 --   For use with 'document'.
 createAttribute :: JSString -- ^ The name of the new attribute.
                 -> JSObject -> JS t JSObject
-createAttribute attr = method "createAttribute" (attr)
+createAttribute attr = invoke "createAttribute" (attr)
 
 -- | Create a element DOM node with the given tag name.
 --   For use with 'document'.
 createElement :: JSString -- ^ The tag name of the new element.
               -> JSObject -> JS t JSObject
-createElement e = method "createElement" (e)
+createElement e = invoke "createElement" (e)
 
 -- | Create a text DOM node with the given string as text.
 --   For use with 'document'.
 createTextNode :: JSString -- ^ The text of the new text node.
                -> JSObject -> JS t JSObject
-createTextNode text = method "createTextNode" (text)
+createTextNode text = invoke "createTextNode" (text)
 
 -- | Opens the document for writing.
 --   For use with 'document'.
 open :: JSObject -> JS t ()
-open = method "open" ()
+open = invoke "open" ()
 
 -- | Closes the document after writing.
 --   For use with 'document'.
 close :: JSObject -> JS t ()
-close = method "close" ()
+close = invoke "close" ()
 
 -- | Writes something into the document.
 --   For use with 'document'.
 write :: JSString -> JSObject -> JS t ()
-write str = method "write" (str)
+write str = invoke "write" (str)
 
 -- | Write something into the document and appends a new line.
 --   For use with 'document'.
 writeln :: JSString -> JSObject -> JS t ()
-writeln str = method "writeln" (str)
+writeln str = invoke "writeln" (str)
 
 -- | Sets the value of the cookie.
 --   For use with 'document'.
@@ -266,18 +266,18 @@ console :: JSConsole
 console = JSConsole (object "console")
 
 log :: (JSArgument a) => a -> JSConsole -> JS t ()
-log a (JSConsole o) = o # method "log" a
+log a (JSConsole o) = o # invoke "log" a
 
 debug :: (JSArgument a) => a -> JSConsole -> JS t ()
-debug a (JSConsole o) = o # method "debug" a
+debug a (JSConsole o) = o # invoke "debug" a
 
 info :: (JSArgument a) => a -> JSConsole -> JS t ()
-info a (JSConsole o) = o # method "info" a
+info a (JSConsole o) = o # invoke "info" a
 
 warn :: (JSArgument a) => a -> JSConsole -> JS t ()
-warn a (JSConsole o) = o # method "warn" a
+warn a (JSConsole o) = o # invoke "warn" a
 
 error :: (JSArgument a) => a -> JSConsole -> JS t ()
-error a (JSConsole o) = o # method "error" a
+error a (JSConsole o) = o # invoke "error" a
 
 
