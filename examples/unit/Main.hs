@@ -59,7 +59,8 @@ import qualified Control.Exception as E
 main :: IO ()
 main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) $ \ doc0 -> do
         let do_log = False
-        let te_style = TestWithTiming
+--        let te_style = TestWithTiming
+        let te_style = TestInPar 4
         doc <- case te_style of
                   TestWithTiming -> newTimings doc0
                   _ -> return doc0
@@ -94,7 +95,7 @@ web_app doc = do
         let tA = ThreadProxy :: ThreadProxy A
         let tB = ThreadProxy :: ThreadProxy B
 
-        runTests doc $ take 1 $ drop 1 $
+        runTests doc $ take 100 $ drop 0 $
           [ ("Constants",
                 [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
                 , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
@@ -102,11 +103,11 @@ web_app doc = do
                 , Test "Constant String"  (checkConstValue doc :: String -> Property)
                 ])
           , ("Arithmetic and Booleans",
-                [{- Test "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
+                [ Test "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
                 , Test "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
                 , Test "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
                 , Test "Arbitrary Arithmetic" (checkArbitraryArith doc)
-                , -} Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
+                , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
                 ])
           , ("Conditionals",
                 [ Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
@@ -233,7 +234,7 @@ runTests doc all_tests = do
   sequence_ [ do let
                      t  = "<h1>" ++ txt ++ "</h1>" ++
                           "<table>" ++ concat
-                              [ "<tr><td><div class=\"progressbar " ++ pbName i j ++ "\"> </div></td><th>"
+                              [ "<tr class=\"" ++ pbName i j ++ "\"><td><div class=\"progressbar\"> </div></td><th>"
                                         ++ msg ++ "</th></tr>"
                               | (j::Int,Test msg _) <- [0..] `zip` tests
                               ] ++
@@ -288,6 +289,9 @@ runTests doc all_tests = do
                      putStrLn (output f)
                      putStrLn (reason f)
                      putStrLn $ "FAILED TEST: " ++ name
+                     appendMessage doc i j $ "(Failed)"
+                     -- carry on, please
+                     return ()
                    Right (NoExpectedFailure _ _ out) -> do
                      putStrLn out
                afterTestCallback :: Callback
@@ -318,16 +322,24 @@ runTests doc all_tests = do
 pbName :: Int -> Int -> String
 pbName i j = "pb-" ++ show i ++ "-" ++ show j
 
-pbObject :: Int -> Int -> JS t JSObject
-pbObject i j = jQuery $ js $ ('.' :) $ pbName i j
+pbObject :: Int -> Int -> (String -> String) -> JS t JSObject
+pbObject i j f = jQuery $ js $ f $ pbName i j
 
 progressVal :: TestEngine -> Int -> Int -> Int -> IO ()
 progressVal doc i j n = async (srEngine doc) $ do
-  p <- pbObject i j
+  p <- pbObject i j $ \ n -> "." ++ n ++ " .progressbar"
   p # invoke "progressbar" ( "option" :: JSString
                            , "value" :: JSString
                            , js n :: JSNumber)
 
+
+appendMessage :: TestEngine -> Int -> Int -> String -> IO ()
+appendMessage doc i j msg = async (srEngine doc) $ do
+  p <- pbObject i j $ \ n -> "." ++ n ++ " th"
+  txt :: JSString <- p # invoke "html" ()
+  B.alert("(" <> txt <> ")")
+  p # JQuery.html(txt <> " " <> js msg)
+  return ()
 
 -- -----------------------------------------------------------------------
 -- Test Utilities
