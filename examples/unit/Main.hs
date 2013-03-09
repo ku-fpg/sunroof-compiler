@@ -48,6 +48,10 @@ import Test.QuickCheck.Property
   )
 import Test.QuickCheck.State ( State( .. )) -- numSuccessTests ) )
 
+import Control.Concurrent.ParallelIO.Local hiding (parallelInterleaved)
+import Control.Concurrent.ParallelIO.Local (parallelInterleaved)
+
+
 main :: IO ()
 main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) web_app
 
@@ -235,8 +239,8 @@ runTests doc all_tests = do
                                                    )
     return ()
 
-  sequence_
-    [ sequence_
+
+  withPool 8 $ \ pool -> parallelInterleaved pool $ concat [
       [ do let casesPerTest :: Int
                casesPerTest = 100
                runTest :: Test -> IO Result
