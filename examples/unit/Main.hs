@@ -239,14 +239,14 @@ runTests doc all_tests = do
                               | (j::Int,Test msg _) <- [0..] `zip` tests
                               ] ++
                           "</table>"
-                 sync (srEngine doc) $ do
+                 async (srEngine doc) $ do
                          jQuery "#testing-text" >>= JQuery.append (cast $ js t)
                          return ()
            | (i::Int,(txt,tests)) <- [0..] `zip` all_tests
            ]
 
   -- set them all to 100 max
-  sync (srEngine doc) $ do
+  async (srEngine doc) $ do
     () <- jQuery ".progressbar" >>= invoke "progressbar" ()  :: JS t ()
     () <- jQuery ".progressbar" >>= invoke "progressbar" ( "option" :: JSString
                                                    , "max" :: JSString
@@ -337,7 +337,6 @@ appendMessage :: TestEngine -> Int -> Int -> String -> IO ()
 appendMessage doc i j msg = async (srEngine doc) $ do
   p <- pbObject i j $ \ n -> "." ++ n ++ " th"
   txt :: JSString <- p # invoke "html" ()
-  B.alert("(" <> txt <> ")")
   p # JQuery.html(txt <> " " <> js msg)
   return ()
 
