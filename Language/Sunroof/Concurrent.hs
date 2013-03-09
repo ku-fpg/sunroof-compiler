@@ -7,6 +7,7 @@ import Data.Boolean
 import Language.Sunroof.Types
 --import Language.Sunroof.Types (T(A,B))
 import Language.Sunroof.Classes ( Sunroof(..) )
+import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Browser ( window, setTimeout )

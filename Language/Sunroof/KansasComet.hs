@@ -63,7 +63,7 @@ import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
 import Language.Sunroof.JS.Object ( JSObject )
-import Language.Sunroof.JS.String ( JSString )
+import Language.Sunroof.JS.String ( JSString, string )
 import Language.Sunroof.JS.Number ( JSNumber )
 
 -- | The 'SunroofEngine' provides the verbosity level and

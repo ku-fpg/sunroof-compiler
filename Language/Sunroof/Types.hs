@@ -5,8 +5,6 @@
 -- This should only export user-facing types (as much as possible)
 module Language.Sunroof.Types where
 
-import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
-import GHC.Exts
 --import Data.Char ( isDigit, isControl, isAscii, ord )
 import Data.List ( intercalate )
 --import qualified Data.Map as Map
@@ -15,7 +13,6 @@ import qualified Data.Semigroup as Semi
 import Control.Monad.Operational
 import Data.Boolean
 import Control.Monad
-import Data.Proxy
 --import Data.Reify
 --import Control.Applicative ( Applicative, pure, (<$>), (<*>))
 --import Data.Traversable
@@ -23,9 +20,10 @@ import Data.Proxy
 
 import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
+import Language.Sunroof.Selector ( JSSelector, index, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
-import Language.Sunroof.JS.String ( JSString )
+import Language.Sunroof.JS.String ( string )
 import Language.Sunroof.JS.Number ( JSNumber )
 
 type Uniq = Int         -- used as a unique label
@@ -186,37 +184,6 @@ lookupArray idx arr = cast arr ! index idx
 
 ---------------------------------------------------------------
 
--- | a 'JSSelector' selects a field from a JSObject.
--- The phantom is the type of the selected value.
-{-data JSSelector :: * -> * where
-        JSSelector :: JSString           -> JSSelector a-}
-data JSSelector a = JSSelector Expr
-
-instance IsString (JSSelector a) where
-  fromString = JSSelector . unbox . string
-
-instance Show (JSSelector a) where
-  show (JSSelector ids) = show ids
-
-
-label :: JSString -> JSSelector a
-label = JSSelector . unbox
-
-index :: JSNumber -> JSSelector a
-index = JSSelector . unbox
-
-unboxSelector :: JSSelector a -> Expr
-unboxSelector (JSSelector e) = e
-
----------------------------------------------------------------
-
-infixl 1 !
-
-(!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ idx) (typeOf (Proxy :: Proxy a))
-
----------------------------------------------------------------
-
 infix  5 :=
 
 --type Action a r = a -> JS A r
@@ -236,9 +203,6 @@ infix  5 :=
 --   Like this the flexible type signature gets fixed.
 invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
 invoke str args obj = (cast obj ! attribute str) `apply` args
-
-string :: String -> JSString
-string = fromString
 
 object :: String -> JSObject
 object = box . literal

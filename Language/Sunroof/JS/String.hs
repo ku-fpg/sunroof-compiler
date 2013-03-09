@@ -4,6 +4,7 @@
 
 module Language.Sunroof.JS.String
   ( JSString
+  , string
   ) where
 
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
@@ -57,6 +58,14 @@ instance SunroofValue [Char] where
 instance SunroofValue Char where
   type ValueOf Char = JSString
   js c = fromString [c]
+
+-- -------------------------------------------------------------
+-- JSString Combinators
+-- -------------------------------------------------------------
+
+-- | Create a Javascript string from a Haskell string.
+string :: String -> JSString
+string = fromString
 
 -- -------------------------------------------------------------
 -- String Conversion Utilities: Haskell -> JS

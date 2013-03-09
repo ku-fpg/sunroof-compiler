@@ -24,6 +24,7 @@ import Data.Default
 import Language.Sunroof.Types
 import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes ( Sunroof(..) )
+import Language.Sunroof.Selector ( unboxSelector )
 import Language.Sunroof.Internal ( proxyOf )
 
 data CompilerOpts = CompilerOpts

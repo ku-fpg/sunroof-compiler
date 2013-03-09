@@ -3,9 +3,10 @@
 module Language.Sunroof.JS.Canvas where
 
 import Language.Sunroof.Types
+import Language.Sunroof.Selector ( JSSelector, label )
 import Language.Sunroof.JS.Bool ( JSBool )
 import Language.Sunroof.JS.Object ( JSObject )
-import Language.Sunroof.JS.String ( JSString )
+import Language.Sunroof.JS.String ( JSString, string )
 import Language.Sunroof.JS.Number ( JSNumber )
 
 getContext :: JSString -> JSObject -> JS t JSObject
