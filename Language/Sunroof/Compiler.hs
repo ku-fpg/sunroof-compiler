@@ -1,29 +1,47 @@
-{-# LANGUAGE GADTs, RankNTypes, KindSignatures, FlexibleContexts, DataKinds, ScopedTypeVariables, TypeSynonymInstances, FlexibleInstances #-}
-module Language.Sunroof.Compiler
---  ( compileJS
---  , CompilerOpts(..)
---  ) where
-        where
 
---import qualified Control.Applicative as App
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+
+module Language.Sunroof.Compiler
+  ( staticCompiler
+  , sunroofCompiler
+  , compileJS_A
+  , compileJS_B
+  , compileJSI
+  , extractProgram
+  , CompilerOpts(..)
+  ) where
+
 import Control.Monad.Operational
 import Control.Monad.State
 import Control.Monad.Reader
---import Data.List (intercalate)
-
 
 import Data.Reify
 import Data.Graph
 import Data.Maybe
 import qualified Data.Map as Map
 import Data.Default
---import Data.Proxy
---import Debug.Trace
---import Web.KansasComet (Template(..), extract)
 
-import Language.Sunroof.Types
-import Language.Sunroof.JavaScript
-import Language.Sunroof.Classes ( Sunroof(..), JSArgument(..), UniqM(..), Uniq )
+import Language.Sunroof.Types 
+  ( T(..)
+  , JS(..), JSI(..)
+  , JSThread(..), JSThreadReturn(..)
+  , ThreadProxy(..)
+  , single, apply, unJS )
+import Language.Sunroof.JavaScript 
+  ( Stmt(..), Id
+  , E(..), ExprE(..), Expr
+  , Type(..)
+  , showStmt )
+import Language.Sunroof.Classes 
+  ( Sunroof(..), JSArgument(..)
+  , UniqM(..), Uniq )
 import Language.Sunroof.Selector ( unboxSelector )
 import Language.Sunroof.Internal ( proxyOf )
 
