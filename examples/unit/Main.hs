@@ -29,6 +29,7 @@ import qualified Web.KansasComet as KC
 
 import Language.Sunroof as SR
 import Language.Sunroof.JS.JQuery (jQuery)
+import qualified Language.Sunroof.JS.JQuery as JQuery
 import qualified Language.Sunroof.JS.Browser as B
 
 
@@ -45,7 +46,7 @@ import Test.QuickCheck.Property
   , Callback( PostTest )
   , CallbackKind( NotCounterexample )
   )
-import Test.QuickCheck.State ( State( numSuccessTests ) )
+import Test.QuickCheck.State ( State( .. )) -- numSuccessTests ) )
 
 main :: IO ()
 main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) web_app
@@ -74,18 +75,26 @@ web_app doc = do
         let tB = ThreadProxy :: ThreadProxy B
 
         runTests doc $ drop 0 $
-          [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
-          , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
-          , Test "Constant Boolean" (checkConstValue doc :: Bool -> Property)
-          , Test "Constant String"  (checkConstValue doc :: String -> Property)
-          , Test "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
-          , Test "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
-          , Test "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
-          , Test "Arbitrary Arithmetic" (checkArbitraryArith doc)
-          , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
-          , Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
-          , Test "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
-          , Test "Chan"                (checkArbitraryChan_Int doc)
+          [ ("Constants",
+                [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
+                , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
+                , Test "Constant Boolean" (checkConstValue doc :: Bool -> Property)
+                , Test "Constant String"  (checkConstValue doc :: String -> Property)
+                ])
+          , ("Arithmetic and Booleans",
+                [ Test "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
+                , Test "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
+                , Test "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
+                , Test "Arbitrary Arithmetic" (checkArbitraryArith doc)
+                , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
+                ])
+          , ("Conditionals",
+                [ Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
+                , Test "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
+                ])
+          , ("Channels and MVars",
+                [ Test "Chan"                (checkArbitraryChan_Int doc)
+                ])
           ]
 
 -- -----------------------------------------------------------------------
@@ -198,82 +207,101 @@ checkArbitraryChan_Int doc seed = monadicIO $ do
 
 data Test = forall a. Testable a => Test String a
 
-runTests :: SunroofEngine -> [Test] -> IO ()
-runTests doc tests = do
-  let testCount = length tests
-  progressMax doc (testCount * casesPerTest)
-  progressVal doc 0
-  execTests tests
-  where
-    casesPerTest :: Int
-    casesPerTest = 100
-    runTest :: Test -> IO Result
-    runTest (Test name test) = do
-      putStrLn name
-      quickCheckWithResult (stdArgs {chatty=False,maxSuccess=casesPerTest})
-        $ callback afterTestCallback
-        $ test
-    execTests :: [Test] -> IO ()
-    execTests [] = do
-      putStrLn "PASSED ALL TESTS"
-      progressMsg doc "PASSED ALL TESTS"
-    execTests (t@(Test name _):ts) = do
-      progressMsg doc name
-      result <- runTest t
-      case result of
-        Success _ _ out -> do
-          putStrLn out
-          execTests ts
-        GaveUp _ _ out -> do
-          putStrLn out
-          execTests ts
-        Failure _ _ _ _ reason _ out -> do
-          putStrLn out
-          putStrLn reason
-          putStrLn $ "FAILED TEST: " ++ name
-        NoExpectedFailure _ _ out -> do
-          putStrLn out
-          execTests ts
-    afterTestCallback :: Callback
-    afterTestCallback = PostTest NotCounterexample $ \ state result -> do
-      if not (abort result) && isJust (ok result)
-        then do
-          progressInc doc
-          if numSuccessTests state `mod` (casesPerTest `div` 10) == 0
-            then do
-              putStr "."
-              hFlush stdout
-            else return ()
-        else do
-          return ()
+runTests :: SunroofEngine -> [(String,[Test])] -> IO ()
+runTests doc all_tests = do
+  sequence_ [ do let
+                     t  = "<h1>" ++ txt ++ "</h1>" ++
+                          "<table>" ++ concat
+                              [ "<tr><td><div class=\"progressbar " ++ pbName i j ++ "\"> </div></td><th>"
+                                        ++ msg ++ "</th></tr>"
+                              | (j::Int,Test msg _) <- [0..] `zip` tests
+                              ] ++
+                          "</table>"
+                 sync doc $ do
+                         jQuery "#testing-text" >>= JQuery.append (cast $ js t)
+                         return ()
+           | (i::Int,(txt,tests)) <- [0..] `zip` all_tests
+           ]
 
-progressMax :: SunroofEngine -> Int -> IO ()
-progressMax doc n = async doc $ do
-  p <- jQuery "#progressbar"
-  p # method "progressbar" ( "option" :: JSString
-                           , "max" :: JSString
-                           , js n :: JSNumber)
+  -- set them all to 100 max
+  sync doc $ do
+    () <- jQuery ".progressbar" >>= method "progressbar" ()  :: JS t ()
+    () <- jQuery ".progressbar" >>= method "progressbar" ( "option" :: JSString
+                                                   , "max" :: JSString
+                                                   , 100 :: JSNumber
+                                                   )
+    () <- jQuery ".progressbar" >>= method "progressbar" ( "value" :: JSString
+                                                   , 0 :: JSNumber
+                                                   )
+    return ()
 
-progressVal :: SunroofEngine -> Int -> IO ()
-progressVal doc n = async doc $ do
-  p <- jQuery "#progressbar"
+  sequence_
+    [ sequence_
+      [ do let casesPerTest :: Int
+               casesPerTest = 100
+               runTest :: Test -> IO Result
+               runTest (Test name test) = do
+                 putStrLn name
+                 quickCheckWithResult (stdArgs {chatty=False,maxSuccess=casesPerTest})
+                   $ callback afterTestCallback
+                   $ test
+               execTests :: [Test] -> IO ()
+               execTests [] = do
+                 putStrLn "PASSED ALL TESTS"
+--                 progressMsg doc "PASSED ALL TESTS"
+               execTests (t@(Test name _):ts) = do
+--                 progressMsg doc name
+                 result <- runTest t
+                 case result of
+                   Success _ _ out -> do
+                     putStrLn out
+                     execTests ts
+                   GaveUp _ _ out -> do
+                     putStrLn out
+                     execTests ts
+                   Failure _ _ _ _ reason _ out -> do
+                     putStrLn out
+                     putStrLn reason
+                     putStrLn $ "FAILED TEST: " ++ name
+                   NoExpectedFailure _ _ out -> do
+                     putStrLn out
+                     execTests ts
+               afterTestCallback :: Callback
+               afterTestCallback = PostTest NotCounterexample $ \ state result -> do
+                 if not (abort result) && isJust (ok result)
+                   then do
+                     progressVal doc i j (numSuccessTests state + 1)
+                     if numSuccessTests state `mod` (casesPerTest `div` 10) == 0
+                       then do
+                         putStr "."
+                         hFlush stdout
+                       else return ()
+                   else do
+                     return ()
+           runTest t
+
+      | (j::Int,t@(Test msg _)) <- [0..] `zip` tests
+      ]
+    | (i::Int,(txt,tests)) <- [0..] `zip` all_tests
+    ]
+
+
+  return ()
+
+
+pbName :: Int -> Int -> String
+pbName i j = "pb-" ++ show i ++ "-" ++ show j
+
+pbObject :: Int -> Int -> JS t JSObject
+pbObject i j = jQuery $ js $ ('.' :) $ pbName i j
+
+progressVal :: SunroofEngine -> Int -> Int -> Int -> IO ()
+progressVal doc i j n = async doc $ do
+  p <- pbObject i j
   p # method "progressbar" ( "option" :: JSString
                            , "value" :: JSString
                            , js n :: JSNumber)
 
-progressMsg :: SunroofEngine -> String -> IO ()
-progressMsg doc msg = async doc $ do
-  l <- jQuery "#plabel"
-  l # method "text" (js msg :: JSString)
-
-progressInc :: SunroofEngine -> IO ()
-progressInc doc = async doc $ do
-  p <- jQuery "#progressbar"
-  n <- p # method "progressbar" ( "option" :: JSString
-                                , "value" :: JSString)
-  p # method "progressbar" ( "option" :: JSString
-                           , "value" :: JSString
-                           , n + 1 :: JSNumber)
 
 -- -----------------------------------------------------------------------
 -- Test Utilities
@@ -363,51 +391,3 @@ boolExprGen n = frequency [(1, boolGen), (3, binaryGen), (1, ifGen), (1, unaryGe
           return $ notB e1
 
 
-{-
-data Op2 = Op2 (forall a . Num a => a -> a -> a) String
-op2s = [ Op2 (+) "+", Op2 (-) "-", Op2 (*) "*"]
-
-newtype Arb a = Arb { unArb :: StdGen -> a }
-
-finite :: [a] -> Arb a
-finite xs = Arb $ \ rnd -> xs !! fst (randomR (0,len - 1) rnd)
-  where len =  length xs
-
-choice :: Rational -> Arb a -> Arb a -> Arb a
-choice r a1 a2 | numerator r > denominator r  = error "ratio > 1"
-               | numerator r < 0              = error "ratio < 0"
-               | numerator r == denominator r = a1
-               | numerator r == 0             = a2
-               | otherwise                    = Arb $ \ rnd ->
-                 let (x,rnd') = randomR (0,denominator r) rnd
-                 in if numerator r > x
-                    then unArb a1 rnd'
-                    else unArb a2 rnd'
-
-instance Functor Arb where
-        fmap f (Arb arb) = Arb (f . arb)
-
-instance Monad Arb where
-        return a = Arb (const a)
-        Arb m >>= k = Arb $ \ std ->
-                let (stdA,stdB) = split std
-                in unArb (k (m stdA)) stdB
-
-instance Applicative Arb where
-        pure = return
-        (<*>) = ap
-
-arbFromIntegral :: (Num b) => Arb  b
-arbFromIntegral = Arb $ \ std ->
-   let n :: Integer = (`Prelude.rem` 10000) $ fst $ random std
-   in fromIntegral n
-
-expr :: Num b => Int -> Arb b
-expr 0 = arbFromIntegral
-expr n = choice 0.5
-        (arbFromIntegral)
-        (do o <- finite [(+),(-),(*)]
-            e1 <- expr (n-1)
-            e2 <- expr (n-1)
-            return (o e1 e2))
--}
