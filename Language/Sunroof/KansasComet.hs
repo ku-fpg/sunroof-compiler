@@ -61,15 +61,17 @@ import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) 
 import Language.Sunroof.Types
 import Language.Sunroof.JavaScript
 
+import Data.Time.Clock
+import Control.Concurrent.STM
+
 -- | The 'SunroofEngine' provides the verbosity level and
 --   kansas comet document to the 'SunroofApp'.
 data SunroofEngine = SunroofEngine
   { cometDocument :: Document
   , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
   , compilerOpts  :: CompilerOpts
+  , timings       :: Maybe (TVar Timings)
   }
-
-
 
 -- | The number of uniques allocated for the first try of a compilation.
 compileUniqAlloc :: Uniq
@@ -151,11 +153,18 @@ sync engine jsm | typeOf (Proxy :: Proxy a) == Unit = do
 
 sync engine jsm = do
   up <- newUplink engine
+  t0 <- getCurrentTime
   src <- compileRequest engine (jsm >>= putUplink up)
+  addCompileTime engine t0
+  t1 <- getCurrentTime
   send (cometDocument engine) src
+  addSendTime engine t1
+  t2 <- getCurrentTime
   -- There is *no* race condition in here. If no-one is listening,
   -- then the numbered event gets queued up.
-  getUplink up
+  r <- getUplink up
+  addWaitTime engine t2
+  return r
 
 -- | wait passes an event to a continuation, once. You need
 -- to re-register each time.
@@ -268,6 +277,7 @@ wrapDocument opts cometApp doc = cometApp
                                { cometDocument = doc
                                , engineVerbose = sunroofVerbose opts
                                , compilerOpts = sunroofCompilerOpts opts
+                               , timings = Nothing
                                }
 
 -- | Default options to use for the sunroof comet server.
@@ -408,5 +418,43 @@ kc_reply n a = call "$.kc.reply" `apply` (n,a)
 debugSunroofEngine :: IO SunroofEngine
 debugSunroofEngine = do
         doc <- KC.debugDocument
-        return $ SunroofEngine doc 3 def
+        return $ SunroofEngine doc 3 def Nothing
 
+-------------------------------------------------------------------------------------------
+
+data Timings = Timings
+        { compileTime :: !NominalDiffTime        -- how long spent compiling
+        , sendTime    :: !NominalDiffTime        -- how long spent sending
+        , waitTime    :: !NominalDiffTime        -- how long spent waiting for a response
+        }
+        deriving Show
+
+newTimings :: SunroofEngine -> IO SunroofEngine
+newTimings e = do
+        v <- atomically $ newTVar $ Timings 0 0 0
+        return $ e { timings = Just v }
+
+getTimings :: SunroofEngine -> IO Timings
+getTimings (SunroofEngine { timings = Nothing }) = return $ Timings 0 0 0
+getTimings (SunroofEngine { timings = Just t }) = atomically $ readTVar t
+
+addCompileTime :: SunroofEngine -> UTCTime -> IO ()
+addCompileTime (SunroofEngine { timings = Nothing }) start = return ()
+addCompileTime (SunroofEngine { timings = Just t }) start = do
+        end <- getCurrentTime
+        atomically $ modifyTVar t $ \ ts -> ts { compileTime = compileTime ts + diffUTCTime end start}
+        return ()
+
+addSendTime :: SunroofEngine -> UTCTime -> IO ()
+addSendTime (SunroofEngine { timings = Nothing }) start = return ()
+addSendTime (SunroofEngine { timings = Just t }) start = do
+        end <- getCurrentTime
+        atomically $ modifyTVar t $ \ ts -> ts { sendTime = sendTime ts + diffUTCTime end start}
+        return ()
+
+addWaitTime :: SunroofEngine -> UTCTime -> IO ()
+addWaitTime (SunroofEngine { timings = Nothing }) start = return ()
+addWaitTime (SunroofEngine { timings = Just t }) start = do
+        end <- getCurrentTime
+        atomically $ modifyTVar t $ \ ts -> ts { waitTime = waitTime ts + diffUTCTime end start}
+        return ()
