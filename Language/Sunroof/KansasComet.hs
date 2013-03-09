@@ -386,17 +386,17 @@ data Uplink a = Uplink SunroofEngine Int
 
 newUplink :: SunroofEngine -> IO (Uplink a)
 newUplink eng = do
-        u <- docUniq (cometDocument eng)
-        return $ Uplink eng u
+  u <- docUniq (cometDocument eng)
+  return $ Uplink eng u
 
 putUplink :: (Sunroof a) => Uplink a -> a -> JS t ()
 putUplink (Uplink _ u) a = kc_reply (js u) a
 
 getUplink :: forall a . (SunroofResult a) => Uplink a -> IO (ResultOf a)
 getUplink (Uplink eng u) = do
-        val <- KC.getReply (cometDocument eng) u
-        -- TODO: make this throw an exception if it goes wrong (I supose error does this already)
-        return $ jsonToValue (Proxy :: Proxy a) val
+  val <- KC.getReply (cometDocument eng) u
+  -- TODO: make this throw an exception if it goes wrong (I supose error does this already)
+  return $ jsonToValue (Proxy :: Proxy a) val
 
 data Downlink a = Downlink SunroofEngine Int
 
@@ -422,6 +422,6 @@ kc_reply n a = fun "$.kc.reply" `apply` (n,a)
 
 debugSunroofEngine :: IO SunroofEngine
 debugSunroofEngine = do
-        doc <- KC.debugDocument
-        return $ SunroofEngine doc 3 def
+  doc <- KC.debugDocument
+  return $ SunroofEngine doc 3 def
 

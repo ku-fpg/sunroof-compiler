@@ -1,41 +1,51 @@
-{-# LANGUAGE OverloadedStrings, GADTs, MultiParamTypeClasses, ScopedTypeVariables, RankNTypes, DataKinds, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
+
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
--- Syntax for JavaScript
-
-module Language.Sunroof.JavaScript where
+module Language.Sunroof.JavaScript
+  ( Expr, ExprE(..), E(..)
+  , Id, Stmt(..), Type(..)
+  , showExpr, showStmt
+  , operator, binOp, uniOp
+  , literal
+  ) where
 
 import Data.List ( intercalate )
-import Data.Reify
+import Data.Reify ( MuRef(..) ) 
 import Control.Applicative ( Applicative, pure, (<$>), (<*>))
-import Data.Traversable
-import Data.Foldable hiding (all, any)
-import Data.Semigroup
-import Data.Char
+import Data.Traversable ( Traversable(..) )
+import Data.Foldable ( Foldable(..) )
+import Data.Monoid ( Monoid(..) )
+import Data.Char ( isAlpha )
+
+-- -------------------------------------------------------------
+-- Javascript Expressions
+-- -------------------------------------------------------------
 
 type Id = String
 
 type Expr = E ExprE
 
-data ExprE = ExprE Expr
-        deriving Show
+data ExprE = ExprE Expr deriving Show
 
----------------------------------------------------------------
--- Trivial expression language for Java
----------------------------------------------------------------
-
-data E expr
-        = Lit String    -- a precompiled (atomic) version of this literal
-        | Var Id
-        | Dot expr expr Type    -- expr . expr :: Type
-        | Apply expr [expr]     -- expr ( expr, ..., expr )
-        | Function [Id] [Stmt]
-        deriving Show
+data E expr = Lit String    -- a precompiled (atomic) version of this literal
+            | Var Id
+            | Dot expr expr Type    -- expr . expr :: Type
+            | Apply expr [expr]     -- expr ( expr, ..., expr )
+            | Function [Id] [Stmt]
+            deriving Show
 
 instance MuRef ExprE where
   type DeRef ExprE = E
   mapDeRef f (ExprE e) = traverse f e
-
 
 instance Traversable E where
   traverse _ (Lit s) = pure (Lit s)
@@ -58,28 +68,8 @@ instance Functor E where
   fmap f (Apply s xs) = Apply (f s) (map f xs)
   fmap _ (Function nms stmts) = Function nms stmts
 
---
 --instance Show Expr where
---        show = showExpr False
-
--- | Combinator to create a operator/function applied to the given arguments.
-operator :: Id -> [Expr] -> Expr
-operator n ps = Apply (ExprE $ Var n) (fmap ExprE ps)
-
--- | Short-hand to create the applied binary operator/function.
---   See 'operator'.
-binOp :: String -> Expr -> Expr -> E ExprE
-binOp o e1 e2 = operator o [e1, e2]
-
--- | Short-hand to create the applied unary operator/function.
---   See 'operator'.
-uniOp :: String -> Expr -> E ExprE
-uniOp o e = operator o [e]
-
--- | Combinator to create a expression containing a 
---   literal in form of a string.
-literal :: String -> Expr
-literal = Lit
+--  show = showExpr False
 
 -- | Boolean argument says non-trivial arguments need parenthesis.
 showExpr :: Bool -> Expr -> String
@@ -122,20 +112,47 @@ showFun e args = case e of
     _                           -> showExpr True e ++ args_text
   where args_text = "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
 
+-- -------------------------------------------------------------
+-- Helper Combinators
+-- -------------------------------------------------------------
+
+-- | Combinator to create a operator/function applied to the given arguments.
+operator :: Id -> [Expr] -> Expr
+operator n ps = Apply (ExprE $ Var n) (fmap ExprE ps)
+
+-- | Short-hand to create the applied binary operator/function.
+--   See 'operator'.
+binOp :: String -> Expr -> Expr -> E ExprE
+binOp o e1 e2 = operator o [e1, e2]
+
+-- | Short-hand to create the applied unary operator/function.
+--   See 'operator'.
+uniOp :: String -> Expr -> E ExprE
+uniOp o e = operator o [e]
+
+-- | Combinator to create a expression containing a 
+--   literal in form of a string.
+literal :: String -> Expr
+literal = Lit
+
+
 indent :: Int -> String -> String
 indent n = unlines . map (take n (cycle "  ") ++) . lines
 
-data Stmt
-        = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
-        | AssignStmt Expr Expr Expr -- Expr[Expr] = Expr
-        | AssignStmt_ Expr Expr     -- Expr = Expr      // restrictions on lhs
-        | ExprStmt Expr             -- Expr
-        | ReturnStmt Expr           -- return Expr
-        | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
-        | WhileStmt Expr [Stmt]     -- while (Expr) { Stmts }
+-- -------------------------------------------------------------
+-- Javascript Statements
+-- -------------------------------------------------------------
+
+data Stmt = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
+          | AssignStmt Expr Expr Expr -- Expr[Expr] = Expr
+          | AssignStmt_ Expr Expr     -- Expr = Expr      // restrictions on lhs
+          | ExprStmt Expr             -- Expr
+          | ReturnStmt Expr           -- return Expr
+          | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
+          | WhileStmt Expr [Stmt]     -- while (Expr) { Stmts }
 
 instance Show Stmt where
-        show = showStmt
+  show = showStmt
 
 showStmt :: Stmt -> String
 showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
@@ -153,19 +170,23 @@ showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
   ++ indent 2 (unlines (map showStmt stmts))
   ++ "}"
 
+-- -------------------------------------------------------------
+-- Javascript Types
+-- -------------------------------------------------------------
 
-data Type
- = Base         -- base type, like object
- | Unit
- | Fun Int      -- f (a_1,..,a_n), n == number in int
-  deriving (Eq,Ord)
+data Type = Base         -- base type, like object
+          | Unit
+          | Fun Int      -- f (a_1,..,a_n), n == number in int
+          deriving (Eq,Ord)
 
 instance Show Type where
   show Base    = "*"
   show Unit    = "()"
   show (Fun n) = show n ++ " -> -"
 
--- Trivial pretty printer
+-- -------------------------------------------------------------
+-- Pretty Printer
+-- -------------------------------------------------------------
 
 data Doc = Text String           -- plain text (assume no newlines)
          | Indent Int Doc        -- indent document by n
