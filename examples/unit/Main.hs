@@ -35,25 +35,35 @@ import qualified Language.Sunroof.JS.Browser as B
 
 import System.Random
 import System.IO
+import System.Timeout
+import Control.Concurrent.STM
 
 import Data.Ratio
 
 import Test.QuickCheck hiding ( assert )
-import Test.QuickCheck.Monadic ( monadicIO, assert, run, pick, pre )
+import Test.QuickCheck.Monadic ( run, monadicIO, assert, pick, pre )
+import qualified Test.QuickCheck.Monadic as M
 import Test.QuickCheck.Gen ( Gen(MkGen, unGen) )
-import Test.QuickCheck.Property
-  ( callback, abort, ok
-  , Callback( PostTest )
-  , CallbackKind( NotCounterexample )
-  )
+import Test.QuickCheck.Property hiding (Result,reason)
+import qualified Test.QuickCheck.Property as P
+--  ( callback, abort, ok
+--  , Callback( PostTest )
+--  , CallbackKind( NotCounterexample )
+--  )
 import Test.QuickCheck.State ( State( .. )) -- numSuccessTests ) )
 
 import Control.Concurrent.ParallelIO.Local hiding (parallelInterleaved)
 import Control.Concurrent.ParallelIO.Local (parallelInterleaved)
-
+import qualified Control.Exception as E
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) web_app
+main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) $ \ doc0 -> do
+        let do_log = False
+        let te_style = TestWithTiming
+        doc <- case te_style of
+                  TestWithTiming -> newTimings doc0
+                  _ -> return doc0
+        web_app $ TestEngine doc do_log te_style False (5 * 1000 * 1000)
 
 default(JSNumber, JSString, String)
 
@@ -61,10 +71,16 @@ type instance BooleanOf () = JSBool
 
 data TestEngine = TestEngine { srEngine :: SunroofEngine
                              , teLog    :: Bool                 -- do you send information about each test to a log
+                             , teStyle  :: TestStyle
+                             , teShrink :: Bool                 -- do you want to shrink on failure?
+                             , teTimeout :: Int                 -- millseconds timeout failure for each single test
                              }
 
+data TestStyle = TestWithTiming         -- single core, do timing
+               | TestInPar Int          -- How many cores
+
 -- This is run each time the page is first accessed
-web_app :: SunroofEngine -> IO ()
+web_app :: TestEngine -> IO ()
 web_app doc = do
         -- We use the lower-level waitForEvent, so we can test the JS compiler.
         {-
@@ -78,7 +94,7 @@ web_app doc = do
         let tA = ThreadProxy :: ThreadProxy A
         let tB = ThreadProxy :: ThreadProxy B
 
-        runTests doc $ drop 0 $
+        runTests doc $ take 1 $ drop 1 $
           [ ("Constants",
                 [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
                 , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
@@ -86,11 +102,11 @@ web_app doc = do
                 , Test "Constant String"  (checkConstValue doc :: String -> Property)
                 ])
           , ("Arithmetic and Booleans",
-                [ Test "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
+                [{- Test "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
                 , Test "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
                 , Test "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
                 , Test "Arbitrary Arithmetic" (checkArbitraryArith doc)
-                , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
+                , -} Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
                 ])
           , ("Conditionals",
                 [ Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
@@ -101,6 +117,7 @@ web_app doc = do
                 ])
           ]
 
+
 -- -----------------------------------------------------------------------
 -- Tests
 -- -----------------------------------------------------------------------
@@ -110,46 +127,46 @@ checkConstValue :: ( Eq a
                    , SunroofValue a
                    , SunroofResult (ValueOf a)
                    , a ~ ResultOf (ValueOf a)
-                   ) => SunroofEngine -> a -> Property
+                   ) => TestEngine -> a -> Property
 checkConstValue doc n = monadicIO $ do
-  n' <- run $ sync doc (return $ js n)
+  n' <- run $ sync (srEngine doc) (return $ js n)
   assert $ n == n'
 
 -- | Check if a constant literal number is the same after sync.
-checkConstNumber :: SunroofEngine -> Double -> Property
+checkConstNumber :: TestEngine -> Double -> Property
 checkConstNumber doc n = monadicIO $ do
-  n' <- run $ sync doc (return $ js n)
+  n' <- run $ sync (srEngine doc) (return $ js n)
   -- Some weird conversion error going on. The returned value has more digits!
   assert $ n `deltaEqual` n'
 
 -- | Check if simple arithmetic expressions with one operator produce
 --   the same value after sync.
-checkBasicArith :: SunroofEngine -> (forall b. (Num b) => b -> b -> b) -> Double -> Double -> Property
+checkBasicArith :: TestEngine -> (forall b. (Num b) => b -> b -> b) -> Double -> Double -> Property
 checkBasicArith doc op x y = monadicIO $ do
   let r = (x `op` y)
-  r' <- run $ sync doc (return (js x `op` js y :: JSNumber))
+  r' <- run $ sync (srEngine doc) (return (js x `op` js y :: JSNumber))
   assert $ r `deltaEqual` r'
 
 -- | Check if arithmetic expressions of arbitrary size produce the same result
 --   after sync.
-checkArbitraryArith :: SunroofEngine -> Int -> Property
+checkArbitraryArith :: TestEngine -> Int -> Property
 checkArbitraryArith doc seed = monadicIO $ do
   let n = (abs seed `mod` 10) + 1
   (r, e) <- pick $ sameSeed (numExprGen n :: Gen Double)
                             (numExprGen n :: Gen JSNumber)
   pre $ abs r < (100000000 :: Double)
-  r' <- run $ sync doc (return e)
+  r' <- run $ sync (srEngine doc) (return e)
   assert $ r `deltaEqual` r'
 
-checkArbitraryBool :: SunroofEngine -> Int -> Property
+checkArbitraryBool :: TestEngine -> Int -> Property
 checkArbitraryBool doc seed = monadicIO $ do
   let n = (abs seed `mod` 10) + 1
   (b, e) <- pick $ sameSeed (boolExprGen n :: Gen Bool)
                             (boolExprGen n :: Gen JSBool)
-  b' <- run $ sync doc (return e)
+  b' <- run $ sync (srEngine doc) (return e)
   assert $ b == b'
 
-checkArbitraryIfThenElse_Int :: forall t . (JSThread t) => SunroofEngine -> ThreadProxy t -> Int -> Property
+checkArbitraryIfThenElse_Int :: forall t . (JSThread t) => TestEngine -> ThreadProxy t -> Int -> Property
 checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
   let n = (abs seed `mod` 10) + 1
   (b, e) <- pick $ sameSeed (boolExprGen n :: Gen Bool)
@@ -161,11 +178,11 @@ checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
   pre $ abs r1 < (100000000 :: Double)
   pre $ abs r2 < (100000000 :: Double)
 --  run $ print ("e,e1,e2",e,e1,e2)
-  r12' <- run $ sync doc (ifB e (return e1) (return e2) >>= return :: JS t JSNumber)
+  r12' <- run $ sync (srEngine doc) (ifB e (return e1) (return e2) >>= return :: JS t JSNumber)
   assert $ (if b then r1 else r2) == r12'
 
 
-checkArbitraryChan_Int :: SunroofEngine -> Int -> Property
+checkArbitraryChan_Int :: TestEngine -> Int -> Property
 checkArbitraryChan_Int doc seed = monadicIO $ do
   let n = (abs seed `mod` 10) + 1
   qPush <- pick $ frequency [(1,return False),(3,return True)]
@@ -202,7 +219,7 @@ checkArbitraryChan_Int doc seed = monadicIO $ do
 
 -}
           return arr
-  res :: [Double] <- run $ sync doc prog
+  res :: [Double] <- run $ sync (srEngine doc) prog
   assert $ map round res == dat
 
 -- -----------------------------------------------------------------------
@@ -211,7 +228,7 @@ checkArbitraryChan_Int doc seed = monadicIO $ do
 
 data Test = forall a. Testable a => Test String a
 
-runTests :: SunroofEngine -> [(String,[Test])] -> IO ()
+runTests :: TestEngine -> [(String,[Test])] -> IO ()
 runTests doc all_tests = do
   sequence_ [ do let
                      t  = "<h1>" ++ txt ++ "</h1>" ++
@@ -221,14 +238,14 @@ runTests doc all_tests = do
                               | (j::Int,Test msg _) <- [0..] `zip` tests
                               ] ++
                           "</table>"
-                 sync doc $ do
+                 sync (srEngine doc) $ do
                          jQuery "#testing-text" >>= JQuery.append (cast $ js t)
                          return ()
            | (i::Int,(txt,tests)) <- [0..] `zip` all_tests
            ]
 
   -- set them all to 100 max
-  sync doc $ do
+  sync (srEngine doc) $ do
     () <- jQuery ".progressbar" >>= invoke "progressbar" ()  :: JS t ()
     () <- jQuery ".progressbar" >>= invoke "progressbar" ( "option" :: JSString
                                                    , "max" :: JSString
@@ -240,36 +257,39 @@ runTests doc all_tests = do
     return ()
 
 
-  withPool 8 $ \ pool -> parallelInterleaved pool $ concat [
+  result <- (case teStyle doc of
+                TestInPar n -> \ xs -> withPool n $ \ pool -> parallelInterleaved pool xs
+                _ -> sequence) $ concat [
       [ do let casesPerTest :: Int
                casesPerTest = 100
                runTest :: Test -> IO Result
                runTest (Test name test) = do
                  putStrLn name
-                 quickCheckWithResult (stdArgs {chatty=False,maxSuccess=casesPerTest})
+                 r <- quickCheckWithResult (stdArgs {chatty=False,maxSuccess=casesPerTest})
+                   $ within (teTimeout doc)
+                   $ (if teShrink doc then id else noShrinking)
                    $ callback afterTestCallback
                    $ test
-               execTests :: [Test] -> IO ()
-               execTests [] = do
-                 putStrLn "PASSED ALL TESTS"
---                 progressMsg doc "PASSED ALL TESTS"
-               execTests (t@(Test name _):ts) = do
+                 print "DONE TESTS IN SR"
+                 return r
+               execTest :: Test -> IO ()
+               execTest t@(Test name _) = do
 --                 progressMsg doc name
-                 result <- runTest t
+                 result <- E.try (runTest t >>= E.evaluate)
                  case result of
-                   Success _ _ out -> do
+                   Left (e ::  E.SomeException) -> do
+                     print ("EXCEPTION:",e)
+                     E.throw e
+                   Right (Success _ _ out) -> do
                      putStrLn out
-                     execTests ts
-                   GaveUp _ _ out -> do
+                   Right (GaveUp _ _ out) -> do
                      putStrLn out
-                     execTests ts
-                   Failure _ _ _ _ reason _ out -> do
-                     putStrLn out
-                     putStrLn reason
+                   Right f@(Failure {}) -> do
+                     putStrLn (output f)
+                     putStrLn (reason f)
                      putStrLn $ "FAILED TEST: " ++ name
-                   NoExpectedFailure _ _ out -> do
+                   Right (NoExpectedFailure _ _ out) -> do
                      putStrLn out
-                     execTests ts
                afterTestCallback :: Callback
                afterTestCallback = PostTest NotCounterexample $ \ state result -> do
                  if not (abort result) && isJust (ok result)
@@ -282,7 +302,7 @@ runTests doc all_tests = do
                        else return ()
                    else do
                      return ()
-           runTest t
+           execTest t
 
       | (j::Int,t@(Test msg _)) <- [0..] `zip` tests
       ]
@@ -293,14 +313,16 @@ runTests doc all_tests = do
   return ()
 
 
+
+
 pbName :: Int -> Int -> String
 pbName i j = "pb-" ++ show i ++ "-" ++ show j
 
 pbObject :: Int -> Int -> JS t JSObject
 pbObject i j = jQuery $ js $ ('.' :) $ pbName i j
 
-progressVal :: SunroofEngine -> Int -> Int -> Int -> IO ()
-progressVal doc i j n = async doc $ do
+progressVal :: TestEngine -> Int -> Int -> Int -> IO ()
+progressVal doc i j n = async (srEngine doc) $ do
   p <- pbObject i j
   p # invoke "progressbar" ( "option" :: JSString
                            , "value" :: JSString
