@@ -250,28 +250,28 @@ runTests doc tests = do
 progressMax :: SunroofEngine -> Int -> IO ()
 progressMax doc n = async doc $ do
   p <- jQuery "#progressbar"
-  p # method "progressbar" ( "option" :: JSString
+  p # invoke "progressbar" ( "option" :: JSString
                            , "max" :: JSString
                            , js n :: JSNumber)
 
 progressVal :: SunroofEngine -> Int -> IO ()
 progressVal doc n = async doc $ do
   p <- jQuery "#progressbar"
-  p # method "progressbar" ( "option" :: JSString
+  p # invoke "progressbar" ( "option" :: JSString
                            , "value" :: JSString
                            , js n :: JSNumber)
 
 progressMsg :: SunroofEngine -> String -> IO ()
 progressMsg doc msg = async doc $ do
   l <- jQuery "#plabel"
-  l # method "text" (js msg :: JSString)
+  l # invoke "text" (js msg :: JSString)
 
 progressInc :: SunroofEngine -> IO ()
 progressInc doc = async doc $ do
   p <- jQuery "#progressbar"
-  n <- p # method "progressbar" ( "option" :: JSString
+  n <- p # invoke "progressbar" ( "option" :: JSString
                                 , "value" :: JSString)
-  p # method "progressbar" ( "option" :: JSString
+  p # invoke "progressbar" ( "option" :: JSString
                            , "value" :: JSString
                            , n + 1 :: JSNumber)
 

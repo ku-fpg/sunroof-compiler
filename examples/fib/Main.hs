@@ -30,12 +30,12 @@ main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc 
 
 prog :: JSB ()
 prog = do
-      obj <- new
+      obj <- new "Object" ()
       obj # attribute "model" := (0 :: JSNumber)
 
       -- This is using the imperative update to enable the
       let slider :: JSNumber -> JSObject -> JSB JSObject
-          slider nm = method "slider"  ("value" :: JSString, nm)
+          slider nm = invoke "slider"  ("value" :: JSString, nm)
 
           update :: String -> JSNumber -> JSNumber -> JSNumber -> JSB ()
           update nm val mn mx =
@@ -92,8 +92,8 @@ click = event "click" Click
 
 recfunction :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> JS t (JSFunction a b)
 recfunction fn = do
-        obj <- new
-        f <- function $ fn (\ n -> obj # method "rec" n)
+        obj <- new "Object" ()
+        f <- function $ fn (\ n -> obj # invoke "rec" n)
         obj # attribute "rec" := f
         return f
 

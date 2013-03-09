@@ -530,9 +530,11 @@ object = JSObject . Lit
 fun :: (JSArgument a, Sunroof r) => String -> JSFunction a r
 fun = JSFunction . Lit
 
--- TODO: should take String argument
+-- TODO: BROKEN: Ignores the argument
+-- Problem: new "Object" ()  -->  "(new Object)()" which will fail.
+-- Should turn into "new Object()"
 new :: (JSArgument a) => String -> a -> JS t JSObject
-new cons args = fun ("new " ++ cons) `apply` args
+new cons args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ cons) `apply` args
 
 attribute :: String -> JSSelector a
 attribute attr = label $ string attr

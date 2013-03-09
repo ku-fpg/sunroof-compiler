@@ -141,14 +141,14 @@ clockUnit = do
 canvasSize :: JS A (JSNumber, JSNumber)
 canvasSize = do
   c <- jQuery "#canvas"
-  w <- c # method "innerWidth" ()
-  h <- c # method "innerHeight" ()
+  w <- c # invoke "innerWidth" ()
+  h <- c # invoke "innerHeight" ()
   return (w, h)
 
 currentTime :: JS A (JSNumber, JSNumber, JSNumber)
 currentTime = do
   date <- evaluate $ object "new Date()"
-  h <- date # method "getHours" ()
-  m <- date # method "getMinutes" ()
-  s <- date # method "getSeconds" ()
+  h <- date # invoke "getHours" ()
+  m <- date # invoke "getMinutes" ()
+  s <- date # invoke "getSeconds" ()
   return (h, m, s)
