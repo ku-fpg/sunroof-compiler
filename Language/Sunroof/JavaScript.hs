@@ -85,7 +85,7 @@ showExpr b e = p $ case e of
                         showIdx a x ++ ")(" ++ intercalate "," args ++ "); }"
             where args = [ "a" ++ show i | i <- take (length xs) ([0..] :: [Int])]
    -- This pattern was missing too.
-   (Dot (ExprE _a) (ExprE _x) Unit) -> 
+   (Dot (ExprE _a) (ExprE _x) Unit) ->
      error "Dot pattern on unit type. Don't know what to do."
    (Function args body) ->
                 "function" ++
@@ -168,6 +168,12 @@ pretty :: Doc -> String
 pretty (Text txt) = txt
 pretty (Sep docs) = unlines $ map pretty docs
 pretty (Indent n doc) = unlines $ map (take n (cycle "  ") ++) $ lines $ pretty doc
+
+
+------------------------------------------------------
+
+scopeForEffect :: [Stmt] -> Expr
+scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
 
 
 
