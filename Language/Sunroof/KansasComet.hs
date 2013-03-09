@@ -168,7 +168,7 @@ sync engine jsm = do
 
 wait :: Scope -> Template event -> JS B JSObject
 wait scope tmpl = reifyccJS $ \ o -> do
-        apply (call "$.kc.waitFor") ( string scope
+        apply (fun "$.kc.waitFor") ( string scope
                                     , object (show (map fst (extract tmpl)))
                                     , o
                                     )
@@ -401,7 +401,7 @@ getDownlink = undefined
 -- This belongs in KansasComet
 
 kc_reply :: (Sunroof a) => JSNumber -> a -> JS t ()
-kc_reply n a = call "$.kc.reply" `apply` (n,a)
+kc_reply n a = fun "$.kc.reply" `apply` (n,a)
 
 -------------------------------------------------------------------------------------------
 

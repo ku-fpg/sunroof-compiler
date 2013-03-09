@@ -110,8 +110,8 @@ compile = eval . view
           eval (JS_Invoke args fn :>>= g) = do
             compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) g
 
-          eval (JS_Function fun :>>= g) = do
-            e <- compileFunction fun
+          eval (JS_Function f :>>= g) = do
+            e <- compileFunction f
             compileBind e g
 
           eval (JS_Branch b c1 c2 :>>= g) = compileBranch b c1 c2 g

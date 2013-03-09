@@ -14,7 +14,7 @@ import Language.Sunroof.Types
   , JSObject
   , JSFunction
   , JS
-  , call
+  , fun
   , invoke
   , apply
   )
@@ -26,7 +26,7 @@ import Language.Sunroof.Types
 -- | The dollar function.
 --   See <http://api.jquery.com/jQuery/>.
 dollar :: JSFunction JSString JSObject
-dollar = call "$"
+dollar = fun "$"
 
 -- | Calls the JQuery dollar function.
 --   See <http://api.jquery.com/jQuery/>.

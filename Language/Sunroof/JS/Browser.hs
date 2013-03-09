@@ -67,7 +67,7 @@ import Language.Sunroof.Types
   , JSFunction
   , JS, JSSelector
   , JS ( (:=) )
-  , call
+  , fun
   , invoke
   , object
   , attribute
@@ -83,46 +83,46 @@ import Language.Sunroof.Types
 
 -- | Display the given text in a message box.
 alert :: JSString -> JS t ()
-alert msg = call "alert" `apply` (msg)
+alert msg = fun "alert" `apply` (msg)
 
 -- | Decode the URI encoded in the given string.
 decodeURI :: JSString -> JS t JSString
-decodeURI str = call "decodeURI" `apply` (str)
+decodeURI str = fun "decodeURI" `apply` (str)
 
 -- | Encode the given string in URI encoding.
 encodeURI :: JSString -> JS t JSString
-encodeURI str = call "encodeURI" `apply` (str)
+encodeURI str = fun "encodeURI" `apply` (str)
 
 -- | Decode the URI encoded string. For use with 'encodeURIComponent'.
 decodeURIComponent :: JSString -> JS t JSString
-decodeURIComponent str = call "decodeURIComponent" `apply` (str)
+decodeURIComponent str = fun "decodeURIComponent" `apply` (str)
 
 -- | Encode the string with URI encoding. This encodes a few more
 --   characters to make the string safe for direct server communication (AJAX).
 encodeURIComponent :: JSString -> JS t JSString
-encodeURIComponent str = call "encodeURIComponent" `apply` (str)
+encodeURIComponent str = fun "encodeURIComponent" `apply` (str)
 
 -- | Evaluate the given JavaScript string if possible. Returns
 --   the result of evaluation.
 -- TODO: think about this a bit.
 eval :: (Sunroof a) => JSString -> JS t a
-eval str = call "eval" `apply` (str)
+eval str = fun "eval" `apply` (str)
 
 -- | Check if a given number is within the valid JavaScript number range.
 isFinite :: JSNumber -> JS t JSBool
-isFinite n = call "isFinite" `apply` (n)
+isFinite n = fun "isFinite" `apply` (n)
 
 -- | Check if a given number is NaN or not.
 isNaN :: JSNumber -> JS t JSBool
-isNaN n = call "isNaN" `apply` (n)
+isNaN n = fun "isNaN" `apply` (n)
 
 -- | Parse the given string to a number.
 parseFloat :: JSString -> JS t JSNumber
-parseFloat str = call "parseFloat" `apply` (str)
+parseFloat str = fun "parseFloat" `apply` (str)
 
 -- | Parse the given string to a number.
 parseInt :: JSString -> JS t JSNumber
-parseInt str = call "parseInt" `apply` (str)
+parseInt str = fun "parseInt" `apply` (str)
 
 -- -----------------------------------------------------------------------
 -- Window API

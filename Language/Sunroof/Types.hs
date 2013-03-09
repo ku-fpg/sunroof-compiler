@@ -530,12 +530,12 @@ object = JSObject . Lit
 
 -- perhaps call this invoke, or fun
 -- SBC: fun
-call :: String -> JSFunction a r
-call = JSFunction . Lit
+fun :: (JSArgument a, Sunroof r) => String -> JSFunction a r
+fun = JSFunction . Lit
 
 -- TODO: should take String argument
 new :: (JSArgument a) => String -> a -> JS t JSObject
-new cons args = call ("new " ++ cons) `apply` args
+new cons args = fun ("new " ++ cons) `apply` args
 
 attribute :: String -> JSSelector a
 attribute attr = label $ string attr
