@@ -1,9 +1,40 @@
-{-# LANGUAGE OverloadedStrings, GADTs, MultiParamTypeClasses, ScopedTypeVariables, RankNTypes, DataKinds, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
+
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverlappingInstances #-}
 
--- This should only export user-facing types (as much as possible)
-module Language.Sunroof.Types where
+module Language.Sunroof.Types
+  ( T(..)
+  , ThreadProxy(..)
+  , JSThread(..), JSThreadReturn(..)
+  , JS(..), JSA, JSB
+  , unJS
+  , single
+  , JSI(..)
+  , goto, callcc, callcc'
+  , reifyccJS, abortJS, liftJS
+  , JSFunction
+  , function, function', continuation
+  , apply, ($$)
+  , cast
+  , (#)
+  , object, attribute
+  , fun, invoke, new
+  , evaluate, value
+  , switch
+  , nullJS
+  , JSRef
+  , newJSRef, readJSRef, writeJSRef, modifyJSRef
+  , JSTuple(..)
+  ) where
 
 import Control.Monad.Operational
 
@@ -272,9 +303,10 @@ new cons _args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ con
 
 -- This is not the same as return; it evaluates
 -- the argument to value form.
-evaluate, value :: (Sunroof a) => a -> JS t a
+evaluate :: (Sunroof a) => a -> JS t a
 evaluate a  = single (JS_Eval a)
 
+value :: (Sunroof a) => a -> JS t a
 value = evaluate
 
 switch :: ( EqB a, BooleanOf a ~ JSBool
