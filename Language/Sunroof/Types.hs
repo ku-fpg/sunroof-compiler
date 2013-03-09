@@ -5,12 +5,15 @@
 -- This should only export user-facing types (as much as possible)
 module Language.Sunroof.Types where
 
-import Data.Monoid
-import qualified Data.Semigroup as Semi
 import Control.Monad.Operational
-import Data.Boolean
 
-import Language.Sunroof.JavaScript
+import Data.Monoid ( Monoid(..) )
+import Data.Semigroup ( Semigroup(..) )
+import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
+
+import Language.Sunroof.JavaScript 
+  ( Expr, Type(Fun), Id
+  , showExpr, literal )
 import Language.Sunroof.Classes 
   ( Sunroof(..), SunroofValue(..), JSArgument
   , jsArgs )
@@ -23,24 +26,26 @@ import Language.Sunroof.JS.String ( string )
 cast :: (Sunroof a, Sunroof b) => a -> b
 cast = box . unbox
 
----------------------------------------------------------------
+-- -------------------------------------------------------------
+-- JSFunction Type
+-- -------------------------------------------------------------
 
 -- The first type argument is the type of function argument;
 -- The second type argument of JSFunction is what the function returns.
 data JSFunction args ret = JSFunction Expr
 
 instance Show (JSFunction a r) where
-        show (JSFunction v) = showExpr False v
+  show (JSFunction v) = showExpr False v
 
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
-        box = JSFunction
-        unbox (JSFunction e) = e
-        typeOf _ = Fun (length (jsArgs (error "instance Sunroof JSFunction" :: a)))
+  box = JSFunction
+  unbox (JSFunction e) = e
+  typeOf _ = Fun (length (jsArgs (error "instance Sunroof JSFunction" :: a)))
 
 type instance BooleanOf (JSFunction a r) = JSBool
 
 instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
-    ifB = jsIfB
+  ifB = jsIfB
 
 instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
   type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
@@ -154,7 +159,7 @@ instance Monad (JS t) where
 -- | We define the Semigroup instance for JS, where
 --  the first result (but not the first effect) is discarded.
 --  Thus, '<>' is the analog of the monadic '>>'.
-instance Semi.Semigroup (JS t a) where
+instance Semigroup (JS t a) where
         js1 <> js2 = js1 >> js2
 
 instance Monoid (JS t ()) where
