@@ -1,3 +1,4 @@
+
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE KindSignatures #-}
@@ -6,59 +7,60 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
 
-
-module Language.Sunroof.KansasComet where
-{-
+module Language.Sunroof.KansasComet
+  -- Basic Comet
   ( sync
-  , sync'
   , async
-  , rsync
   , wait
   , SunroofResult(..)
   , SunroofEngine(..)
   , jsonToJS
-  , defaultServerOpts
   , sunroofServer
   , SunroofServerOptions(..)
   , SunroofApp
+  , debugSunroofEngine
+  -- Uplink
+  , Uplink
+  , newUplink
+  , getUplink
+  , putUplink
+  -- Downlink
+  , Downlink
+  , newDownlink
+  , getDownlink
+  , putDownlink
   ) where
--}
-
 
 import Data.Aeson.Types ( Value(..), Object, Array )
 import Data.Attoparsec.Number ( Number(..) )
---import Data.Boolean
 import Data.List ( intercalate )
---import Data.String ( IsString(..) )
 import Data.Text ( Text, unpack )
-import Data.Proxy
-import Data.Default
+import Data.Proxy ( Proxy(..) )
+import Data.Default ( Default(..) )
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as M
 
 import Control.Monad.IO.Class ( liftIO )
 
 import Network.Wai.Handler.Warp ( Port, settingsPort )
-import Network.Wai.Middleware.Static
+import Network.Wai.Middleware.Static 
+  ( only, hasPrefix, addBase, staticPolicy
+  , (<|>), (>->) )
 import qualified Web.Scotty as SC
 import Web.KansasComet
-  ( Template(..)
-  , extract
-  --, register
-  , Scope
-  , send
-  , connect
-  --, queryGlobal
-  , Document
-  , Options
+  ( Template(..), Scope
+  , extract, send, connect
+  , Document, Options
   , kCometPlugin
-  , docUniqs
-  , docUniq
-  )
+  , docUniqs, docUniq )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Types
-import Language.Sunroof.JavaScript
+import Language.Sunroof.Types 
+  ( T(..), JS
+  , nullJS
+  , reifyccJS
+  , apply, fun, object )
+import Language.Sunroof.JavaScript ( Expr, Type(Unit), literal, showStmt )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), Uniq )
 import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
@@ -67,6 +69,10 @@ import Language.Sunroof.JS.String ( JSString, string )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Array ( JSArray )
 
+-- -------------------------------------------------------------
+-- Communication and Compilation
+-- -------------------------------------------------------------
+
 -- | The 'SunroofEngine' provides the verbosity level and
 --   kansas comet document to the 'SunroofApp'.
 data SunroofEngine = SunroofEngine
@@ -74,8 +80,6 @@ data SunroofEngine = SunroofEngine
   , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
   , compilerOpts  :: CompilerOpts
   }
-
-
 
 -- | The number of uniques allocated for the first try of a compilation.
 compileUniqAlloc :: Uniq
@@ -154,7 +158,6 @@ sync :: forall a t . (SunroofResult a) => SunroofEngine -> JS t a -> IO (ResultO
 sync engine jsm | typeOf (Proxy :: Proxy a) == Unit = do
   _ <- sync engine (jsm >> return (0 :: JSNumber))
   return $ jsonToValue (Proxy :: Proxy a) Null
-
 sync engine jsm = do
   up <- newUplink engine
   src <- compileRequest engine (jsm >>= putUplink up)
@@ -174,12 +177,10 @@ sync engine jsm = do
 
 wait :: Scope -> Template event -> JS B JSObject
 wait scope tmpl = reifyccJS $ \ o -> do
-        apply (fun "$.kc.waitFor") ( string scope
-                                    , object (show (map fst (extract tmpl)))
-                                    , o
-                                    )
-
-
+  apply (fun "$.kc.waitFor") ( string scope
+                             , object (show (map fst (extract tmpl)))
+                             , o
+                             )
 
 -- -----------------------------------------------------------------------
 -- Default Server Instance
@@ -299,6 +300,9 @@ defaultServerOpts = SunroofServerOptions
   , sunroofCompilerOpts = def
   }
 
+instance Default SunroofServerOptions where
+  def = defaultServerOpts
+
 -- -----------------------------------------------------------------------
 -- JSON Value to Haskell/Sunroof conversion
 -- -----------------------------------------------------------------------
@@ -349,13 +353,13 @@ jsonToJS (Number (I i)) = unbox $ js i
 jsonToJS (Number (D d)) = unbox $ js d
 jsonToJS (String s)     = unbox $ js s
 -- TODO: This is only a hack. Could null be a good reprensentation for unit '()'?
-jsonToJS (Null)         = Lit "null"
+jsonToJS (Null)         = unbox $ nullJS
 jsonToJS (Array arr)    = jsonArrayToJS arr
 jsonToJS (Object obj)   = jsonObjectToJS obj
 
 -- TODO: Some day find a Sunroof representation of this.
 jsonObjectToJS :: Object -> Expr
-jsonObjectToJS obj = Lit $
+jsonObjectToJS obj = literal $
   let literalMap = M.toList $ fmap (show . jsonToJS) obj
       convertKey k = "\"" ++ unpack k ++ "\""
       keyValues = fmap (\(k,v) -> convertKey k ++ ":" ++ v) literalMap
@@ -363,7 +367,7 @@ jsonObjectToJS obj = Lit $
 
 -- TODO: Some day find a Sunroof representation of this.
 jsonArrayToJS :: Array -> Expr
-jsonArrayToJS arr = Lit $
+jsonArrayToJS arr = literal $
   "(new Array(" ++ (intercalate "," $ V.toList $ fmap (show . jsonToJS) arr) ++ "))"
 
 instance SunroofValue Value where
@@ -374,7 +378,9 @@ instance SunroofValue Text where
   type ValueOf Text = JSString
   js = js . unpack
 
--------------------------------------------------------------------------------------------
+-- -------------------------------------------------------------
+-- Uplink and Downlink API
+-- -------------------------------------------------------------
 
 data Uplink a = Uplink SunroofEngine Int
 
@@ -403,13 +409,16 @@ putDownlink = undefined
 getDownlink :: forall a . (SunroofResult a) => Downlink a -> JS B (ResultOf a)
 getDownlink = undefined
 
--------------------------------------------------------------------------------------------
--- This belongs in KansasComet
+-- -------------------------------------------------------------
+-- Comet Javascript API
+-- -------------------------------------------------------------
 
 kc_reply :: (Sunroof a) => JSNumber -> a -> JS t ()
 kc_reply n a = fun "$.kc.reply" `apply` (n,a)
 
--------------------------------------------------------------------------------------------
+-- -------------------------------------------------------------
+-- Debugging
+-- -------------------------------------------------------------
 
 debugSunroofEngine :: IO SunroofEngine
 debugSunroofEngine = do
