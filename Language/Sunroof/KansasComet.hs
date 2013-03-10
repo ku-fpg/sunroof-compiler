@@ -29,6 +29,9 @@ module Language.Sunroof.KansasComet
   , newDownlink
   , getDownlink
   , putDownlink
+  -- Timing
+  , newTimings
+  , getTimings
   ) where
 
 import Data.Aeson.Types ( Value(..), Object, Array )
@@ -45,7 +48,7 @@ import Control.Monad.IO.Class ( liftIO )
 import Control.Concurrent.STM
 
 import Network.Wai.Handler.Warp ( Port, settingsPort )
-import Network.Wai.Middleware.Static 
+import Network.Wai.Middleware.Static
   ( only, hasPrefix, addBase, staticPolicy
   , (<|>), (>->) )
 import qualified Web.Scotty as SC
@@ -57,12 +60,12 @@ import Web.KansasComet
   , docUniqs, docUniq )
 import qualified Web.KansasComet as KC
 
-import Language.Sunroof.Types 
+import Language.Sunroof.Types
   ( T(..), JS
   , nullJS
   , reifyccJS
   , apply, fun )
-import Language.Sunroof.JavaScript 
+import Language.Sunroof.JavaScript
   ( Expr, Type(Unit)
   , literal, showExpr
   , scopeForEffect )
