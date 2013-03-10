@@ -23,18 +23,34 @@ import Language.Sunroof.JS.JQuery
 import Language.Sunroof.JS.Number
 import Language.Sunroof.JS.String
 import Language.Sunroof.JS.Object
+import Language.Sunroof.JS.JQuery
 
 main2 :: IO ()
 main2 = do
     staticCompiler def "main" prog >>= writeFile "main.js"
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." }) $ \doc -> do
+main = sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \doc -> do
   registerEvents (cometDocument doc) "body" (slide <> click)
   async doc prog
 
 prog :: JSB ()
 prog = do
+
+      ch <- newChan
+
+      jq "body" >>= on "click" ".click" (\ () -> do
+                the_id :: JSString <- jq (cast $ this) >>= invoke "attr" ("id" :: JSString)
+                o <- new "Object" ()
+                o # "id" := the_id
+                ch # writeChan o)
+      jq "body" >>= on "slide" ".slide" (\ (a :: JSObject, aux :: JSObject) -> do
+                the_id :: JSString <- jq (cast $ this) >>= invoke "attr" ("id" :: JSString)
+                o <- new "Object" ()
+                o # "id" := the_id
+                o # "value" := (aux ! "value" :: JSString)
+                ch # writeChan o)
+
       obj <- new "Object" ()
       obj # attribute "model" := (0 :: JSNumber)
 
@@ -57,7 +73,8 @@ prog = do
               (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
 
       loopJS () $ \() -> do
-          res <- wait "body" (slide <> click)
+          res <- ch # readChan
+--          res <- wait "body" (slide <> click)
           model <- evaluate (obj ! "model") :: JSB JSNumber
 
           switchB (res ! "id" :: JSString)
