@@ -30,7 +30,9 @@ module Language.Sunroof.KansasComet
   , getDownlink
   , putDownlink
   -- Timing
+  , Timings(..)
   , newTimings
+  , resetTimings
   , getTimings
   ) where
 
@@ -40,6 +42,7 @@ import Data.List ( intercalate )
 import Data.Text ( Text, unpack )
 import Data.Proxy ( Proxy(..) )
 import Data.Default ( Default(..) )
+import Data.Semigroup
 import Data.Time.Clock
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as M
@@ -87,7 +90,7 @@ data SunroofEngine = SunroofEngine
   { cometDocument :: Document
   , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
   , compilerOpts  :: CompilerOpts
-  , timings       :: Maybe (TVar Timings)
+  , timings       :: Maybe (TVar (Timings NominalDiffTime))
   }
 
 -- | The number of uniques allocated for the first try of a compilation.
@@ -442,19 +445,29 @@ debugSunroofEngine = do
   doc <- KC.debugDocument
   return $ SunroofEngine doc 3 def Nothing
 
-data Timings = Timings
-        { compileTime :: !NominalDiffTime        -- how long spent compiling
-        , sendTime    :: !NominalDiffTime        -- how long spent sending
-        , waitTime    :: !NominalDiffTime        -- how long spent waiting for a response
+data Timings a = Timings
+        { compileTime :: !a        -- how long spent compiling
+        , sendTime    :: !a        -- how long spent sending
+        , waitTime    :: !a        -- how long spent waiting for a response
         }
         deriving Show
+
+instance Functor Timings where
+  fmap f (Timings t1 t2 t3) = Timings (f t1) (f t2) (f t3)
+
+instance Semigroup a => Semigroup (Timings a) where
+  (Timings t1 t2 t3) <> (Timings u1 u2 u3)  = Timings (t1<>u1) (t2<>u2) (t3<>u3)
 
 newTimings :: SunroofEngine -> IO SunroofEngine
 newTimings e = do
         v <- atomically $ newTVar $ Timings 0 0 0
         return $ e { timings = Just v }
 
-getTimings :: SunroofEngine -> IO Timings
+resetTimings :: SunroofEngine -> IO ()
+resetTimings (SunroofEngine { timings = Nothing }) = return ()
+resetTimings (SunroofEngine { timings = Just t }) = atomically $ writeTVar t $ Timings 0 0 0
+
+getTimings :: SunroofEngine -> IO (Timings NominalDiffTime)
 getTimings (SunroofEngine { timings = Nothing }) = return $ Timings 0 0 0
 getTimings (SunroofEngine { timings = Just t }) = atomically $ readTVar t
 

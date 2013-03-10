@@ -11,7 +11,7 @@ module Main where
 
 import Prelude hiding (mod, div)
 
-import Data.Monoid
+import Data.Semigroup
 import Data.Boolean
 import Data.Boolean.Numbers hiding (floor, round)
 import Data.Default
@@ -19,6 +19,8 @@ import Data.List
 import Data.Char ( isControl, isAscii )
 import Data.Maybe ( isJust )
 import Data.Boolean
+
+import qualified Numeric
 
 import Control.Concurrent
 
@@ -65,8 +67,8 @@ import qualified Control.Exception as E
 main :: IO ()
 main = sunroofServer (def { sunroofVerbose = 0, cometResourceBaseDir = ".." }) $ \ doc0 -> do
         let do_log = False
---        let te_style = TestWithTiming
-        let te_style = TestInPar 4
+        let te_style = TestWithTiming
+--        let te_style = TestInPar 4
         doc <- case te_style of
                   TestWithTiming -> newTimings doc0
                   _ -> return doc0
@@ -85,6 +87,7 @@ data TestEngine = TestEngine { srEngine :: SunroofEngine
 
 data TestStyle = TestWithTiming         -- single core, do timing
                | TestInPar Int          -- How many cores
+               deriving (Show, Eq)
 
 -- This is run each time the page is first accessed
 web_app :: TestEngine -> IO ()
@@ -259,26 +262,40 @@ runTests doc all_tests = do
           () <- fun "$.kc.failure"  `apply` fatal
           return ()
 
-  sequence_ [ do let
-                     t  = "<h1>" ++ txt ++ "</h1>" ++
-                          "<table>" ++ concat
-                              [ "<tr class=\"" ++ pbName i j ++ "\"><td><div class=\"progressbar\"> </div></td><th>"
-                                        ++ msg ++ "</th></tr>"
-                              | (j::Int,Test msg _) <- [0..] `zip` tests
-                              ] ++
-                          "</table>"
-                 async (srEngine doc) $ do
-                         jQuery "#testing-text" >>= JQuery.append (cast $ js t)
-                         return ()
-           | (i::Int,(txt,tests)) <- [0..] `zip` all_tests
+
+  let section title body = do
+          async (srEngine doc) $ do
+                   jQuery "#testing-text" >>= JQuery.append (cast $ js $
+                          "<h1>" ++ title ++ "</h1>" ++ "<table>" ++ body ++ "</table>")
+                   return ()
+
+  sequence_ [ do section txt $ concat
+                              [ "<tr class=\"" ++ pbName i j ++ "\"><td class=\"progress\"><div class=\"progressbar\"> </div></td><th>"
+                                        ++ msg ++ "</th>" ++
+                                                "<td class=\"data\"></td>" ++
+                                                "<td class=\"data\"></td>" ++
+                                                "<td class=\"data\"></td>" ++
+                                                "</tr>"
+                              | (j::Int,Test msg _) <- [1..] `zip` tests
+                              ]
+           | (i::Int,(txt,tests)) <- [1..] `zip` all_tests
            ]
+
+  section "Summary" $ "<tr class=\"" ++ pbName 0 0 ++ "\"><td class=\"progress\"></td><th></th>" ++
+                                                "<td class=\"data\"></td>" ++
+                                                "<td class=\"data\"></td>" ++
+                                                "<td class=\"data\"></td>" ++
+                                                "</tr>"
+
+  let casesPerTest :: Int
+      casesPerTest = 100
 
   -- set them all to 100 max
   async (srEngine doc) $ do
     () <- jQuery ".progressbar" >>= invoke "progressbar" ()  :: JS t ()
     () <- jQuery ".progressbar" >>= invoke "progressbar" ( "option" :: JSString
                                                    , "max" :: JSString
-                                                   , 100 :: JSNumber
+                                                   , js casesPerTest :: JSNumber
                                                    )
     () <- jQuery ".progressbar" >>= invoke "progressbar" ( "value" :: JSString
                                                    , 0 :: JSNumber
@@ -289,39 +306,47 @@ runTests doc all_tests = do
   result <- (case teStyle doc of
                 TestInPar n -> \ xs -> withPool n $ \ pool -> parallelInterleaved pool xs
                 _ -> sequence) $ concat [
-      [ do let casesPerTest :: Int
-               casesPerTest = 100
-               runTest :: Test -> IO Result
+      [ do let runTest :: Test -> IO (Result,Timings Double)
                runTest (Test name test) = do
+                 resetTimings (srEngine doc)
                  putStrLn name
                  r <- quickCheckWithResult (stdArgs {chatty=False,maxSuccess=casesPerTest})
                    $ within (teTimeout doc)
                    $ (if teShrink doc then id else noShrinking)
                    $ callback afterTestCallback
                    $ test
+                 t <- getTimings (srEngine doc)
                  print "DONE TESTS IN SR"
-                 return r
-               execTest :: Test -> IO ()
+                 return (r,fmap realToFrac t)
+               execTest :: Test -> IO (Maybe (Timings Double))
                execTest t@(Test name _) = do
 --                 progressMsg doc name
                  result <- E.try (runTest t >>= E.evaluate)
                  case result of
                    Left (e ::  E.SomeException) -> do
                      print ("EXCEPTION:",e)
+                     overwriteMessage doc i j ("Exception!") "failure"
                      E.throw e
-                   Right (Success _ _ out) -> do
+                   Right (Success _ _ out,t) -> do
                      putStrLn out
-                   Right (GaveUp _ _ out) -> do
+                     overwriteMessage doc i j ("Passed") "success"
+                     writeTimings doc i j t
+                     return $ Just t
+                   Right (GaveUp _ _ out,_) -> do
                      putStrLn out
-                   Right f@(Failure {}) -> do
-                     putStrLn (output f)
-                     putStrLn (reason f)
+                     overwriteMessage doc i j ("Gave up") "failure"
+                     return Nothing
+                   Right (f@Failure {},_) -> do
+--                     putStrLn (output f)
+--                     putStrLn (reason f)
                      putStrLn $ "FAILED TEST: " ++ name
-                     appendMessage doc i j $ "(Failed)"
+                     overwriteMessage doc i j ("Failed: " ++ reason f) "failure"
                      -- carry on, please
-                     return ()
-                   Right (NoExpectedFailure _ _ out) -> do
+                     return Nothing     -- failure
+                   Right (NoExpectedFailure _ _ out,_) -> do
                      putStrLn out
+                     overwriteMessage doc i j ("Ho expected failure") "failure"
+                     return Nothing
                afterTestCallback :: Callback
                afterTestCallback = PostTest NotCounterexample $ \ state result -> do
                  if not (abort result) && isJust (ok result)
@@ -336,11 +361,32 @@ runTests doc all_tests = do
                      return ()
            execTest t
 
-      | (j::Int,t@(Test msg _)) <- [0..] `zip` tests
+      | (j::Int,t@(Test msg _)) <- [1..] `zip` tests
       ]
-    | (i::Int,(txt,tests)) <- [0..] `zip` all_tests
+    | (i::Int,(txt,tests)) <- [1..] `zip` all_tests
     ]
 
+  async (srEngine doc) $ do
+    p <- pbObject 0 0 $ \ n -> "." ++ n ++ " td.progress"
+    p # JQuery.html$ js $ "<b align=\"center\">" ++
+                    show (length result) ++ " test(s), "++
+                    show (length [ () | Just _ <- result ]) ++ " passed / " ++
+                    show (length [ () | Nothing <- result ]) ++ " failed " ++
+                    "</b>"
+
+
+
+    p <- pbObject 0 0 $ \ n -> "." ++ n ++ " td:eq(2)"
+    p # JQuery.html $ js $ ("222" :: String)
+
+    return ()
+
+  let ts :: [Timings [Double]] = [ fmap (:[]) t | Just t <- result ]
+  case teStyle doc of
+    TestWithTiming | length ts /= 0 -> do
+            writeTimings doc 0 0
+                $ fmap geometricMean
+                $ foldr1 (<>) ts
 
   return ()
 
@@ -361,12 +407,24 @@ progressVal doc i j n = async (srEngine doc) $ do
                            , js n :: JSNumber)
 
 
-appendMessage :: TestEngine -> Int -> Int -> String -> IO ()
-appendMessage doc i j msg = async (srEngine doc) $ do
-  p <- pbObject i j $ \ n -> "." ++ n ++ " th"
-  txt :: JSString <- p # invoke "html" ()
-  p # JQuery.html(txt <> " " <> js msg)
+overwriteMessage :: TestEngine -> Int -> Int -> String -> String -> IO ()
+overwriteMessage doc i j msg cls = async (srEngine doc) $ do
+  p <- pbObject i j $ \ n -> "." ++ n ++ " td.progress"
+  p # JQuery.html(js msg)
+  p # JQuery.addClass(js cls)
   return ()
+
+writeTimings :: TestEngine -> Int -> Int -> Timings Double -> IO ()
+writeTimings doc i j t | teStyle doc /= TestWithTiming = return ()
+writeTimings doc i j t = async (srEngine doc) $ do
+        pnt 1 (compileTime t)
+        pnt 2 (sendTime t)
+        pnt 3 (waitTime t)
+        return ()
+  where
+        pnt n v = do
+                p <- pbObject i j $ \ nd -> "." ++ nd ++ " td:eq(" ++ show n ++ ")"
+                p # JQuery.html (js $ Numeric.showFFloat (Just 2) v "s")
 
 -- -----------------------------------------------------------------------
 -- Test Utilities
@@ -455,4 +513,7 @@ boolExprGen n = frequency [(1, boolGen), (3, binaryGen), (1, ifGen), (1, unaryGe
           e1 <- boolExprGen $ n - 1
           return $ notB e1
 
-
+-- From http://en.wikipedia.org/wiki/Geometric_mean
+geometricMean :: Floating a => [a] -> a
+geometricMean xs = exp ((1 / n) * sum (map log xs))
+  where n = fromIntegral (length xs)

@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Kansas Comet + Sunroof = Clock Example</title>
+    <title>Sunroof Unit Tests</title>
     <meta charset="utf-8">
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/jquery-json.js"></script>
@@ -18,14 +18,35 @@
 
       #testing-text table {      
            width: 100%;
+--           border: 1px solid black;
+--           border-collapse: collapse;
       }
-      #testing-text table td {      
-           width: 50%;
+      #testing-text table td, #testing-text table th {      
+--           border: 1px solid black;
+      }
+
+      #testing-text table td.progress {      
+           width: 30%;
+           text-align: center;
+      }     
+      #testing-text table td.success {      
+           background-color: #10f010;
+      }     
+      #testing-text table td.failure {      
+           background-color: #f01010;
+      }     
+      #testing-text table td.data {      
+           width: 10%;
            text-align: right;
+      }     
+
+      #testing-text table td.summary-data {     
+           width: 30%;
+           text-align: center;
       }     
       
       #testing-text table th {      
-           width: 50%;
+           width: 30%;
            padding-left: 10pt;
            text-align: left;
       }
