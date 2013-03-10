@@ -373,12 +373,6 @@ runTests doc all_tests = do
                     show (length [ () | Just _ <- result ]) ++ " passed / " ++
                     show (length [ () | Nothing <- result ]) ++ " failed " ++
                     "</b>"
-
-
-
-    p <- pbObject 0 0 $ \ n -> "." ++ n ++ " td:eq(2)"
-    p # JQuery.html $ js $ ("222" :: String)
-
     return ()
 
   let ts :: [Timings [Double]] = [ fmap (:[]) t | Just t <- result ]
@@ -387,6 +381,7 @@ runTests doc all_tests = do
             writeTimings doc 0 0
                 $ fmap geometricMean
                 $ foldr1 (<>) ts
+    _ -> return ()
 
   return ()
 
