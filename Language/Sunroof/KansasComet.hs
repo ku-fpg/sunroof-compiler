@@ -37,10 +37,12 @@ import Data.List ( intercalate )
 import Data.Text ( Text, unpack )
 import Data.Proxy ( Proxy(..) )
 import Data.Default ( Default(..) )
+import Data.Time.Clock
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as M
 
 import Control.Monad.IO.Class ( liftIO )
+import Control.Concurrent.STM
 
 import Network.Wai.Handler.Warp ( Port, settingsPort )
 import Network.Wai.Middleware.Static 
@@ -60,7 +62,10 @@ import Language.Sunroof.Types
   , nullJS
   , reifyccJS
   , apply, fun, object )
-import Language.Sunroof.JavaScript ( Expr, Type(Unit), literal, showStmt )
+import Language.Sunroof.JavaScript 
+  ( Expr, Type(Unit)
+  , literal, showExpr
+  , scopeForEffect )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), Uniq )
 import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
@@ -432,7 +437,7 @@ kc_reply n a = fun "$.kc.reply" `apply` (n,a)
 debugSunroofEngine :: IO SunroofEngine
 debugSunroofEngine = do
   doc <- KC.debugDocument
-  return $ SunroofEngine doc 3 def
+  return $ SunroofEngine doc 3 def Nothing
 
 data Timings = Timings
         { compileTime :: !NominalDiffTime        -- how long spent compiling

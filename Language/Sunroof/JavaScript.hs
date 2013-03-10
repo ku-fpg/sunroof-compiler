@@ -16,6 +16,7 @@ module Language.Sunroof.JavaScript
   , showExpr, showStmt
   , operator, binOp, uniOp
   , literal
+  , scopeForEffect
   ) where
 
 import Data.List ( intercalate )
@@ -102,7 +103,6 @@ showExpr b e = p $ case e of
       "(" ++ intercalate "," args ++ ") {\n" ++
          indent 2 (unlines (map showStmt body)) ++
       "}"
-    _ -> error "the impossible happens in SunRoof"
   where
     p txt = if b then "(" ++ txt ++ ")" else txt
 
@@ -162,6 +162,9 @@ goodSelectName xs
   where
           xs' = tail (init xs)
 
+scopeForEffect :: [Stmt] -> Expr
+scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
+
 -- -------------------------------------------------------------
 -- Javascript Statements
 -- -------------------------------------------------------------
@@ -173,6 +176,7 @@ data Stmt = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
           | ReturnStmt Expr           -- return Expr
           | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
           | WhileStmt Expr [Stmt]     -- while (Expr) { Stmts }
+          | CommentStmt String        -- A comment in the code
 
 instance Show Stmt where
   show = showStmt
@@ -200,7 +204,7 @@ showStmt (CommentStmt msg) = "{- " ++ msg ++ " -}"
 
 data Type = Base         -- base type, like object
           | Unit
-          | Fun Int      -- f (a_1,..,a_n), n == number in int
+          | Fun [Type] Type      -- (t_1,..,t_n) -> t
           deriving (Eq,Ord)
 
 instance Show Type where
@@ -230,11 +234,6 @@ pretty (Text txt) = txt
 pretty (Sep docs) = unlines $ map pretty docs
 pretty (Indent n doc) = unlines $ map (take n (cycle "  ") ++) $ lines $ pretty doc
 
-
-------------------------------------------------------
-
-scopeForEffect :: [Stmt] -> Expr
-scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
 
 
 
