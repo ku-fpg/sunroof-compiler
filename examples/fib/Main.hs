@@ -30,8 +30,7 @@ main2 = do
     staticCompiler def "main" prog >>= writeFile "main.js"
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \doc -> do
-  registerEvents (cometDocument doc) "body" (slide <> click)
+main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) $ \doc -> do
   async doc prog
 
 prog :: JSB ()
@@ -94,23 +93,9 @@ prog = do
 
       return ()
 
-
 default(JSNumber, JSString, String)
 
 fib n = if n < 2 then 1 else fib (n-1) + fib (n-2)
-
-data Event = Slide String Int
-           | Click String Int Int
-    deriving (Show)
-
-slide = event "slide" Slide
-            <&> "id"      .= "$(widget).attr('id')"
-            <&> "value"   .= "aux.value"
-
-click = event "click" Click
-            <&> "id"      .= "$(widget).attr('id')"
-            <&> "pageX"   .=  "event.pageX"
-            <&> "pageY"   .=  "event.pageY"
 
 recfunction :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> JS t (JSFunction a b)
 recfunction fn = do
