@@ -43,15 +43,15 @@ import Data.Semigroup ( Semigroup(..) )
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 import Data.Proxy ( Proxy(Proxy) )
 
-import Language.Sunroof.JavaScript 
+import Language.Sunroof.JavaScript
   ( Expr, Type(Fun), Id
   , showExpr, literal )
-import Language.Sunroof.Classes 
+import Language.Sunroof.Classes
   ( Sunroof(..), SunroofValue(..), JSArgument(..)
   , jsArgs )
 import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
-import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.Object
 import Language.Sunroof.JS.String ( string )
 
 -- -------------------------------------------------------------
@@ -123,23 +123,23 @@ instance Monoid (JS t ()) where
   mempty = return ()
   mappend = (<>)
 
--- | 'JSI' represents the primitive effects or instructions for 
+-- | 'JSI' represents the primitive effects or instructions for
 --   the JS monad.
 data JSI :: T -> * -> * where
-  -- | @JS_Assign s v o@ assigns a value @v@ to the selected field @s@ 
+  -- | @JS_Assign s v o@ assigns a value @v@ to the selected field @s@
   --   in the object @o@.
   JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject -> JSI t ()
-  -- | @JS_Select s o@ returns the value of the selected field @s@ 
+  -- | @JS_Select s o@ returns the value of the selected field @s@
   --   in the object @o@.
   JS_Select  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t a
   -- | @JS_Invoke a f@ calls the function @f@ with the arguments @a@.
   JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
-  
+
   -- | @JS_Eval v@ evaluates the value @v@. Subsequent instructions
   --   use the value instead of reevaluating the expression.
   JS_Eval   :: (Sunroof a) => a -> JSI t a
-  -- | @JS_Function f@ creates a Javascript function 
+  -- | @JS_Function f@ creates a Javascript function
   --   from the Haskell function @f@.
   JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
   -- | @JS_Branch b t f@ creates a @if-then-else@ statement in Javascript.
@@ -147,7 +147,7 @@ data JSI :: T -> * -> * where
   --   @f@ is the false branch.
   JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-  
+
   -- | @JS_Return v@ translates into an actual @return@ statement that
   --   returns the value @v@ in Javascript.
   JS_Return  :: (Sunroof a) => a                                      -> JSI t ()
@@ -244,9 +244,9 @@ infixl 1 `apply`
 
 -- | @apply f a@ applies the function @f@ to the given arguments @a@.
 --   A typical use case looks like this:
---   
+--
 -- > foo `apply` (x,y)
---   
+--
 --   See '($$)' for a convenient infix operator to du this.
 apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 apply f args = f # with args
@@ -275,23 +275,19 @@ infixr 0 #
 (#) :: a -> (a -> JS t b) -> JS t b
 (#) obj act = act obj
 
--- | Create an arbitrary object from a literal in form of a string.
-object :: String -> JSObject
-object = box . literal
-
 attribute :: String -> JSSelector a
 attribute attr = label $ string attr
 
 -- | @invoke s a o@ calls the method with name @s@ using the arguments @a@
 --   on the object @o@. A typical use would look like this:
---   
+--
 -- > o # invoke "foo" (x, y)
---   
+--
 --   Another use case is writing Javascript API bindings for common methods:
---   
+--
 -- > getElementById :: JSString -> JSObject -> JS t JSObject
 -- > getElementById s = invoke "getElementById" s
---   
+--
 --   Like this the flexible type signature gets fixed.
 invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
 invoke str args obj = (cast obj ! attribute str) `apply` args
@@ -345,7 +341,7 @@ writeJSRef (JSRef obj) a = obj # "val" := a
 modifyJSRef :: (Sunroof a) => JSRef a -> (a -> JS A a) -> JS A ()
 modifyJSRef ref f = do
         val <- readJSRef ref
-        f val >>= writeJSRef ref 
+        f val >>= writeJSRef ref
 
 -- -------------------------------------------------------------
 -- JSTuple Type Class

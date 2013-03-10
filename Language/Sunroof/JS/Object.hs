@@ -5,11 +5,13 @@
 
 module Language.Sunroof.JS.Object
   ( JSObject
+  , object
+  , this
   ) where
 
 import Data.Boolean ( BooleanOf, IfB(..) )
 
-import Language.Sunroof.JavaScript ( Expr, showExpr )
+import Language.Sunroof.JavaScript ( Expr, showExpr, literal )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
@@ -30,3 +32,10 @@ instance IfB JSObject where
 instance SunroofValue Expr where
   type ValueOf Expr = JSObject
   js = box
+
+-- | Create an arbitrary object from a literal in form of a string.
+object :: String -> JSObject
+object = box . literal
+
+this :: JSObject
+this = object "this"
