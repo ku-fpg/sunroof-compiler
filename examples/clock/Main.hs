@@ -18,6 +18,7 @@ import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery
+import Language.Sunroof.JS.Date
 
 main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." })
@@ -143,8 +144,8 @@ canvasSize = do
 
 currentTime :: JS A (JSNumber, JSNumber, JSNumber)
 currentTime = do
-  date <- evaluate $ object "new Date()"
-  h <- date # invoke "getHours" ()
-  m <- date # invoke "getMinutes" ()
-  s <- date # invoke "getSeconds" ()
+  date <- newDate ()
+  h <- date # getHours
+  m <- date # getMinutes
+  s <- date # getSeconds
   return (h, m, s)
