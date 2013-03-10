@@ -62,8 +62,26 @@ instance Functor E where
 --instance Show Expr where
 --        show = showExpr False
 
--- | Boolean argument says non-trivial arguments need parenthesis.
+-- | Combinator to create a operator/function applied to the given arguments.
+operator :: Id -> [Expr] -> Expr
+operator n ps = Apply (ExprE $ Var n) (fmap ExprE ps)
 
+-- | Short-hand to create the applied binary operator/function.
+--   See 'operator'.
+binOp :: String -> Expr -> Expr -> E ExprE
+binOp o e1 e2 = operator o [e1, e2]
+
+-- | Short-hand to create the applied unary operator/function.
+--   See 'operator'.
+uniOp :: String -> Expr -> E ExprE
+uniOp o e = operator o [e]
+
+-- | Combinator to create a expression containing a 
+--   literal in form of a string.
+literal :: String -> Expr
+literal = Lit
+
+-- | Boolean argument says non-trivial arguments need parenthesis.
 showExpr :: Bool -> Expr -> String
 -- These being up here, cause a GHC warning for missing patterns.
 -- So they are moved down.

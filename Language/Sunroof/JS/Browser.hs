@@ -61,21 +61,22 @@ module Language.Sunroof.JS.Browser
 import Prelude hiding (isNaN)
 
 import Language.Sunroof.Types
-  ( Sunroof
-  , JSString, JSNumber
-  , JSObject, JSBool
-  , JSFunction
-  , JS, JSSelector
+  ( JSFunction
+  , JS
   , JS ( (:=) )
   , fun
   , invoke
   , object
   , attribute
   , apply
-  , Sunroof(..)
-  , JSArgument
   , (#)
   )
+import Language.Sunroof.Classes ( Sunroof(..), JSArgument )
+import Language.Sunroof.Selector ( JSSelector )
+import Language.Sunroof.JS.Bool ( JSBool )
+import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.String ( JSString )
+import Language.Sunroof.JS.Number ( JSNumber )
 
 -- -----------------------------------------------------------------------
 -- Object Independent Functions

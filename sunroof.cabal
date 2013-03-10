@@ -25,12 +25,19 @@ Library
   Exposed-modules:     Language.Sunroof
                        Language.Sunroof.Active
                        Language.Sunroof.Types
+                       Language.Sunroof.Classes
                        Language.Sunroof.JavaScript
                        Language.Sunroof.Compiler
                        Language.Sunroof.Concurrent
                        Language.Sunroof.Container
                        Language.Sunroof.KansasComet
                        Language.Sunroof.Internal
+                       Language.Sunroof.Selector
+                       Language.Sunroof.JS.Bool
+                       Language.Sunroof.JS.Object
+                       Language.Sunroof.JS.String
+                       Language.Sunroof.JS.Number
+                       Language.Sunroof.JS.Array
                        Language.Sunroof.JS.Canvas
                        Language.Sunroof.JS.Browser
                        Language.Sunroof.JS.JQuery
