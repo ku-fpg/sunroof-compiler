@@ -212,9 +212,9 @@ checkArbitraryChan_Int doc wbr writeChan readChan seed = monadicIO $ do
   let n = (abs seed `mod` 8) + 1
   qPush <- pick $ frequency [(1,return False),(3,return True)]
   qPull <- pick $ frequency [(1,return False),(3,return True)]
-  arr1 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
-  arr2 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
-  dat  :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
+  arr1 :: [Int] <- fmap (fmap (`Prelude.rem` 50)) $ pick $ vector 3
+  arr2 :: [Int] <- fmap (fmap (`Prelude.rem` 50)) $ pick $ vector 3
+  dat  :: [Int] <- fmap (fmap (`Prelude.rem` 50)) $ pick $ vector 3
 
   let prog :: JS B (JSArray JSNumber)
       prog = do
