@@ -126,33 +126,40 @@ instance Monoid (JS t ()) where
 
 -- | 'JSI' represents the primitive effects or instructions for
 --   the JS monad.
+--     
+--     [@JS_Assign s v o@] assigns a value @v@ to the selected field @s@
+--       in the object @o@.
+--     
+--     [@JS_Select s o@] returns the value of the selected field @s@
+--       in the object @o@.
+--     
+--     [@JS_Invoke a f@] calls the function @f@ with the arguments @a@.
+--     
+--     [@JS_Eval v@] evaluates the value @v@. Subsequent instructions
+--       use the value instead of reevaluating the expression.
+--     
+--     [@JS_Function f@] creates a Javascript function
+--       from the Haskell function @f@.
+--     
+--     [@JS_Branch b t f@] creates a @if-then-else@ statement in Javascript.
+--       In that statement @b@ is the condition, @t@ is the true branch and
+--       @f@ is the false branch.
+--     
+--     [@JS_Return v@] translates into an actual @return@ statement that
+--       returns the value @v@ in Javascript.
+--     
+--     [@JS_Assign_ v x@] assigns the value @x@ to the variable with name @v@.
+--     
 data JSI :: T -> * -> * where
-  -- | @JS_Assign s v o@ assigns a value @v@ to the selected field @s@
-  --   in the object @o@.
   JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject -> JSI t ()
-  -- | @JS_Select s o@ returns the value of the selected field @s@
-  --   in the object @o@.
   JS_Select  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t a
-  -- | @JS_Invoke a f@ calls the function @f@ with the arguments @a@.
-  JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
-
-  -- | @JS_Eval v@ evaluates the value @v@. Subsequent instructions
-  --   use the value instead of reevaluating the expression.
+  JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
   JS_Eval   :: (Sunroof a) => a -> JSI t a
-  -- | @JS_Function f@ creates a Javascript function
-  --   from the Haskell function @f@.
   JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
-  -- | @JS_Branch b t f@ creates a @if-then-else@ statement in Javascript.
-  --   In that statement @b@ is the condition, @t@ is the true branch and
-  --   @f@ is the false branch.
-  JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-
-  -- | @JS_Return v@ translates into an actual @return@ statement that
-  --   returns the value @v@ in Javascript.
+  JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   JS_Return  :: (Sunroof a) => a -> JSI t ()
-  -- | @JS_Assign_ v x@ assigns the value @x@ to the variable with name @v@.
   JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
   -- TODO: generalize Assign[_] to have a RHS
 
