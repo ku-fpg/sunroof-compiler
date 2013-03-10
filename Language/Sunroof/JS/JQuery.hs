@@ -8,6 +8,7 @@ module Language.Sunroof.JS.JQuery
   , append
   , html
   , text
+  , on
   ) where
 
 import Language.Sunroof.Classes
@@ -58,7 +59,7 @@ html nm = invoke "html"  nm
 text :: JSString -> JSObject -> JS t JSObject
 text = invoke "text"
 
-on :: (JSArgument a) => JSString -> (a -> JS A ()) -> JSObject -> JS t ()
-on nm f o = do
+on :: (JSArgument a) => JSString -> JSString -> (a -> JS A ()) -> JSObject -> JS t ()
+on nm sel f o = do
      callback <- function f
-     o # invoke "on" (nm,callback)
+     o # invoke "on" (nm,sel,callback)
