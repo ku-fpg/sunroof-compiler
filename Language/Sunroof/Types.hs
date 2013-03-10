@@ -88,8 +88,8 @@ infix  5 :=
 
 -- Control.Monad.Operational makes a monad out of JS for us
 data JS :: T -> * -> * where
-  JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ())              -> JS t a            -- TO CALL JSB
-  (:=) :: (Sunroof a) => JSSelector a -> a -> JSObject                   -> JS t ()
+  JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ()) -> JS t a
+  (:=) :: (Sunroof a, Sunroof o) => JSSelector a -> a -> o -> JS t ()
 
 type JSA a = JS A a
 type JSB a = JS B a
@@ -100,7 +100,7 @@ single i = JS $ \ k -> singleton i >>= k
 
 unJS :: JS t a -> (a -> Program (JSI t) ()) -> Program (JSI t) ()
 unJS (JS m) k = m k
-unJS ((:=) sel a obj) k = singleton (JS_Assign sel a obj) >>= k
+unJS ((:=) sel a obj) k = singleton (JS_Assign sel a (cast obj)) >>= k
 
 instance Monad (JS t) where
   return a = JS $ \ k -> return a >>= k
@@ -151,9 +151,9 @@ data JSI :: T -> * -> * where
 
   -- | @JS_Return v@ translates into an actual @return@ statement that
   --   returns the value @v@ in Javascript.
-  JS_Return  :: (Sunroof a) => a                                      -> JSI t ()
+  JS_Return  :: (Sunroof a) => a -> JSI t ()
   -- | @JS_Assign_ v x@ assigns the value @x@ to the variable with name @v@.
-  JS_Assign_ :: (Sunroof a) => Id -> a                                -> JSI t ()
+  JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
   -- TODO: generalize Assign[_] to have a RHS
 
 -- -------------------------------------------------------------
