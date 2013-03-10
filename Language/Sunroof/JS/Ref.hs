@@ -22,6 +22,17 @@ import Language.Sunroof.JS.Object ( JSObject )
 -- | This is the IORef of Sunroof.
 newtype JSRef a = JSRef JSObject
 
+instance (Sunroof a) => Show (JSRef a) where
+  show (JSRef o) = show o
+
+instance (Sunroof a) => Sunroof (JSRef a) where
+  box = JSRef . box
+  unbox (JSRef o) = unbox o
+
+-- -------------------------------------------------------------
+-- JSRef Combinators
+-- -------------------------------------------------------------
+
 newJSRef :: (Sunroof a) => a -> JS t (JSRef a)
 newJSRef a = do
   obj <- new "Object" ()
