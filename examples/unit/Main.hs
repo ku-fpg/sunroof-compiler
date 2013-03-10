@@ -32,6 +32,12 @@ import Language.Sunroof.JS.JQuery (jQuery)
 import qualified Language.Sunroof.JS.JQuery as JQuery
 import qualified Language.Sunroof.JS.Browser as B
 
+import Language.Sunroof.JS.Number
+import Language.Sunroof.JS.String
+import Language.Sunroof.JS.Bool
+import Language.Sunroof.JS.Object
+import Language.Sunroof.JS.Array as A
+import Language.Sunroof.Classes
 
 import System.Random
 import System.IO
