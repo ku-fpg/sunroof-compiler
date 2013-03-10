@@ -20,23 +20,11 @@ import Web.KansasComet ( registerEvents, event, (<&>), (.=) )
 import qualified Web.KansasComet as KC
 
 import Language.Sunroof
-import Language.Sunroof.Active
 import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas as C
 import Language.Sunroof.JS.Browser as B
 import Language.Sunroof.JS.JQuery
 import Language.Sunroof.Active
-import Language.Sunroof.JS.Number
-import Language.Sunroof.JS.String
-import Language.Sunroof.JS.Object
-import Language.Sunroof.JS.Bool
-import Language.Sunroof.JS.Array
-import Language.Sunroof.Selector
-
-
---import Language.Sunroof.Painting
-import Language.Sunroof.Container
-import Data.VectorSpace (lerp)
 
 main :: IO ()
 main = do
