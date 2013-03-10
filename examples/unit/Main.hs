@@ -42,6 +42,7 @@ import System.Random
 import System.IO
 import System.Timeout
 import Control.Concurrent.STM
+import Control.Monad (when)
 
 import Data.Ratio
 
