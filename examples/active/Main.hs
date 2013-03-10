@@ -4,25 +4,24 @@
 
 module Main where
 
-import Web.Scotty (scotty, middleware)
-import Data.Default
-import Control.Monad hiding (forever)
-import Data.Semigroup
-import Control.Monad.IO.Class
-import Control.Applicative
-import Data.Active
-import Network.Wai.Middleware.Static
+import Control.Monad ( liftM2 )
+import Control.Applicative ( Applicative(..), (<$>) )
+
+import Data.Default ( Default(..) )
+import Data.Semigroup ( (<>) )
+import Data.Monoid ( Monoid(..) )
+import Data.VectorSpace (lerp)
+import Data.Active ( Active, ui, (->>), clamp, stretch, during )
+
 import Data.Boolean
-import qualified Data.Boolean.Numbers as Deep
-
-import Web.KansasComet
-import qualified Web.KansasComet as KC
-
 import qualified Data.Boolean.Numbers as N
 
+import Web.KansasComet ( registerEvents, event, (<&>), (.=) )
+import qualified Web.KansasComet as KC
 
 import Language.Sunroof
-import Language.Sunroof.Types
+import Language.Sunroof.Active
+import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas as C
 import Language.Sunroof.JS.Browser as B
 import Language.Sunroof.JS.JQuery
@@ -42,7 +41,7 @@ import Data.VectorSpace (lerp)
 main :: IO ()
 main = do
     staticCompiler def "main" example >>= writeFile "main.js"
-    sunroofServer (defaultServerOpts { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \ doc -> do
+    sunroofServer (def { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \ doc -> do
         registerEvents (cometDocument doc) "body" (slide <> click)
         async doc example
 
@@ -225,7 +224,7 @@ counter (width,height)
                 pure ((setFont "40pt Calibri")) <>
                      (\ (n :: JSNumber) -> \ c -> do
 --                                        alert(cast n)
-                                        c # fillText (cast (Deep.floor (n*100))) (n*100,0)
+                                        c # fillText (cast (N.floor (n*100))) (n*100,0)
                                         date <- evaluate $ object "new Date()"
                                         s <- date # invoke "getSeconds" ()
                                         c # fillText (cast (s :: JSNumber)) (n*100,100)

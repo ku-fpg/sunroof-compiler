@@ -66,7 +66,6 @@ import Language.Sunroof.Types
   , JS ( (:=) )
   , fun
   , invoke
-  , object
   , attribute
   , apply
   , (#)
@@ -74,7 +73,7 @@ import Language.Sunroof.Types
 import Language.Sunroof.Classes ( Sunroof(..), JSArgument )
 import Language.Sunroof.Selector ( JSSelector )
 import Language.Sunroof.JS.Bool ( JSBool )
-import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.Object ( JSObject, object )
 import Language.Sunroof.JS.String ( JSString )
 import Language.Sunroof.JS.Number ( JSNumber )
 

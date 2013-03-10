@@ -26,13 +26,11 @@ module Language.Sunroof.Types
   , apply, ($$)
   , cast
   , (#)
-  , object, attribute
+  , attribute
   , fun, invoke, new
   , evaluate, value
   , switch
   , nullJS
-  , JSRef
-  , newJSRef, readJSRef, writeJSRef, modifyJSRef
   , JSTuple(..)
   ) where
 
@@ -51,7 +49,7 @@ import Language.Sunroof.Classes
   , jsArgs )
 import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
-import Language.Sunroof.JS.Object
+import Language.Sunroof.JS.Object ( JSObject, object )
 import Language.Sunroof.JS.String ( string )
 
 -- -------------------------------------------------------------
@@ -292,11 +290,13 @@ attribute attr = label $ string attr
 invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
 invoke str args obj = (cast obj ! attribute str) `apply` args
 
--- TODO: BROKEN: Ignores the argument
--- Problem: new "Object" ()  -->  "(new Object)()" which will fail.
--- Should turn into "new Object()"
+-- | @new n a@ calls the new operator on the constructor @n@
+--   supplying the argument @a@. A typical use would look like this:
+--   
+-- > new "Object" ()
+--   
 new :: (JSArgument a) => String -> a -> JS t JSObject
-new cons _args = evaluate $ object $ "new " ++ cons ++ "()" --fun ("new " ++ cons) `apply` args
+new cons args = fun ("new " ++ cons) `apply` args
 
 -- This is not the same as return; it evaluates
 -- the argument to value form.
@@ -316,32 +316,6 @@ switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
 nullJS :: JSObject
 nullJS = box $ literal "null"
-
--- -------------------------------------------------------------
--- JSRef Type
--- -------------------------------------------------------------
-
--- | This is the IORef of Sunroof.
-newtype JSRef a = JSRef JSObject
-
-newJSRef :: (Sunroof a) => a -> JS t (JSRef a)
-newJSRef a = do
-        obj <- new "Object" ()
-        obj # "val" := a
-        return $ JSRef obj
-
--- | This a a non-blocking read
-readJSRef :: (Sunroof a) => JSRef a -> JS t a
-readJSRef (JSRef obj) = evaluate $ obj ! "val"
-
--- | This a a non-blocking write
-writeJSRef :: (Sunroof a) => JSRef a -> a -> JS t ()
-writeJSRef (JSRef obj) a = obj # "val" := a
-
-modifyJSRef :: (Sunroof a) => JSRef a -> (a -> JS A a) -> JS A ()
-modifyJSRef ref f = do
-        val <- readJSRef ref
-        f val >>= writeJSRef ref
 
 -- -------------------------------------------------------------
 -- JSTuple Type Class

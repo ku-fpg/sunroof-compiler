@@ -1,35 +1,26 @@
-{-# LANGUAGE OverloadedStrings, TypeFamilies, DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
 
 module Main where
 
 import Prelude hiding (mod, div)
 
+import Data.Default
 import Data.Monoid
 import Data.Boolean
 import Data.Boolean.Numbers
-import Data.Default
 
-import Control.Monad
-import Control.Monad.IO.Class
-
-import Network.Wai.Middleware.Static
-import Web.Scotty (scotty, middleware)
 import Web.KansasComet
-import qualified Web.KansasComet as KC
 
 import Language.Sunroof
-import Language.Sunroof.Types
+import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
-import Language.Sunroof.JS.Browser hiding ( eval )
+import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery
-import Language.Sunroof.JS.Number
-import Language.Sunroof.JS.String
-import Language.Sunroof.JS.Object
-import Language.Sunroof.JS.Bool
-import Language.Sunroof.JS.Array
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { cometResourceBaseDir = ".." })
+main = sunroofServer (def { cometResourceBaseDir = ".." })
      $ \doc -> async doc clockJS
 
 default(JSNumber, JSString, String)

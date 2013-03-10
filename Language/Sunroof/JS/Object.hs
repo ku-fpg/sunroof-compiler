@@ -15,6 +15,10 @@ import Language.Sunroof.JavaScript ( Expr, showExpr, literal )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
+-- -------------------------------------------------------------
+-- JSObject Type
+-- -------------------------------------------------------------
+
 data JSObject = JSObject Expr
 
 instance Show JSObject where
@@ -32,6 +36,10 @@ instance IfB JSObject where
 instance SunroofValue Expr where
   type ValueOf Expr = JSObject
   js = box
+
+-- -------------------------------------------------------------
+-- JSObject Combinators
+-- -------------------------------------------------------------
 
 -- | Create an arbitrary object from a literal in form of a string.
 object :: String -> JSObject
