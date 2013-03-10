@@ -1,14 +1,16 @@
 {-# LANGUAGE DataKinds #-}
 
 module Language.Sunroof.JS.JQuery
-  -- General JQuery API
-  ( dollar
+  (
+  -- * General JQuery API
+    dollar
   , jQuery, jq
-  -- DOM API
+  -- * DOM API
   , append
   , html
   , text
   , on
+  , addClass
   ) where
 
 import Language.Sunroof.Classes
@@ -63,3 +65,6 @@ on :: (JSArgument a) => JSString -> JSString -> (a -> JS A ()) -> JSObject -> JS
 on nm sel f o = do
      callback <- function f
      o # invoke "on" (nm,sel,callback)
+
+addClass :: JSString -> JSObject -> JS t ()
+addClass = invoke "addClass"
