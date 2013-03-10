@@ -106,6 +106,9 @@ instance Monad (JS t) where
   return a = JS $ \ k -> return a >>= k
   m >>= k = JS $ \ k0 -> unJS m (\ r -> unJS (k r) k0)
 
+instance Functor (JS t) where
+  fmap f jsm = jsm >>= (return . f)
+
 type instance BooleanOf (JS t a) = JSBool
 
 instance (JSThread t, Sunroof a, JSArgument a) => IfB (JS t a) where
