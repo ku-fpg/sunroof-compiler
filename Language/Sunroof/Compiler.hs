@@ -25,6 +25,7 @@ import Control.Monad.Reader
 import Data.Reify
 import Data.Graph
 import Data.Maybe
+import Data.Proxy ( Proxy(..) )
 import qualified Data.Map as Map
 import Data.Default
 
@@ -148,7 +149,7 @@ compile = eval . view
     -}
 
 
-compileBind :: (Sunroof a)
+compileBind :: forall a t . (Sunroof a)
             => Expr
             -> (a -> Program (JSI t) ())
             -> CompM [Stmt]
@@ -156,7 +157,9 @@ compileBind e m2 = do
   a <- newVar
   (stmts0,val) <- compileExpr e
   stmts1       <- compile (m2 (var a))
-  return (stmts0 ++ [VarStmt a val] ++ stmts1)
+  if (typeOf (Proxy::Proxy a) == Unit)
+    then return (stmts0 ++ [ExprStmt val] ++ stmts1 )
+    else return (stmts0 ++ [VarStmt a val] ++ stmts1 )
 
 compileBranch_A :: forall a bool t . (Sunroof a, Sunroof bool)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
