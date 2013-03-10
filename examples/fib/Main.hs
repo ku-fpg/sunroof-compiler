@@ -14,10 +14,15 @@ import Web.KansasComet
 import qualified Web.KansasComet as KC
 
 import Language.Sunroof
+import Language.Sunroof.Classes
+import Language.Sunroof.Selector
 import Language.Sunroof.Types
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser (alert)
 import Language.Sunroof.JS.JQuery
+import Language.Sunroof.JS.Number
+import Language.Sunroof.JS.String
+import Language.Sunroof.JS.Object
 
 main2 :: IO ()
 main2 = do
