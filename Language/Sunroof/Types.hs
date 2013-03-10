@@ -56,13 +56,21 @@ import Language.Sunroof.JS.String ( string )
 -- Thread Model
 -- -------------------------------------------------------------
 
-data T = A -- Atomic
-       | B -- Blocking
+-- | The possible threading models for Javascript computations.
+data T = A -- ^ Atomic - The computation will not be interrupted.
+       | B -- ^ Blocking - The computation may block and wait to enable 
+           --   interleaving with other computations.
        deriving (Eq, Ord, Show)
 
+-- | A proxy to capture the type of threading model used.
+--   See 'JSThread'.
 data ThreadProxy (t :: T) = ThreadProxy
 
+-- | When implemented the type supports determining the threading model
+--   during runtime.
 class JSThreadReturn t () => JSThread (t :: T) where
+  -- | Determine the used threading model captured the given 'ThreadProxy'
+  --   object.
   evalStyle    :: ThreadProxy t -> T
 
 instance JSThread A where
@@ -71,12 +79,18 @@ instance JSThread A where
 instance JSThread B where
   evalStyle _ = B
 
+-- | Provides the terminating function of the continuation associated
+--   with the given threading model.
 class (Sunroof a) => JSThreadReturn (t :: T) a where
+  -- The terminating function of the continuation.
   threadCloser :: a -> Program (JSI t) ()
 
+-- | For atomic computations a Javascript @return@-statement
+--   closes the continuation.
 instance (Sunroof a) => JSThreadReturn A a where
   threadCloser = singleton . JS_Return
 
+-- | For blocking computations we just return unit.
 instance JSThreadReturn B () where
   threadCloser () = return ()
 
@@ -86,18 +100,27 @@ instance JSThreadReturn B () where
 
 infix  5 :=
 
--- Control.Monad.Operational makes a monad out of JS for us
+-- | The monadic type of Javascript computations.
+--   
+--   @JS t a@ is a computation using the thread model @t@ (see 'T').
+--   It returns a result of type @a@.
 data JS :: T -> * -> * where
   JS   :: ((a -> Program (JSI t) ()) -> Program (JSI t) ()) -> JS t a
   (:=) :: (Sunroof a, Sunroof o) => JSSelector a -> a -> o -> JS t ()
 
+-- | Short-hand type for atmoic Javascript computations.
 type JSA a = JS A a
+
+-- | Short-hand type for possibly blocking Javascript computations.
 type JSB a = JS B a
 
--- replace calls to JS $ singleton with single
+-- | Lifts a single primitive Javascript instruction ('JSI') into the 
+--   'JS' monad.
 single :: JSI t a -> JS t a
 single i = JS $ \ k -> singleton i >>= k
 
+-- | Unwraps the 'JS' monad into a continuation 
+--   on 'Control.Monad.Operational.Program'.
 unJS :: JS t a -> (a -> Program (JSI t) ()) -> Program (JSI t) ()
 unJS (JS m) k = m k
 unJS ((:=) sel a obj) k = singleton (JS_Assign sel a (cast obj)) >>= k
@@ -189,26 +212,32 @@ reifyccJS f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
                                     f o
                                ) (\ _ -> return ())
 
+-- | Abort the current computation at this point.
 abortJS :: JS B a
 abortJS = JS $ \ _ -> return ()
 
--- This is hacked right now
+-- | Lift the atomic computation into another computation.
 liftJS :: (Sunroof a) => JS A a -> JS t a
 liftJS m = do
-        o <- function (\ () -> m)
+        o <- function (\ () -> m) -- This is hacked right now
         apply o ()
 
 -- -------------------------------------------------------------
 -- JSFunction Type
 -- -------------------------------------------------------------
 
--- The first type argument is the type of function argument;
--- The second type argument of JSFunction is what the function returns.
+-- | Type of Javascript functions.
+--   The first type argument is the type of function argument. 
+--   This needs to be a instance of 'JSArgument'.
+--   The second type argument of 'JSFunction' is the function return type.
+--   It needs to be a instance of 'Sunroof'.
 data JSFunction args ret = JSFunction Expr
 
 instance Show (JSFunction a r) where
   show (JSFunction v) = showExpr False v
 
+-- | Functions a first-class citizens of Javascript. Therefore they
+--   are 'Sunroof' values.
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
   box = JSFunction
   unbox (JSFunction e) = e
@@ -216,9 +245,12 @@ instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) wher
 
 type instance BooleanOf (JSFunction a r) = JSBool
 
+-- | Functions may be the result of a branch.
 instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
   ifB = jsIfB
 
+-- | 'JSFunction's may be created from Haskell functions if they have
+--   the right form.
 instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
   type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
   js = function
@@ -227,23 +259,27 @@ instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
 -- JSFunction Combinators
 -- -------------------------------------------------------------
 
--- perhaps call this invoke, or fun
--- SBC: fun
+-- | Create a binding to a Javascript top-level function with
+--   the given name. It is advised to create these bindings with an
+--   associated type signature to ensure type safty while using
+--   this function. Example:
+--   
+-- > alert :: JSFunction JSString ()
+-- > alert = fun "alert"
 fun :: (JSArgument a, Sunroof r) => String -> JSFunction a r
 fun = JSFunction . literal
 
--- | We can compile A-tomic functions.
+-- | Create an 'A'tomic Javascript function from a Haskell function.
 function :: (JSArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
 function = reify
 
--- | We can compile B-lockable functions that return ().
--- Note that, with the 'B'-style threads, we return from a call at the first block,
--- not at completion of the call.
-
+-- | We can compile 'B'lockable functions that return @()@.
+--   Note that, with the 'B'-style threads, we return from a 
+--   call when we first block, not at completion of the call.
 continuation :: (JSArgument a) => (a -> JS B ()) -> JS t (JSFunction a ())
 continuation = reify
 
--- | The generalization of function and continuation is call reify.
+-- | The generalization of 'function' and 'continuation' is call reify.
 reify :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
 reify = single . JS_Function
 
@@ -254,7 +290,7 @@ infixl 1 `apply`
 --
 -- > foo `apply` (x,y)
 --
---   See '($$)' for a convenient infix operator to du this.
+--   See '$$' for a convenient infix operator to do this.
 apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 apply f args = f # with args
   where
@@ -270,18 +306,34 @@ apply f args = f # with args
 -- Basic Combinators
 -- -------------------------------------------------------------
 
--- | Cast one Sunroof value into another.
+-- | Cast one Sunroof value into another. 
+--   
+--   This is sometimes needed due to Javascripts flexible type system.
 cast :: (Sunroof a, Sunroof b) => a -> b
 cast = box . unbox
 
 infixr 0 #
 
+-- | The @#@-operator is the Haskell analog to the @.@-operator
+--   in Javascript. Example:
+--   
+-- > document # getElementById "bla"
+--   
+--   This can be seen as equivalent of @document.getElementById(\"bla\")@.
+(#) :: a -> (a -> JS t b) -> JS t b
+(#) obj act = act obj
 -- We should use this operator for the obj.label concept.
 -- It has been used in other places (but I can not seems
 -- to find a library for it)
-(#) :: a -> (a -> JS t b) -> JS t b
-(#) obj act = act obj
 
+-- | Creates a selector for attributes of Javascript objects.
+--   It is advised to use this together with an associated type
+--   signature to avoid ambiguity. Example:
+--   
+-- > length :: JSSelector JSNumber
+-- > length = attribute "length"
+--   
+--   Selectors can be used with '!'.
 attribute :: String -> JSSelector a
 attribute attr = label $ string attr
 
@@ -295,7 +347,8 @@ attribute attr = label $ string attr
 -- > getElementById :: JSString -> JSObject -> JS t JSObject
 -- > getElementById s = invoke "getElementById" s
 --
---   Like this the flexible type signature gets fixed.
+--   Like this the flexible type signature gets fixed. See 'Language.Sunroof.Types.#' 
+--   for how to use these bindings.
 invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
 invoke str args obj = (obj ! attribute str) `apply` args
 
@@ -307,14 +360,32 @@ invoke str args obj = (obj ! attribute str) `apply` args
 new :: (JSArgument a) => String -> a -> JS t JSObject
 new cons args = fun ("new " ++ cons) `apply` args
 
--- This is not the same as return; it evaluates
--- the argument to value form.
+-- | Evaluate a 'Sunroof' value. This forces evaluation
+--   of the given expression to a value and enables binding it to a
+--   variable. Example:
+--   
+-- > x <- evaluate true
+-- > alert x
+-- > alert x
+--   
+--   This would result in @x = true; alert(x); alert(x);@. But:
+--   
+-- > alert true
+-- > alert true
+--   
+--   This will result in @alert(true); alert(true);@.
 evaluate :: (Sunroof a) => a -> JS t a
 evaluate a  = single (JS_Eval a)
 
+-- | Synonym for 'evaluate'.
 value :: (Sunroof a) => a -> JS t a
 value = evaluate
 
+-- | Combinator for @switch@-like statements in Javascript.
+--   
+--   /Note/: This will not be translated into
+--   actual switch statment, because you are aloud arbitrary 
+--   expressions in the cases.
 switch :: ( EqB a, BooleanOf a ~ JSBool
           , Sunroof a, Sunroof b
           , JSArgument b
@@ -323,6 +394,7 @@ switch :: ( EqB a, BooleanOf a ~ JSBool
 switch _a [] = return (cast (object "undefined"))
 switch a ((c,t):e) = ifB (a ==* c) t (switch a e)
 
+-- | The @null@ reference in Javascript.
 nullJS :: JSObject
 nullJS = box $ literal "null"
 
@@ -330,8 +402,8 @@ nullJS = box $ literal "null"
 -- JSTuple Type Class
 -- -------------------------------------------------------------
 
--- If something is a JSTuple, then it can be passed (amoung other things)
--- as an argument by a javascript function.
+-- | If something is a 'JSTuple', then it can be passed (amoung other things)
+--   as an argument by a Javascript function.
 class Sunroof o => JSTuple o where
         type Internals o
         match :: (Sunroof o) => o -> Internals o
