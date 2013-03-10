@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 
 module Language.Sunroof.JS.JQuery
   -- General JQuery API
@@ -9,12 +10,18 @@ module Language.Sunroof.JS.JQuery
   , text
   ) where
 
+import Language.Sunroof.Classes
+  ( JSArgument(..)
+  )
 import Language.Sunroof.Types
   ( JSFunction
   , JS
   , fun
   , invoke
   , apply
+  , (#)
+  , function
+  , T(..)
   )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( JSString )
@@ -50,3 +57,8 @@ html nm = invoke "html"  nm
 
 text :: JSString -> JSObject -> JS t JSObject
 text = invoke "text"
+
+on :: (JSArgument a) => JSString -> (a -> JS A ()) -> JSObject -> JS t ()
+on nm f o = do
+     callback <- function f
+     o # invoke "on" (nm,callback)
