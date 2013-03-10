@@ -101,7 +101,7 @@ import Language.Sunroof.Concurrent
   , threadDelayJSB
   , yieldJSB )
 
-import Language.Sunroof.Container
+import Language.Sunroof.JS.Ref
   ( JSRef
   , newJSRef
   , readJSRef

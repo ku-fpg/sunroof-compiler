@@ -29,10 +29,10 @@ Library
                        Language.Sunroof.JavaScript
                        Language.Sunroof.Compiler
                        Language.Sunroof.Concurrent
-                       Language.Sunroof.Container
                        Language.Sunroof.KansasComet
                        Language.Sunroof.Internal
                        Language.Sunroof.Selector
+                       Language.Sunroof.JS.Ref
                        Language.Sunroof.JS.Bool
                        Language.Sunroof.JS.Object
                        Language.Sunroof.JS.String

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 
-module Language.Sunroof.Container
+module Language.Sunroof.JS.Ref
         ( JSRef
         , newJSRef
         , readJSRef

@@ -14,7 +14,7 @@ import Language.Sunroof.Types
   , (#)
   , liftJS, reifyccJS )
 import Language.Sunroof.Classes ( Sunroof(..) )
-import Language.Sunroof.Container ( newJSRef, readJSRef, writeJSRef )
+import Language.Sunroof.JS.Ref ( newJSRef, readJSRef, writeJSRef )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Browser ( window, setTimeout )
 
