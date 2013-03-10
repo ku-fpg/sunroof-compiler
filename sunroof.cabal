@@ -65,7 +65,8 @@ Library
                        stm              >= 2.2,
                        transformers     == 0.3.*,
                        text             == 0.11.*,
-                       tagged           >= 0.4.4
+                       tagged           >= 0.4.4,
+                       time             >= 1.4
 
 -- text is needed just for scotty's literal
 

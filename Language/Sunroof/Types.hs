@@ -41,12 +41,13 @@ import Control.Monad.Operational
 import Data.Monoid ( Monoid(..) )
 import Data.Semigroup ( Semigroup(..) )
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
+import Data.Proxy ( Proxy(Proxy) )
 
 import Language.Sunroof.JavaScript 
   ( Expr, Type(Fun), Id
   , showExpr, literal )
 import Language.Sunroof.Classes 
-  ( Sunroof(..), SunroofValue(..), JSArgument
+  ( Sunroof(..), SunroofValue(..), JSArgument(..)
   , jsArgs )
 import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
