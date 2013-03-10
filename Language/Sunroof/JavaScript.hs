@@ -76,7 +76,7 @@ binOp o e1 e2 = operator o [e1, e2]
 uniOp :: String -> Expr -> E ExprE
 uniOp o e = operator o [e]
 
--- | Combinator to create a expression containing a 
+-- | Combinator to create a expression containing a
 --   literal in form of a string.
 literal :: String -> Expr
 literal = Lit
@@ -85,11 +85,9 @@ literal = Lit
 showExpr :: Bool -> Expr -> String
 -- These being up here, cause a GHC warning for missing patterns.
 -- So they are moved down.
---showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
---showExpr _ (Var v) = v  -- always stand alone
+showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
+showExpr _ (Var v) = v  -- always stand alone
 showExpr b e = p $ case e of
-   (Lit a) -> a -- always stand alone, or pre-parenthesised
-   (Var v) -> v -- always stand alone
 --   (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
    (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
@@ -110,6 +108,7 @@ showExpr b e = p $ case e of
                 "(" ++ intercalate "," args ++ ") {\n" ++
                    indent 2 (unlines (map showStmt body)) ++
                 "}"
+   _ -> error "the impossible happens in SunRoof"
  where
    p txt = if b then "(" ++ txt ++ ")" else txt
 
@@ -119,12 +118,24 @@ showIdx a x = showExpr True a ++ "[" ++ showExpr False x ++ "]"
 -- Show a function argument,
 showFun :: Expr -> [ExprE] -> String
 showFun e args = case e of
+    (Dot (ExprE a) (ExprE (Lit x)) _)
+        | Just n <- goodSelectName x -> showExpr True a ++ "." ++ n ++ args_text
     (Dot (ExprE a) (ExprE x) _) -> "(" ++ showIdx a x ++ ")" ++ args_text
     _                           -> showExpr True e ++ args_text
   where args_text = "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
 
 indent :: Int -> String -> String
 indent n = unlines . map (take n (cycle "  ") ++) . lines
+
+goodSelectName xs
+        | length xs < 2 = Nothing
+        | head xs == '"' &&
+          last xs == '"' &&
+          all isAlpha xs' = return xs'
+        | otherwise = Nothing
+  where
+          xs' = tail (init xs)
+
 
 data Stmt
         = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
