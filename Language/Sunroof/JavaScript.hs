@@ -1,41 +1,51 @@
-{-# LANGUAGE OverloadedStrings, GADTs, MultiParamTypeClasses, ScopedTypeVariables, RankNTypes, DataKinds, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
+
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
--- Syntax for JavaScript
-
-module Language.Sunroof.JavaScript where
+module Language.Sunroof.JavaScript
+  ( Expr, ExprE(..), E(..)
+  , Id, Stmt(..), Type(..)
+  , showExpr, showStmt
+  , operator, binOp, uniOp
+  , literal
+  ) where
 
 import Data.List ( intercalate )
-import Data.Reify
+import Data.Reify ( MuRef(..) ) 
 import Control.Applicative ( Applicative, pure, (<$>), (<*>))
-import Data.Traversable
-import Data.Foldable hiding (all, any)
-import Data.Semigroup
-import Data.Char
+import Data.Traversable ( Traversable(..) )
+import Data.Foldable ( Foldable(..) )
+import Data.Monoid ( Monoid(..) )
+import Data.Char ( isAlpha, isAlphaNum )
+
+-- -------------------------------------------------------------
+-- Javascript Expressions
+-- -------------------------------------------------------------
 
 type Id = String
 
 type Expr = E ExprE
 
-data ExprE = ExprE Expr
-        deriving Show
+data ExprE = ExprE Expr deriving Show
 
----------------------------------------------------------------
--- Trivial expression language for Java
----------------------------------------------------------------
-
-data E expr
-        = Lit String    -- a precompiled (atomic) version of this literal
-        | Var Id
-        | Dot expr expr Type    -- expr . expr :: Type
-        | Apply expr [expr]     -- expr ( expr, ..., expr )
-        | Function [Id] [Stmt]
-        deriving Show
+data E expr = Lit String    -- a precompiled (atomic) version of this literal
+            | Var Id
+            | Dot expr expr Type    -- expr . expr :: Type
+            | Apply expr [expr]     -- expr ( expr, ..., expr )
+            | Function [Id] [Stmt]
+            deriving Show
 
 instance MuRef ExprE where
   type DeRef ExprE = E
   mapDeRef f (ExprE e) = traverse f e
-
 
 instance Traversable E where
   traverse _ (Lit s) = pure (Lit s)
@@ -58,9 +68,68 @@ instance Functor E where
   fmap f (Apply s xs) = Apply (f s) (map f xs)
   fmap _ (Function nms stmts) = Function nms stmts
 
---
 --instance Show Expr where
---        show = showExpr False
+--  show = showExpr False
+
+-- | Boolean argument says non-trivial arguments need parenthesis.
+showExpr :: Bool -> Expr -> String
+-- These being up here, cause a GHC warning for missing patterns.
+-- So they are moved down.
+--showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
+--showExpr _ (Var v) = v  -- always stand alone
+showExpr b e = p $ case e of
+    (Lit a) -> a  -- always stand alone, or pre-parenthesised
+    (Var v) -> v  -- always stand alone
+--    (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
+    (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
+    (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
+    (Apply (ExprE (Var "!")) [ExprE ex]) -> "!" ++ showExpr True ex
+    -- We have a constructor call:
+    (Apply (ExprE (Lit op)) args) | isNewConstructor op -> op ++ showArgs args
+    (Apply (ExprE fn) args) -> showFun fn args
+    (Dot (ExprE a) (ExprE x) Base) -> showIdx a x
+    -- This is a shortcomming in Javascript, where grabbing a indirected function
+    -- throws away the context (self/this). So we force storage of the context, using a closure.
+    (Dot (ExprE a) (ExprE x) (Fun xs _)) ->
+        "function(" ++ intercalate "," args ++ ") { return (" ++
+          showIdx a x ++ ")(" ++ intercalate "," args ++ "); }"
+      where args = [ "a" ++ show i | i <- take (length xs) ([0..] :: [Int])]
+    -- This pattern was missing too.
+    (Dot (ExprE _a) (ExprE _x) Unit) ->
+      error "Dot pattern on unit type. Don't know what to do."
+    (Function args body) ->
+      "function" ++
+      "(" ++ intercalate "," args ++ ") {\n" ++
+         indent 2 (unlines (map showStmt body)) ++
+      "}"
+    _ -> error "the impossible happens in SunRoof"
+  where
+    p txt = if b then "(" ++ txt ++ ")" else txt
+
+showIdx :: Expr -> Expr -> String
+showIdx a x = showExpr True a ++ "[" ++ showExpr False x ++ "]"
+
+showArgs :: [ExprE] -> String
+showArgs args = "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
+
+-- Show a function argument,
+showFun :: Expr -> [ExprE] -> String
+showFun e args = case e of
+    (Dot (ExprE a) (ExprE (Lit x)) _)
+        | Just n <- goodSelectName x -> showExpr True a ++ "." ++ n ++ showArgs args
+    (Dot (ExprE a) (ExprE x) _) -> "(" ++ showIdx a x ++ ")" ++ showArgs args
+    _                           -> showExpr True e ++ showArgs args 
+
+isIdentifier :: Id -> Bool
+isIdentifier x | not (null x) = isAlpha (head x) && all isAlphaNum (drop 1 x)
+isIdentifier _ = False
+
+isNewConstructor :: Id -> Bool
+isNewConstructor x = take 4 x == "new " && isIdentifier (drop 4 x)
+
+-- -------------------------------------------------------------
+-- Helper Combinators
+-- -------------------------------------------------------------
 
 -- | Combinator to create a operator/function applied to the given arguments.
 operator :: Id -> [Expr] -> Expr
@@ -76,53 +145,10 @@ binOp o e1 e2 = operator o [e1, e2]
 uniOp :: String -> Expr -> E ExprE
 uniOp o e = operator o [e]
 
--- | Combinator to create a expression containing a
+-- | Combinator to create a expression containing a 
 --   literal in form of a string.
 literal :: String -> Expr
 literal = Lit
-
--- | Boolean argument says non-trivial arguments need parenthesis.
-showExpr :: Bool -> Expr -> String
--- These being up here, cause a GHC warning for missing patterns.
--- So they are moved down.
-showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
-showExpr _ (Var v) = v  -- always stand alone
-showExpr b e = p $ case e of
---   (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
-   (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
-   (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
-   (Apply (ExprE (Var "!")) [ExprE ex]) -> "!" ++ showExpr True ex
-   (Apply (ExprE fn) args) -> showFun fn args
-   (Dot (ExprE a) (ExprE x) Base) -> showIdx a x
-        -- This is a shortcomming in Javascript, where grabbing a indirected function
-        -- throws away the context (self/this). So we force storage of the context, using a closure.
-   (Dot (ExprE a) (ExprE x) (Fun xs _)) ->
-                "function(" ++ intercalate "," args ++ ") { return (" ++
-                        showIdx a x ++ ")(" ++ intercalate "," args ++ "); }"
-            where args = [ "a" ++ show i | i <- take (length xs) ([0..] :: [Int])]
-   -- This pattern was missing too.
-   (Dot (ExprE _a) (ExprE _x) Unit) ->
-     error "Dot pattern on unit type. Don't know what to do."
-   (Function args body) ->
-                "function" ++
-                "(" ++ intercalate "," args ++ ") {\n" ++
-                   indent 2 (unlines (map showStmt body)) ++
-                "}"
-   _ -> error "the impossible happens in SunRoof"
- where
-   p txt = if b then "(" ++ txt ++ ")" else txt
-
-showIdx :: Expr -> Expr -> String
-showIdx a x = showExpr True a ++ "[" ++ showExpr False x ++ "]"
-
--- Show a function argument,
-showFun :: Expr -> [ExprE] -> String
-showFun e args = case e of
-    (Dot (ExprE a) (ExprE (Lit x)) _)
-        | Just n <- goodSelectName x -> showExpr True a ++ "." ++ n ++ args_text
-    (Dot (ExprE a) (ExprE x) _) -> "(" ++ showIdx a x ++ ")" ++ args_text
-    _                           -> showExpr True e ++ args_text
-  where args_text = "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
 
 indent :: Int -> String -> String
 indent n = unlines . map (take n (cycle "  ") ++) . lines
@@ -136,19 +162,20 @@ goodSelectName xs
   where
           xs' = tail (init xs)
 
+-- -------------------------------------------------------------
+-- Javascript Statements
+-- -------------------------------------------------------------
 
-data Stmt
-        = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
-        | AssignStmt Expr Expr Expr -- Expr[Expr] = Expr
-        | AssignStmt_ Expr Expr     -- Expr = Expr      // restrictions on lhs
-        | ExprStmt Expr             -- Expr
-        | ReturnStmt Expr           -- return Expr
-        | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
-        | WhileStmt Expr [Stmt]     -- while (Expr) { Stmts }
-        | CommentStmt String        -- A comment in the code
+data Stmt = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
+          | AssignStmt Expr Expr Expr -- Expr[Expr] = Expr
+          | AssignStmt_ Expr Expr     -- Expr = Expr      // restrictions on lhs
+          | ExprStmt Expr             -- Expr
+          | ReturnStmt Expr           -- return Expr
+          | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
+          | WhileStmt Expr [Stmt]     -- while (Expr) { Stmts }
 
 instance Show Stmt where
-        show = showStmt
+  show = showStmt
 
 showStmt :: Stmt -> String
 showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
@@ -167,18 +194,23 @@ showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
   ++ "}"
 showStmt (CommentStmt msg) = "{- " ++ msg ++ " -}"
 
-data Type
- = Base                  -- base type, like object
- | Unit
- | Fun [Type] Type      -- (t_1,..,t_n) -> t
-  deriving (Eq,Ord)
+-- -------------------------------------------------------------
+-- Javascript Types
+-- -------------------------------------------------------------
+
+data Type = Base         -- base type, like object
+          | Unit
+          | Fun Int      -- f (a_1,..,a_n), n == number in int
+          deriving (Eq,Ord)
 
 instance Show Type where
   show Base    = "*"
   show Unit    = "()"
   show (Fun xs t) = show xs ++ " -> " ++ show t
 
--- Trivial pretty printer
+-- -------------------------------------------------------------
+-- Pretty Printer
+-- -------------------------------------------------------------
 
 data Doc = Text String           -- plain text (assume no newlines)
          | Indent Int Doc        -- indent document by n

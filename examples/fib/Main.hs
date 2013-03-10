@@ -2,23 +2,18 @@
 
 module Main where
 
-import Web.Scotty (scotty, middleware)
-import Data.Default
-import Control.Monad
-import Data.Semigroup
-import Control.Monad.IO.Class
-import Network.Wai.Middleware.Static
+import Data.Default ( Default(..) )
+import Data.Semigroup ( (<>) )
+import Control.Monad ( liftM2 )
 import Data.Boolean
 
-import Web.KansasComet
+import Web.KansasComet ( registerEvents, event, (<&>), (.=) )
 import qualified Web.KansasComet as KC
 
 import Language.Sunroof
-import Language.Sunroof.Classes
-import Language.Sunroof.Selector
-import Language.Sunroof.Types
+import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
-import Language.Sunroof.JS.Browser (alert)
+import Language.Sunroof.JS.Browser ( alert )
 import Language.Sunroof.JS.JQuery
 import Language.Sunroof.JS.Number
 import Language.Sunroof.JS.String
@@ -30,7 +25,8 @@ main2 = do
     staticCompiler def "main" prog >>= writeFile "main.js"
 
 main :: IO ()
-main = sunroofServer (defaultServerOpts { sunroofVerbose = 0, cometResourceBaseDir = ".." }) $ \doc -> do
+main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \doc -> do
+  registerEvents (cometDocument doc) "body" (slide <> click)
   async doc prog
 
 prog :: JSB ()

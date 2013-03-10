@@ -1,21 +1,49 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, DataKinds, MultiParamTypeClasses, OverloadedStrings, GADTs, ScopedTypeVariables, RankNTypes, FlexibleInstances, TypeFamilies, UndecidableInstances #-}
 
-module Language.Sunroof.Active where
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-import Control.Newtype
-import Data.Active
-import Data.VectorSpace hiding ((<.>))
---import Data.AdditiveGroup
-import Data.AffineSpace
-import Data.Boolean
+module Language.Sunroof.Active
+  ( JSTime
+  , JSDuration
+  , reifyActiveJS
+  ) where
 
-import Language.Sunroof.Types
+import Control.Newtype ( Newtype(..) )
+
+import Data.Active 
+  ( Clock(..), Deadline(..), Waiting(..)
+  , Active
+  , FractionalOf
+  , toFractionalOf, onActive, runDynamic
+  , start, era, end )
+import Data.VectorSpace ( VectorSpace(..) )
+import Data.AffineSpace ( AffineSpace(..) )
+import Data.AdditiveGroup ( AdditiveGroup(..) )
+import Data.Boolean 
+  ( BooleanOf, IfB(..), OrdB(..)
+  , minB, maxB )
+
+import Language.Sunroof.Types 
+  ( T(..)
+  , JS, JSThread
+  , JSFunction
+  , function )
 import Language.Sunroof.Classes ( Sunroof, SunroofValue(..), JSArgument(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
 import Language.Sunroof.JS.Number ( JSNumber )
---import Language.Sunroof.Compiler
 
---   other numeric types.
+-- -------------------------------------------------------------
+-- JSTime Type
+-- -------------------------------------------------------------
+
 newtype JSTime = JSTime { unJSTime :: JSNumber }
   deriving ( Show )
 
@@ -41,20 +69,23 @@ instance FractionalOf JSTime JSNumber where
 --        choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
 
 instance (BooleanOf b ~ JSBool, IfB b, Deadline JSTime b) => Deadline JSTime (a -> b) where
-        choose (JSTime t1) (JSTime t2) f1 f2 a = ifB (t1 <=* t2) (f1 a) (f2 a)
+  choose (JSTime t1) (JSTime t2) f1 f2 a = ifB (t1 <=* t2) (f1 a) (f2 a)
 
 instance (Sunroof a, JSArgument a, JSThread t) => Deadline JSTime (JS t a) where
-        choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
+  choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
 
 instance Deadline JSTime JSNumber where
-        choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
+  choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
 
 instance Deadline JSTime JSBool where
-        choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
+  choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
 
 --instance (BooleanOf a ~ JSBool, IfB a) => Deadline JSTime (f -> a) where
 --        choose (JSTime t1) (JSTime t2) x y c = ifB (t1 <=* t2) (x c) (y c)
 
+-- -------------------------------------------------------------
+-- JSDuration Type
+-- -------------------------------------------------------------
 
 newtype JSDuration = JSDuration { unJSDuration :: JSNumber }
   deriving ( Show, AdditiveGroup )
@@ -74,23 +105,26 @@ instance Waiting JSDuration where
 instance FractionalOf JSDuration JSNumber where
   toFractionalOf = unJSDuration
 
-ex1 :: Active JSTime (JS t JSNumber)
-ex1 = fmap return ui
+-- -------------------------------------------------------------
+-- Active Combinators
+-- -------------------------------------------------------------
 
-reifyActiveJS :: Active JSTime (JS A ()) -> JS A (JSNumber, JSNumber, JSFunction JSNumber ())
+--ex1 :: Active JSTime (JS t JSNumber)
+--ex1 = fmap return ui
+
+reifyActiveJS :: Active JSTime (JS A ()) 
+              -> JS A (JSNumber, JSNumber, JSFunction JSNumber ())
 reifyActiveJS = onActive
-              (\ x -> do f <- function (\ _ -> x)
-                         return ( 0
-                                , 0
-                                , f
-                                )
-              )
-              (\ d -> do f <- function (runDynamic d . JSTime)
-                         return ( fromTime $ start $ era d
-                                , fromTime $ end $ era d
-                                , f
-                                )
-              )
+  (\ x -> do 
+    f <- function (\ _ -> x)
+    return ( 0, 0, f )
+  )
+  (\ d -> do 
+    f <- function (runDynamic d . JSTime)
+    return ( fromTime $ start $ era d
+           , fromTime $ end $ era d
+           , f )
+  )
 
 {-
 compileActiveJS t :: Active JSTime (JS t JSNumber) -> String
