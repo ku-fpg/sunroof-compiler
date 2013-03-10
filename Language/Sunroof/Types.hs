@@ -22,7 +22,7 @@ module Language.Sunroof.Types
   , goto, callcc, callcc'
   , reifyccJS, abortJS, liftJS
   , JSFunction
-  , function, function', continuation
+  , function, reify, continuation
   , apply, ($$)
   , cast
   , (#)
@@ -227,19 +227,18 @@ fun = JSFunction . literal
 
 -- | We can compile A-tomic functions.
 function :: (JSArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
-function = function'
+function = reify
 
 -- | We can compile B-lockable functions that return ().
 -- Note that, with the 'B'-style threads, we return from a call at the first block,
 -- not at completion of the call.
 
 continuation :: (JSArgument a) => (a -> JS B ()) -> JS t (JSFunction a ())
-continuation = function'
+continuation = reify
 
--- The generalization of function and continuation.
-
-function' :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
-function' = single . JS_Function
+-- | The generalization of function and continuation is call reify.
+reify :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
+reify = single . JS_Function
 
 infixl 1 `apply`
 
@@ -295,9 +294,9 @@ invoke str args obj = (cast obj ! attribute str) `apply` args
 
 -- | @new n a@ calls the new operator on the constructor @n@
 --   supplying the argument @a@. A typical use would look like this:
---   
+--
 -- > new "Object" ()
---   
+--
 new :: (JSArgument a) => String -> a -> JS t JSObject
 new cons args = fun ("new " ++ cons) `apply` args
 

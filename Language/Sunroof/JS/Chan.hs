@@ -14,18 +14,18 @@ module Language.Sunroof.JS.Chan
 import Data.Boolean ( IfB(..), EqB(..) )
 
 import Language.Sunroof.Classes ( Sunroof(..), JSArgument(..) )
-import Language.Sunroof.Types 
+import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSB
   , JSTuple(..), JSFunction
   , JSThread
   , (#)
-  , apply, new, function'
+  , apply, new, reify
   , reifyccJS )
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
-import Language.Sunroof.JS.Array 
+import Language.Sunroof.JS.Array
   ( JSArray
   , newArray, lengthArray
   , pushArray, shiftArray )
@@ -70,7 +70,7 @@ newChan = do
 writeChan :: forall t a . (JSThread t, JSArgument a) => a -> JSChan a -> JS t ()
 writeChan a (match -> (written,waiting)) = do
   ifB (lengthArray waiting ==* 0)
-      (do f <- function' $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()
+      (do f <- reify $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()
           written # pushArray (f :: JSFunction (JSFunction a ()) ())
       )
       (do f <- shiftArray waiting
