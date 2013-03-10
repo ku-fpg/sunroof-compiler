@@ -26,7 +26,7 @@ module Language.Sunroof.Types
   , apply, ($$)
   , cast
   , (#)
-  , object, attribute
+  , attribute
   , fun, invoke, new
   , evaluate, value
   , switch
@@ -49,7 +49,7 @@ import Language.Sunroof.Classes
   , jsArgs )
 import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
-import Language.Sunroof.JS.Object
+import Language.Sunroof.JS.Object ( JSObject, object )
 import Language.Sunroof.JS.String ( string )
 
 -- -------------------------------------------------------------

@@ -37,6 +37,10 @@ instance SunroofValue Expr where
   type ValueOf Expr = JSObject
   js = box
 
+-- -------------------------------------------------------------
+-- JSObject Combinators
+-- -------------------------------------------------------------
+
 -- | Create an arbitrary object from a literal in form of a string.
 object :: String -> JSObject
 object = box . literal

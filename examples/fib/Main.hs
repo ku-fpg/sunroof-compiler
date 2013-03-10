@@ -15,10 +15,6 @@ import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser ( alert )
 import Language.Sunroof.JS.JQuery
-import Language.Sunroof.JS.Number
-import Language.Sunroof.JS.String
-import Language.Sunroof.JS.Object
-import Language.Sunroof.JS.JQuery
 
 main2 :: IO ()
 main2 = do

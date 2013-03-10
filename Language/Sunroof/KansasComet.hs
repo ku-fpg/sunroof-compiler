@@ -61,7 +61,7 @@ import Language.Sunroof.Types
   ( T(..), JS
   , nullJS
   , reifyccJS
-  , apply, fun, object )
+  , apply, fun )
 import Language.Sunroof.JavaScript 
   ( Expr, Type(Unit)
   , literal, showExpr
@@ -69,7 +69,7 @@ import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), Uniq )
 import Language.Sunroof.Compiler ( compileJSI, extractProgram, CompilerOpts(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
-import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.Object ( JSObject, object )
 import Language.Sunroof.JS.String ( JSString, string )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Array ( JSArray )

@@ -18,11 +18,6 @@ import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery
-import Language.Sunroof.JS.Number
-import Language.Sunroof.JS.String
-import Language.Sunroof.JS.Object
-import Language.Sunroof.JS.Bool
-import Language.Sunroof.JS.Array
 
 main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." })

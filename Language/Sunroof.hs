@@ -16,7 +16,7 @@ module Language.Sunroof
   , apply, ($$)
   , cast
   , (#)
-  , object, attribute
+  , attribute
   , fun, invoke, new
   , evaluate, value
   , switch
@@ -44,7 +44,7 @@ module Language.Sunroof
   -- Bool
   , JSBool
   -- Object
-  , JSObject
+  , JSObject, this, object
   -- Number
   , JSNumber, int
   -- String
@@ -78,7 +78,7 @@ import Language.Sunroof.Types
   , apply, ($$)
   , cast
   , (#)
-  , object, attribute
+  , attribute
   , fun, invoke, new
   , evaluate, value
   , switch
@@ -109,7 +109,7 @@ import Language.Sunroof.Container
   , modifyJSRef )
 
 import Language.Sunroof.JS.Bool ( JSBool )
-import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.Object ( JSObject, object, this )
 import Language.Sunroof.JS.Number ( JSNumber, int )
 import Language.Sunroof.JS.String ( JSString, string )
 

@@ -21,12 +21,13 @@ import Data.Boolean ( BooleanOf, IfB(..) )
 import Language.Sunroof.JavaScript ( Expr, showExpr, literal, binOp )
 import Language.Sunroof.Types 
   ( JS, T(A)
-  , cast, invoke, function, evaluate, object, attribute
+  , cast, invoke, function, evaluate, attribute
   , (#) )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), JSArgument(..) )
 import Language.Sunroof.Selector ( index, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Number ( JSNumber )
+import Language.Sunroof.JS.Object ( object )
 
 -- -------------------------------------------------------------
 -- JSArray Type
