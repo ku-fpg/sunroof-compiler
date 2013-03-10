@@ -66,7 +66,7 @@ prog = do
           switchB _   []         def = def
           switchB tag ((a,b):xs) def = ifB (tag ==* a) b (switchB tag xs def)
 
-      fib <- recfunction $ \ fib (n :: JSNumber) ->
+      fib <- function $ fixJS $ \ fib (n :: JSNumber) -> do
           ifB (n <* 2)
               (return (1 :: JSNumber))
               (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
@@ -103,5 +103,16 @@ recfunction fn = do
         f <- function $ fn (\ n -> obj # invoke "rec" n)
         obj # attribute "rec" := f
         return f
+
+-- To be moved to a more general place
+
+fixJS :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> a -> JSA b
+fixJS f a = do
+        ref <- newJSRef (cast nullJS)
+        fn <- function $ \ a' -> do
+                        fn' <- readJSRef ref
+                        f (apply fn') a'
+        writeJSRef ref fn
+        apply fn a
 
 
