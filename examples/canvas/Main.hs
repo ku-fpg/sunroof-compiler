@@ -36,7 +36,7 @@ whenEvent doc scope event m = do
     Nothing -> whenEvent doc scope event m
     Just e  -> m
 
-onClick :: (JSObject -> JSObject -> JSA (), JSString) -> JSA()
+onClick :: (JSObject -> JSCanvas -> JSA (), JSString) -> JSA()
 onClick (js, msg) = do
   canvas <- document # getElementById "canvas"
   c <- canvas # getContext "2d"
@@ -58,7 +58,7 @@ click = event "click" Click
             <&> "pageX"   .=  "event.pageX"
             <&> "pageY"   .=  "event.pageY"
 
-examples :: [(JSObject -> JSObject -> JSA (), JSString)]
+examples :: [(JSObject -> JSCanvas -> JSA (), JSString)]
 examples =
   [ (example_1_2_1,"1.2.1 Line")
   , (example_1_2_2,"1.2.2 Line Width")
@@ -73,7 +73,7 @@ examples =
   , (example_1_8_5,"1.8.5 Text Baseline")
   ]
 
-example_1_2_1 :: JSObject -> JSObject -> JSA ()
+example_1_2_1 :: JSObject -> JSCanvas -> JSA ()
 example_1_2_1 canvas c = do
   c # beginPath
   c # moveTo (100,150)
@@ -81,7 +81,7 @@ example_1_2_1 canvas c = do
   c # closePath
   c # stroke
 
-example_1_2_2 :: JSObject -> JSObject -> JSA ()
+example_1_2_2 :: JSObject -> JSCanvas -> JSA ()
 example_1_2_2 canvas c = do
   c # beginPath
   c # moveTo (100,150)
@@ -90,7 +90,7 @@ example_1_2_2 canvas c = do
   c # setLineWidth 15
   c # stroke
 
-example_1_2_3 :: JSObject -> JSObject -> JSA ()
+example_1_2_3 :: JSObject -> JSCanvas -> JSA ()
 example_1_2_3 canvas c = do
   c # beginPath
   c # moveTo (100,150)
@@ -100,7 +100,7 @@ example_1_2_3 canvas c = do
   c # setStrokeStyle "#ff0000"
   c # stroke
 
-example_1_2_4 :: JSObject -> JSObject -> JSA ()
+example_1_2_4 :: JSObject -> JSCanvas -> JSA ()
 example_1_2_4 canvas c = do
   w <- evaluate $ canvas ! width
   h <- evaluate $ canvas ! height
@@ -116,7 +116,7 @@ example_1_2_4 canvas c = do
     | (cap,n) <- zip ["butt","round","square"] [-50,0,50]
     ]
 
-example_1_3_1 :: JSObject -> JSObject -> JSA ()
+example_1_3_1 :: JSObject -> JSCanvas -> JSA ()
 example_1_3_1 canvas c = do
   w <- evaluate $ canvas ! width
   h <- evaluate $ canvas ! height
@@ -133,7 +133,7 @@ example_1_3_1 canvas c = do
   c # setStrokeStyle "black"
   c # stroke
 
-example_1_5_4 :: JSObject -> JSObject -> JSA ()
+example_1_5_4 :: JSObject -> JSCanvas -> JSA ()
 example_1_5_4 canvas c = do
   w <- evaluate $ canvas ! width
   h <- evaluate $ canvas ! height
@@ -148,25 +148,25 @@ example_1_5_4 canvas c = do
   c # setStrokeStyle "black"
   c # stroke
 
-example_1_8_1 :: JSObject -> JSObject -> JSA ()
+example_1_8_1 :: JSObject -> JSCanvas -> JSA ()
 example_1_8_1 canvas c = do
   c # setFont "40pt Calibri"
   c # fillText "Hello World!" (150, 100)
 
-example_1_8_2 :: JSObject -> JSObject -> JSA ()
+example_1_8_2 :: JSObject -> JSCanvas -> JSA ()
 example_1_8_2 canvas c = do
   c # setFont "40pt Calibri"
   c # setFillStyle "#0000ff"
   c # fillText "Hello World!" (150, 100)
 
-example_1_8_3 :: JSObject -> JSObject -> JSA ()
+example_1_8_3 :: JSObject -> JSCanvas -> JSA ()
 example_1_8_3 canvas c = do
   c # setFont "60pt Calibri"
   c # setLineWidth 3
   c # setStrokeStyle "blue"
   c # strokeText "Hello World!" (80, 110)
 
-example_1_8_4 :: JSObject -> JSObject -> JSA ()
+example_1_8_4 :: JSObject -> JSCanvas -> JSA ()
 example_1_8_4 canvas c = do
   w <- evaluate $ canvas ! width
   h <- evaluate $ canvas ! height
@@ -193,7 +193,7 @@ example_1_8_4 canvas c = do
   -- Line the different identifiers up after each other.
   passFold_ 0 $ map textFun ["center", "end", "left", "right", "start"]
 
-example_1_8_5 :: JSObject -> JSObject -> JSA ()
+example_1_8_5 :: JSObject -> JSCanvas -> JSA ()
 example_1_8_5 canvas c = do
   w <- evaluate $ canvas ! width
   h <- evaluate $ canvas ! height
@@ -232,7 +232,7 @@ passFold e [] = return e
 passFold_ :: (Monad m) => a -> [a -> m a] -> m ()
 passFold_ e l = passFold e l >> return ()
 
-message :: JSObject -> JSObject -> JSString -> JSA ()
+message :: JSObject -> JSCanvas -> JSString -> JSA ()
 message canvas c msg = do
   c # save
   c # setFont "30pt Calibri"

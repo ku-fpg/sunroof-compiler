@@ -175,7 +175,7 @@ wobbleA speed = (\ (t :: JSNumber) -> sin ((t * speed) `N.mod` (pi * 2))) <$> ui
 translateWA :: JSNumber -> Active JSTime Painting
 translateWA n = (\ a b -> translate (a,b)) <$> wobbleA (n*7) <*> wobbleA (n*13)
 
-type Painting = JSObject -> JS A ()     -- painting does not block
+type Painting = JSCanvas -> JS A ()     -- painting does not block
 
 {-
 arcA :: (JSNumber,JSNumber) -- ^ The x and y component of the center point.

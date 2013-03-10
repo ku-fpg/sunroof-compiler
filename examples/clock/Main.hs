@@ -127,7 +127,7 @@ clockJS = do
 canvas :: JS A JSObject
 canvas = document # getElementById "canvas"
 
-context :: JS A JSObject
+context :: JS A JSCanvas
 context = canvas >>= getContext "2d"
 
 clockUnit :: JS A JSNumber
