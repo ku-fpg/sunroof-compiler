@@ -445,21 +445,21 @@ getTimings (SunroofEngine { timings = Nothing }) = return $ Timings 0 0 0
 getTimings (SunroofEngine { timings = Just t }) = atomically $ readTVar t
 
 addCompileTime :: SunroofEngine -> UTCTime -> IO ()
-addCompileTime (SunroofEngine { timings = Nothing }) start = return ()
+addCompileTime (SunroofEngine { timings = Nothing }) _start = return ()
 addCompileTime (SunroofEngine { timings = Just t }) start = do
         end <- getCurrentTime
         atomically $ modifyTVar t $ \ ts -> ts { compileTime = compileTime ts + diffUTCTime end start}
         return ()
 
 addSendTime :: SunroofEngine -> UTCTime -> IO ()
-addSendTime (SunroofEngine { timings = Nothing }) start = return ()
+addSendTime (SunroofEngine { timings = Nothing }) _start = return ()
 addSendTime (SunroofEngine { timings = Just t }) start = do
         end <- getCurrentTime
         atomically $ modifyTVar t $ \ ts -> ts { sendTime = sendTime ts + diffUTCTime end start}
         return ()
 
 addWaitTime :: SunroofEngine -> UTCTime -> IO ()
-addWaitTime (SunroofEngine { timings = Nothing }) start = return ()
+addWaitTime (SunroofEngine { timings = Nothing }) _start = return ()
 addWaitTime (SunroofEngine { timings = Just t }) start = do
         end <- getCurrentTime
         atomically $ modifyTVar t $ \ ts -> ts { waitTime = waitTime ts + diffUTCTime end start}

@@ -93,7 +93,7 @@ showExpr b e = p $ case e of
 --   (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
    (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
    (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
-   (Apply (ExprE (Var "!")) [ExprE e]) -> "!" ++ showExpr True e
+   (Apply (ExprE (Var "!")) [ExprE ex]) -> "!" ++ showExpr True ex
    (Apply (ExprE fn) args) -> showFun fn args
    (Dot (ExprE a) (ExprE x) Base) -> showIdx a x
         -- This is a shortcomming in Javascript, where grabbing a indirected function
