@@ -76,7 +76,7 @@ emptyArray :: (Sunroof a) => JSArray a
 emptyArray = box $ literal "[]"
 
 lengthArray :: (Sunroof a) => JSArray a -> JSNumber
-lengthArray o = cast o ! attribute "length"
+lengthArray o = o ! attribute "length"
 
 pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 pushArray a = invoke "push" a
@@ -91,7 +91,7 @@ shiftArray :: (Sunroof a) => JSArray a -> JS t a
 shiftArray = invoke "shift" ()
 
 lookupArray :: (Sunroof a) => JSNumber -> JSArray a -> a
-lookupArray idx arr = cast arr ! index idx
+lookupArray idx arr = arr ! index idx
 
 forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do

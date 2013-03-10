@@ -290,7 +290,7 @@ attribute attr = label $ string attr
 --
 --   Like this the flexible type signature gets fixed.
 invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
-invoke str args obj = (cast obj ! attribute str) `apply` args
+invoke str args obj = (obj ! attribute str) `apply` args
 
 -- | @new n a@ calls the new operator on the constructor @n@
 --   supplying the argument @a@. A typical use would look like this:

@@ -6,7 +6,7 @@ module Language.Sunroof.JS.Canvas
   , getContext
   , arc, arc', arcTo
   , beginPath
-  , bezierCurveTo, bezierCurveTo
+  , bezierCurveTo
   , clearRect, clip
   , closePath
   , createImageData, createImageData'

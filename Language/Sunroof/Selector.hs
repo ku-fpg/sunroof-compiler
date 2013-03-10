@@ -43,5 +43,9 @@ unboxSelector (JSSelector e) = e
 
 infixl 1 !
 
-(!) :: forall a . (Sunroof a) => JSObject -> JSSelector a -> a
-(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) (ExprE $ idx) (typeOf (Proxy :: Proxy a))
+(!) :: forall o a . (Sunroof o, Sunroof a) => o -> JSSelector a -> a
+(!) arr (JSSelector idx) = box $ Dot (ExprE $ unbox arr) 
+                                     (ExprE $ idx) 
+                                     (typeOf (Proxy :: Proxy a))
+
+
