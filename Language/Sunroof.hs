@@ -30,10 +30,10 @@ module Language.Sunroof
   , label, index
   , (!)
   -- Concurrent
-  , loopJS
+  , loop
   , forkJS
-  , threadDelayJSB
-  , yieldJSB
+  , threadDelay
+  , yield
   -- Container
   , JSRef
   , newJSRef
@@ -96,10 +96,10 @@ import Language.Sunroof.Selector
   , (!) )
 
 import Language.Sunroof.Concurrent
-  ( loopJS
+  ( loop
   , forkJS
-  , threadDelayJSB
-  , yieldJSB )
+  , threadDelay
+  , yield )
 
 import Language.Sunroof.JS.Ref
   ( JSRef

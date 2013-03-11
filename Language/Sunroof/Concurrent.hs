@@ -1,9 +1,9 @@
 
 module Language.Sunroof.Concurrent
-  ( loopJS
+  ( loop
   , forkJS
-  , threadDelayJSB
-  , yieldJSB
+  , threadDelay
+  , yield
   ) where
 
 import Language.Sunroof.Types
@@ -27,8 +27,8 @@ import Language.Sunroof.JS.Browser ( window, setTimeout )
 --   is feed back as input of the next iteration.
 --   The initial value supplied for the first iteration is @x@.
 --   This loop will never terminate.
-loopJS :: (Sunroof a) => a -> (a -> JSB a) -> JSB ()
-loopJS start m = do
+loop :: (Sunroof a) => a -> (a -> JSB a) -> JSB ()
+loop start m = do
   v <- newJSRef (cast nullJS)
   s <- newJSRef start
   f <- continuation $ \ () -> do
@@ -51,14 +51,14 @@ forkJS m = do
 
 -- | Delay the execution of all instructions after this one by
 --   the given amount of milliseconds.
-threadDelayJSB :: JSNumber -> JSB ()
-threadDelayJSB n = reifyccJS $ \ o -> do
+threadDelay :: JSNumber -> JSB ()
+threadDelay n = reifyccJS $ \ o -> do
   _ <- liftJS $ window # setTimeout o n
   return ()
 
 -- | Give another thread time to execute.
-yieldJSB :: JSB ()
-yieldJSB = threadDelayJSB 0
+yield :: JSB ()
+yield = threadDelay 0
 
 
 
