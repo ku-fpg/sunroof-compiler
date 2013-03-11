@@ -227,22 +227,22 @@ checkArbitraryChan_Int doc wbr newChan writeChan readChan seed = monadicIO $ do
           ch <- newChan
           (if wbr then id else forkJS) $
                    sequence_ [ do ifB (js (x >= 0 && qPush)) (threadDelayJSB (js x)) (return ())
-                                  note # pushArray true
+                                  note # A.push true
                                   ch # writeChan (js y :: JSNumber)
                              | (x,y) <- arr1 `zip` dat
                              ]
           arr :: JSArray JSNumber <- newArray ()
           sequence_ [ do ifB (js (x >= 0 && qPull)) (threadDelayJSB (js x)) (return ())
-                         note # pushArray false
+                         note # A.push false
                          z <- ch # readChan
-                         arr # pushArray z
+                         arr # A.push z
                     | x <- arr2
                     ]
 
           when (teLog doc) $ do
                  -- debugging Glyph; perhaps send to Haskell-land,
                  -- or somehow print on the screen?
-                 B.console # B.log (mconcat [ ifB (lookupArray (js n :: JSNumber) note)
+                 B.console # B.log (mconcat [ ifB (A.lookup (js n :: JSNumber) note)
                                                   (">"::JSString)
                                                   "<"
                                             | n <- [0..19::Int]

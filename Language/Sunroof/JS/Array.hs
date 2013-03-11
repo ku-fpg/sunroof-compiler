@@ -7,11 +7,13 @@ module Language.Sunroof.JS.Array
   ( JSArray
   , array, newArray
   , lengthArray
-  , pushArray, popArray
-  , shiftArray, unshiftArray
-  , lookupArray
+  , push, pop
+  , shift, unshift
+  , lookup
   , forEach
   ) where
+
+import Prelude hiding ( lookup )
 
 import Data.List ( intercalate )
 import Data.Monoid ( Monoid(..) )
@@ -77,20 +79,20 @@ emptyArray = box $ literal "[]"
 lengthArray :: (Sunroof a) => JSArray a -> JSNumber
 lengthArray o = o ! attr "length"
 
-pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
-pushArray a = invoke "push" a
+push :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+push a = invoke "push" a
 
-unshiftArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
-unshiftArray a = invoke "unshift" a
+unshift :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+unshift a = invoke "unshift" a
 
-popArray :: (Sunroof a) => JSArray a -> JS t a
-popArray = invoke "pop" ()
+pop :: (Sunroof a) => JSArray a -> JS t a
+pop = invoke "pop" ()
 
-shiftArray :: (Sunroof a) => JSArray a -> JS t a
-shiftArray = invoke "shift" ()
+shift :: (Sunroof a) => JSArray a -> JS t a
+shift = invoke "shift" ()
 
-lookupArray :: (Sunroof a) => JSNumber -> JSArray a -> a
-lookupArray idx arr = arr ! index idx
+lookup :: (Sunroof a) => JSNumber -> JSArray a -> a
+lookup idx arr = arr ! index idx
 
 forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do

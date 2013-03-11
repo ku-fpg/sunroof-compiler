@@ -28,7 +28,7 @@ import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Array
   ( JSArray
   , newArray, lengthArray
-  , pushArray, shiftArray )
+  , push, shift )
 
 -- -------------------------------------------------------------
 -- JSChan Type
@@ -71,9 +71,9 @@ writeChan :: forall t a . (JSThread t, JSArgument a) => a -> JSChan a -> JS t ()
 writeChan a (match -> (written,waiting)) = do
   ifB (lengthArray waiting ==* 0)
       (do f <- reify $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()
-          written # pushArray (f :: JSFunction (JSFunction a ()) ())
+          written # push (f :: JSFunction (JSFunction a ()) ())
       )
-      (do f <- shiftArray waiting
+      (do f <- shift waiting
           forkJS (apply f a :: JSB ())
           return ()
       )
@@ -82,9 +82,9 @@ readChan :: forall a . (Sunroof a, JSArgument a) => JSChan a -> JS B a
 readChan (match -> (written,waiting)) = do
   ifB (lengthArray written ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
-          reifyccJS $ \ k -> waiting # pushArray (k :: JSFunction a ())
+          reifyccJS $ \ k -> waiting # push (k :: JSFunction a ())
       )
-      (do f <- shiftArray written
+      (do f <- shift written
           -- Here, we add our continuation into the written Q.
           reifyccJS $ \ k -> apply f k
       )
