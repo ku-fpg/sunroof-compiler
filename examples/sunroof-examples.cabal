@@ -1,0 +1,25 @@
+Name:                sunroof-examples
+Version:             0.1
+Synopsis:            Tests for Sunroof
+License:             BSD3
+Copyright:           (c) 2013 The University of Kansas
+Build-type:          Simple
+Cabal-version:       >= 1.10
+
+Executable unit
+    Build-Depends: 
+         sunroof                == 0.1,
+         kansas-comet           == 0.1,
+         Boolean                >= 0.1.2,
+         data-default           >= 0.5,
+         semigroups             >= 0.9,
+         base                   >= 4.3.1 && < 5,
+         parallel-io            >= 0.3.3,
+         QuickCheck             >= 2.6,
+         stm                    >= 2.4.2,
+         random                 >= 1.0.1.1
+         
+    Hs-Source-Dirs: unit
+    Ghc-Options: -threaded
+    default-language:    Haskell2010
+
