@@ -226,13 +226,13 @@ checkArbitraryChan_Int doc wbr newChan writeChan readChan seed = monadicIO $ do
           note :: JSArray JSBool <- newArray ()
           ch <- newChan
           (if wbr then id else forkJS) $
-                   sequence_ [ do ifB (js (x >= 0 && qPush)) (threadDelayJSB (js x)) (return ())
+                   sequence_ [ do ifB (js (x >= 0 && qPush)) (SR.threadDelay (js x)) (return ())
                                   note # A.push true
                                   ch # writeChan (js y :: JSNumber)
                              | (x,y) <- arr1 `zip` dat
                              ]
           arr :: JSArray JSNumber <- newArray ()
-          sequence_ [ do ifB (js (x >= 0 && qPull)) (threadDelayJSB (js x)) (return ())
+          sequence_ [ do ifB (js (x >= 0 && qPull)) (SR.threadDelay (js x)) (return ())
                          note # A.push false
                          z <- ch # readChan
                          arr # A.push z

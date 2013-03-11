@@ -104,19 +104,19 @@ example = do
 
   ch :: JSChan JSNumber <- newChan
 {-
-  forkJS $ loopJS 0 $ \ n -> do
+  forkJS $ loop 0 $ \ n -> do
           threadDelayJSB 100
           writeChan ch n
           console # B.log ("written %f " :: JSString, n :: JSNumber)
           return (n+1)
 
-  forkJS $ loopJS () $ \ () -> do
+  forkJS $ loop () $ \ () -> do
           threadDelayJSB 500
           n <- ch # readChan
           console # B.log ("read %f " :: JSString, n :: JSNumber)
           return ()
 -}
-  forkJS $ loopJS () $ \ () -> do
+  forkJS $ loop () $ \ () -> do
           res <- wait "body" (slide <> click)
           liftJS $ do
              val :: JSNumber <- evaluate (res ! "value")
