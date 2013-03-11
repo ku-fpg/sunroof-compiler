@@ -44,7 +44,7 @@ import System.Random
 import System.IO
 import System.Timeout
 import Control.Concurrent.STM
-import Control.Monad (when)
+import Control.Monad (when, liftM2)
 
 import Data.Ratio
 
@@ -68,7 +68,7 @@ main :: IO ()
 main = sunroofServer (def { sunroofVerbose = 0, cometResourceBaseDir = ".." }) $ \ doc0 -> do
         let do_log = False
         let te_style = TestWithTiming
---        let te_style = TestInPar 4
+--        let te_style = TestInPar 20
         doc <- case te_style of
                   TestWithTiming -> newTimings doc0
                   _ -> return doc0
@@ -106,25 +106,28 @@ web_app doc = do
 
         runTests doc $ take 100 $ drop 0 $
           [ ("Constants",
-                [ Test "Constant Numbers" (checkConstNumber doc :: Double -> Property)
-                , Test "Constant Unit"    (checkConstValue doc :: () -> Property)
-                , Test "Constant Boolean" (checkConstValue doc :: Bool -> Property)
-                , Test "Constant String"  (checkConstValue doc :: String -> Property)
+                [ Test 100 "Constant Numbers" (checkConstNumber doc :: Double -> Property)
+                , Test 100 "Constant Unit"    (checkConstValue doc :: () -> Property)
+                , Test  10 "Constant Boolean" (checkConstValue doc :: Bool -> Property)
+                , Test 100 "Constant String"  (checkConstValue doc :: String -> Property)
                 ])
           , ("Arithmetic and Booleans",
-                [ Test "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
-                , Test "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
-                , Test "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
-                , Test "Arbitrary Arithmetic" (checkArbitraryArith doc)
-                , Test "Arbitrary Boolean"    (checkArbitraryBool  doc)
+                [ Test 100 "Basic Addition"       (checkBasicArith doc (+) :: Double -> Double -> Property)
+                , Test 100 "Basic Subtraction"    (checkBasicArith doc (-) :: Double -> Double -> Property)
+                , Test 100 "Basic Multiplication" (checkBasicArith doc (*) :: Double -> Double -> Property)
+                , Test 100 "Arbitrary Arithmetic" (checkArbitraryArith doc)
+                , Test 100 "Arbitrary Boolean"    (checkArbitraryBool  doc)
                 ])
           , ("Conditionals",
-                [ Test "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
-                , Test "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
+                [ Test  10 "if/then/else -> Int (A)"   (checkArbitraryIfThenElse_Int doc tA)
+                , Test  10 "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
                 ])
           , ("Channels and MVars",
-                [ Test "Chan (rand)"              (checkArbitraryChan_Int doc False SR.writeChan SR.readChan)
-                , Test "Chan (write before read)" (checkArbitraryChan_Int doc True SR.writeChan SR.readChan)
+                [ Test  10 "Chan (rand)"              (checkArbitraryChan_Int doc False SR.writeChan SR.readChan)
+                , Test  10 "Chan (write before read)" (checkArbitraryChan_Int doc True SR.writeChan SR.readChan)
+                ])
+          , ("Performance",
+                [ Test   1 ("Fib " ++ show n)           (runFib doc n) | n <- [10,      30]
                 ])
           ]
 
@@ -212,9 +215,9 @@ checkArbitraryChan_Int doc wbr writeChan readChan seed = monadicIO $ do
   let n = (abs seed `mod` 8) + 1
   qPush <- pick $ frequency [(1,return False),(3,return True)]
   qPull <- pick $ frequency [(1,return False),(3,return True)]
-  arr1 :: [Int] <- fmap (fmap (`Prelude.rem` 50)) $ pick $ vector 3
-  arr2 :: [Int] <- fmap (fmap (`Prelude.rem` 50)) $ pick $ vector 3
-  dat  :: [Int] <- fmap (fmap (`Prelude.rem` 50)) $ pick $ vector 3
+  arr1 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 5
+  arr2 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 5
+  dat  :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 5
 
   let prog :: JS B (JSArray JSNumber)
       prog = do
@@ -248,11 +251,38 @@ checkArbitraryChan_Int doc wbr writeChan readChan seed = monadicIO $ do
   res :: [Double] <- run $ sync (srEngine doc) prog
   assert $ map round res == dat
 
+-- | Check if simple arithmetic expressions with one operator produce
+--   the same value after sync.
+runFib :: TestEngine -> Int -> Property
+runFib doc n = monadicIO $ do
+  r' <- run $ sync (srEngine doc) $ do
+        fib <- function $ fixJS $ \ fib (n :: JSNumber) -> do
+                ifB (n <* 2)
+                    (return (1 :: JSNumber))
+                    (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
+        apply fib (js n)
+  let fib :: Int -> Int
+      fib n = xs !! n
+      xs = map (\ n -> if n < 2 then 1 else fib (n-1) + fib (n-2)) [0..]
+  let r = fromIntegral (fib n)
+  assert $ r `deltaEqual` r'
+
+
+-- Needs to be in Utils module
+fixJS :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> a -> JSA b
+fixJS f a = do
+        ref <- newJSRef (cast nullJS)
+        fn <- function $ \ a' -> do
+                        fn' <- readJSRef ref
+                        f (apply fn') a'
+        writeJSRef ref fn
+        apply fn a
+
 -- -----------------------------------------------------------------------
 -- Test execution
 -- -----------------------------------------------------------------------
 
-data Test = forall a. Testable a => Test String a
+data Test = forall a. Testable a => Test Int String a
 
 runTests :: TestEngine -> [(String,[Test])] -> IO ()
 runTests doc all_tests = do
@@ -276,7 +306,7 @@ runTests doc all_tests = do
                                                 "<td class=\"data\"></td>" ++
                                                 "<td class=\"data\"></td>" ++
                                                 "</tr>"
-                              | (j::Int,Test msg _) <- [1..] `zip` tests
+                              | (j::Int,Test _ msg _) <- [1..] `zip` tests
                               ]
            | (i::Int,(txt,tests)) <- [1..] `zip` all_tests
            ]
@@ -307,19 +337,19 @@ runTests doc all_tests = do
                 TestInPar n -> \ xs -> withPool n $ \ pool -> parallelInterleaved pool xs
                 _ -> sequence) $ concat [
       [ do let runTest :: Test -> IO (Result,Timings Double)
-               runTest (Test name test) = do
+               runTest (Test count name test) = do
                  resetTimings (srEngine doc)
                  putStrLn name
-                 r <- quickCheckWithResult (stdArgs {chatty=False,maxSuccess=casesPerTest})
+                 r <- quickCheckWithResult (stdArgs {chatty=False,maxSuccess=count})
                    $ within (teTimeout doc)
                    $ (if teShrink doc then id else noShrinking)
-                   $ callback afterTestCallback
+                   $ callback (afterTestCallback count)
                    $ test
                  t <- getTimings (srEngine doc)
                  print "DONE TESTS IN SR"
                  return (r,fmap realToFrac t)
                execTest :: Test -> IO (Maybe (Timings Double))
-               execTest t@(Test name _) = do
+               execTest t@(Test _ name _) = do
 --                 progressMsg doc name
                  result <- E.try (runTest t >>= E.evaluate)
                  case result of
@@ -347,11 +377,11 @@ runTests doc all_tests = do
                      putStrLn out
                      overwriteMessage doc i j ("Ho expected failure") "failure"
                      return Nothing
-               afterTestCallback :: Callback
-               afterTestCallback = PostTest NotCounterexample $ \ state result -> do
+               afterTestCallback :: Int -> Callback
+               afterTestCallback count = PostTest NotCounterexample $ \ state result -> do
                  if not (abort result) && isJust (ok result)
                    then do
-                     progressVal doc i j (numSuccessTests state + 1)
+                     progressVal doc i j (((numSuccessTests state + 1) * 100) `div` count)
                      if numSuccessTests state `mod` (casesPerTest `div` 10) == 0
                        then do
                          putStr "."
@@ -361,7 +391,7 @@ runTests doc all_tests = do
                      return ()
            execTest t
 
-      | (j::Int,t@(Test msg _)) <- [1..] `zip` tests
+      | (j::Int,t@(Test _ msg _)) <- [1..] `zip` tests
       ]
     | (i::Int,(txt,tests)) <- [1..] `zip` all_tests
     ]
