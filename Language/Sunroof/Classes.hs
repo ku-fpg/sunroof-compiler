@@ -76,10 +76,15 @@ instance Sunroof () where
 -- SunroofValue Type Class
 -- -------------------------------------------------------------
 
+-- | All Haskell values that have a Sunroof representation
+--   implement this class.
 class SunroofValue a where
+  -- | The Sunroot type that is equivalent to the implementing Haskell type.
   type ValueOf a :: *
+  -- | Convert the Haskell value to its Sunroof equivalent.
   js :: a -> ValueOf a
 
+-- | Unit is unit.
 instance SunroofValue () where
   type ValueOf () = ()
   js () = ()
@@ -88,26 +93,34 @@ instance SunroofValue () where
 -- JSArgument Type Class
 -- -------------------------------------------------------------
 
+-- | Everything that can be used as argument to a function is Javascript/Sunroof.
 class JSArgument args where
-  jsArgs   :: args -> [Expr]        -- turn a value into a list of expressions
+  -- | Turn the argument into a list of expressions.
+  jsArgs   :: args -> [Expr]
+  -- | Create a list of fresh variables for the arguments.
   jsValue  :: (UniqM m) => m args
+  -- | Get the type of the argument values.
   typesOf  :: Proxy args -> [Type]
 
+-- | Every 'Sunroof' value can be an argument to a function.
 instance Sunroof a => JSArgument a where
   jsArgs a = [unbox a]
   jsValue = jsVar
   typesOf p = [typeOf p]
 
+-- | Unit is the empty argument list.
 instance JSArgument () where
   jsArgs _ = []
   jsValue = return ()
   typesOf _ = []
 
+-- | Two arguments.
 instance (Sunroof a, Sunroof b) => JSArgument (a,b) where
   jsArgs ~(a,b) = [unbox a, unbox b]
   jsValue = liftM2 (,) jsVar jsVar
   typesOf Proxy = [typeOf (Proxy :: Proxy a),typeOf (Proxy :: Proxy b)]
 
+-- | Three arguments.
 instance (Sunroof a, Sunroof b, Sunroof c) => JSArgument (a,b,c) where
   jsArgs ~(a,b,c) = [unbox a, unbox b, unbox c]
   jsValue = liftM3 (,,) jsVar jsVar jsVar
@@ -116,6 +129,7 @@ instance (Sunroof a, Sunroof b, Sunroof c) => JSArgument (a,b,c) where
                   ,typeOf (Proxy :: Proxy c)
                   ]
 
+-- | Four arguments.
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d) => JSArgument (a,b,c,d) where
   jsArgs ~(a,b,c,d) = [unbox a, unbox b, unbox c, unbox d]
   jsValue = liftM4 (,,,) jsVar jsVar jsVar jsVar
@@ -125,6 +139,7 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d) => JSArgument (a,b,c,d) wh
                   ,typeOf (Proxy :: Proxy d)
                   ]
 
+-- | Five arguments.
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e) => JSArgument (a,b,c,d,e) where
   jsArgs ~(a,b,c,d,e) = [unbox a, unbox b, unbox c, unbox d, unbox e]
   jsValue = liftM5 (,,,,) jsVar jsVar jsVar jsVar jsVar
@@ -135,6 +150,7 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e) => JSArgument (
                   ,typeOf (Proxy :: Proxy e)
                   ]
 
+-- | Six arguments.
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f) => JSArgument (a,b,c,d,e,f) where
   jsArgs ~(a,b,c,d,e,f) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f]
   jsValue = return (,,,,,) `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar
@@ -146,6 +162,7 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f) => J
                   ,typeOf (Proxy :: Proxy f)
                   ]
 
+-- | Seven arguments.
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunroof g) => JSArgument (a,b,c,d,e,f,g) where
   jsArgs ~(a,b,c,d,e,f,g) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f, unbox g]
   jsValue = return (,,,,,,) `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar
@@ -158,6 +175,7 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunr
                   ,typeOf (Proxy :: Proxy g)
                   ]
 
+-- | Eight arguments.
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunroof g, Sunroof h) => JSArgument (a,b,c,d,e,f,g,h) where
   jsArgs ~(a,b,c,d,e,f,g,h) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f, unbox g, unbox h]
   jsValue = return (,,,,,,,) `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar `ap` jsVar
@@ -171,6 +189,7 @@ instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunr
                   ,typeOf (Proxy :: Proxy h)
                   ]
 
+-- | Nine arguments.
 instance (Sunroof a, Sunroof b, Sunroof c, Sunroof d, Sunroof e, Sunroof f, Sunroof g, Sunroof h, Sunroof i) => JSArgument (a,b,c,d,e,f,g,h,i) where
   jsArgs ~(a,b,c,d,e,f,g,h,i) = [unbox a, unbox b, unbox c, unbox d, unbox e, unbox f, unbox g, unbox h, unbox i]
   jsValue = return (,,,,,,,,)
