@@ -123,8 +123,9 @@ web_app doc = do
                 , Test  10 "if/then/else -> Int (B)"   (checkArbitraryIfThenElse_Int doc tB)
                 ])
           , ("Channels and MVars",
-                [ Test  10 "Chan (rand)"              (checkArbitraryChan_Int doc False SR.writeChan SR.readChan)
-                , Test  10 "Chan (write before read)" (checkArbitraryChan_Int doc True SR.writeChan SR.readChan)
+                [ Test  10 "Chan (rand)"              (checkArbitraryChan_Int doc False SR.newChan SR.writeChan SR.readChan)
+                , Test  10 "Chan (write before read)" (checkArbitraryChan_Int doc True SR.newChan SR.writeChan SR.readChan)
+                , Test  10 "MVar (rand)"              (checkArbitraryChan_Int doc False SR.newEmptyMVar SR.putMVar SR.takeMVar)
                 ])
           , ("Performance",
                 [ Test   1 ("Fib " ++ show n)           (runFib doc n) | n <- [10,      30]
@@ -207,11 +208,12 @@ checkArbitraryArray_Int doc seed = monadicIO $ do
 checkArbitraryChan_Int
         :: TestEngine
         -> Bool -- write before any read
-        -> (JSNumber -> JSChan JSNumber -> JS B ())
-        -> (JSChan JSNumber -> JS 'B JSNumber)
+        -> (JS B (m JSNumber))
+        -> (JSNumber -> m JSNumber -> JS B ())
+        -> (m JSNumber -> JS 'B JSNumber)
         -> Int
         -> Property
-checkArbitraryChan_Int doc wbr writeChan readChan seed = monadicIO $ do
+checkArbitraryChan_Int doc wbr newChan writeChan readChan seed = monadicIO $ do
   let n = (abs seed `mod` 8) + 1
   qPush <- pick $ frequency [(1,return False),(3,return True)]
   qPull <- pick $ frequency [(1,return False),(3,return True)]
@@ -222,7 +224,7 @@ checkArbitraryChan_Int doc wbr writeChan readChan seed = monadicIO $ do
   let prog :: JS B (JSArray JSNumber)
       prog = do
           note :: JSArray JSBool <- newArray
-          ch <- SR.newChan
+          ch <- newChan
           (if wbr then id else forkJS) $
                    sequence_ [ do ifB (js (x >= 0 && qPush)) (threadDelayJSB (js x)) (return ())
                                   note # pushArray true
@@ -250,6 +252,7 @@ checkArbitraryChan_Int doc wbr writeChan readChan seed = monadicIO $ do
           return arr
   res :: [Double] <- run $ sync (srEngine doc) prog
   assert $ map round res == dat
+
 
 -- | Check if simple arithmetic expressions with one operator produce
 --   the same value after sync.
