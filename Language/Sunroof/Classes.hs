@@ -46,7 +46,7 @@ jsVar = uniqM >>= return . mkVar
 
 -- | Central type class of Sunroof. Every type that can be translated
 --   into Javascript with Sunroof has to implement this type class.
-class Show a => Sunroof a where
+class {-Show a =>-} Sunroof a where
   -- | Create a Sunroof value from a plain Javascript expression.
   box :: Expr -> a
   -- | Reveal the plain Javascript expression that represents this Sunroof value.
