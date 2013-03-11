@@ -31,17 +31,19 @@ import Data.Char ( isAlpha, isAlphaNum )
 -- Javascript Expressions
 -- -------------------------------------------------------------
 
+-- | Javascript identifier.
 type Id = String
 
 type Expr = E ExprE
 
 data ExprE = ExprE Expr deriving Show
 
-data E expr = Lit String    -- a precompiled (atomic) version of this literal
-            | Var Id
-            | Dot expr expr Type    -- expr . expr :: Type
-            | Apply expr [expr]     -- expr ( expr, ..., expr )
-            | Function [Id] [Stmt]
+-- | Plain expressions in Javascript.
+data E expr = Lit String -- ^ A precompiled (atomic) Javascript literal.
+            | Var Id     -- ^ A variable.
+            | Dot expr expr Type   -- ^ Field/attribute access (with type information): @expr . expr :: Type@
+            | Apply expr [expr]    -- ^ Function application: @expr ( expr, ..., expr )@
+            | Function [Id] [Stmt] -- ^ Anonymous function with parameter names and body.
             deriving Show
 
 instance MuRef ExprE where
@@ -69,10 +71,8 @@ instance Functor E where
   fmap f (Apply s xs) = Apply (f s) (map f xs)
   fmap _ (Function nms stmts) = Function nms stmts
 
---instance Show Expr where
---  show = showExpr False
-
--- | Boolean argument says non-trivial arguments need parenthesis.
+-- | Show an expression as compiled Javascript. 
+--   The boolean argument says non-trivial arguments need parenthesis.
 showExpr :: Bool -> Expr -> String
 -- These being up here, cause a GHC warning for missing patterns.
 -- So they are moved down.
@@ -106,26 +106,45 @@ showExpr b e = p $ case e of
   where
     p txt = if b then "(" ++ txt ++ ")" else txt
 
+-- | @showIdx o a@ accesses the field/attribute @a@ of the object @o@.
 showIdx :: Expr -> Expr -> String
 showIdx a x = showExpr True a ++ "[" ++ showExpr False x ++ "]"
 
+-- | @showArgs a@ creates a string representing the given expressions
+--   in an argument list that can be used for functions or constructors.
 showArgs :: [ExprE] -> String
 showArgs args = "(" ++ intercalate "," (map (\ (ExprE e') -> showExpr False e') args) ++ ")"
 
--- Show a function argument,
+-- | Show a function application,
 showFun :: Expr -> [ExprE] -> String
 showFun e args = case e of
     (Dot (ExprE a) (ExprE (Lit x)) _)
-        | Just n <- goodSelectName x -> showExpr True a ++ "." ++ n ++ showArgs args
+        | Just n <- isGoodSelectName x -> showExpr True a ++ "." ++ n ++ showArgs args
     (Dot (ExprE a) (ExprE x) _) -> "(" ++ showIdx a x ++ ")" ++ showArgs args
     _                           -> showExpr True e ++ showArgs args 
 
+-- | Check if the given 'Id' is a valid Javascript identifier.
 isIdentifier :: Id -> Bool
 isIdentifier x | not (null x) = isAlpha (head x) && all isAlphaNum (drop 1 x)
 isIdentifier _ = False
 
+-- | Check if the given 'Id' represents a constructor call without 
+--   arguments. That means a string beginning with @"new "@ followed
+--   by a valid identifier ('isIdentifier').
 isNewConstructor :: Id -> Bool
 isNewConstructor x = take 4 x == "new " && isIdentifier (drop 4 x)
+
+-- | Check if the given name is a field/attribute seletor that
+--   can be printed without quotes using the dot-notation.
+isGoodSelectName :: Id -> Maybe Id
+isGoodSelectName xs
+        | length xs < 2 = Nothing
+        | head xs == '"' &&
+          last xs == '"' &&
+          all isAlpha xs' = return xs'
+        | otherwise = Nothing
+  where
+          xs' = tail (init xs)
 
 -- -------------------------------------------------------------
 -- Helper Combinators
@@ -150,18 +169,13 @@ uniOp o e = operator o [e]
 literal :: String -> Expr
 literal = Lit
 
+-- | Indent all lines of the given string by the given number 
+--   of spaces.
 indent :: Int -> String -> String
 indent n = unlines . map (take n (cycle "  ") ++) . lines
 
-goodSelectName xs
-        | length xs < 2 = Nothing
-        | head xs == '"' &&
-          last xs == '"' &&
-          all isAlpha xs' = return xs'
-        | otherwise = Nothing
-  where
-          xs' = tail (init xs)
-
+-- | Create a anonymous function to scope all effects 
+--   in the given block of statement.
 scopeForEffect :: [Stmt] -> Expr
 scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
 
@@ -169,18 +183,20 @@ scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
 -- Javascript Statements
 -- -------------------------------------------------------------
 
-data Stmt = VarStmt Id Expr           -- var Id = Expr;   // Id is fresh
-          | AssignStmt Expr Expr Expr -- Expr[Expr] = Expr
-          | AssignStmt_ Expr Expr     -- Expr = Expr      // restrictions on lhs
-          | ExprStmt Expr             -- Expr
-          | ReturnStmt Expr           -- return Expr
-          | IfStmt Expr [Stmt] [Stmt] -- if (Expr) { Stmts } else { Stmts }
-          | WhileStmt Expr [Stmt]     -- while (Expr) { Stmts }
-          | CommentStmt String        -- A comment in the code
+-- | Plain Javascript statements.
+data Stmt = VarStmt Id Expr           -- ^ Variable assignment: @var Id = Expr; // Id is fresh@
+          | AssignStmt Expr Expr Expr -- ^ Field/attribute assignment: @Expr[Expr] = Expr;@
+          | AssignStmt_ Expr Expr     -- ^ Restricted assignment: @Expr = Expr; // restrictions on lhs@
+          | ExprStmt Expr             -- ^ Expression statement, for the sake of its side effects: @Expr;@
+          | ReturnStmt Expr           -- ^ Return statement: @return Expr;@
+          | IfStmt Expr [Stmt] [Stmt] -- ^ If-Then-Else statement: @if (Expr) { Stmts } else { Stmts }@
+          | WhileStmt Expr [Stmt]     -- ^ While loop: @while (Expr) { Stmts }@
+          | CommentStmt String        -- ^ A comment in the code: @// String@
 
 instance Show Stmt where
   show = showStmt
 
+-- | Translate a statement into actual Javascript.
 showStmt :: Stmt -> String
 showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
 showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
@@ -202,9 +218,10 @@ showStmt (CommentStmt msg) = "{- " ++ msg ++ " -}"
 -- Javascript Types
 -- -------------------------------------------------------------
 
-data Type = Base         -- base type, like object
-          | Unit
-          | Fun [Type] Type      -- (t_1,..,t_n) -> t
+-- | Abstract types for Javascript expressions in Sunroof.
+data Type = Base -- ^ Base type like object or other primtive types.
+          | Unit -- ^ Unit or void type. There is a effect but no value.
+          | Fun [Type] Type -- ^ Function type: @(t_1,..,t_n) -> t@
           deriving (Eq,Ord)
 
 instance Show Type where
