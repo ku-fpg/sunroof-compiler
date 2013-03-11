@@ -25,7 +25,7 @@ import Language.Sunroof.Types
   ( JS, T(A)
   , cast, invoke, function, attr, new
   , (#) )
-import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), JSArgument(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
 import Language.Sunroof.Selector ( index, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -70,7 +70,7 @@ array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
 array l  = box $ literal $ "[" ++ intercalate "," (fmap (showExpr False . unbox . js) l) ++ "]"
 
 -- Operations on arrays
-newArray :: (JSArgument args, Sunroof a) => args -> JS t (JSArray a)
+newArray :: (SunroofArgument args, Sunroof a) => args -> JS t (JSArray a)
 newArray args = cast `fmap` new "Array" args
 
 emptyArray :: (Sunroof a) => JSArray a
@@ -79,10 +79,10 @@ emptyArray = box $ literal "[]"
 lengthArray :: (Sunroof a) => JSArray a -> JSNumber
 lengthArray o = o ! attr "length"
 
-push :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+push :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 push a = invoke "push" a
 
-unshift :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+unshift :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 unshift a = invoke "unshift" a
 
 pop :: (Sunroof a) => JSArray a -> JS t a
@@ -94,7 +94,7 @@ shift = invoke "shift" ()
 lookup :: (Sunroof a) => JSNumber -> JSArray a -> a
 lookup idx arr = arr ! index idx
 
-forEach :: (Sunroof a, JSArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
+forEach :: (Sunroof a, SunroofArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do
         f <- function body
         arr # invoke "forEach" f :: JS t ()

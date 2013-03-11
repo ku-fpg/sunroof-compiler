@@ -30,7 +30,7 @@ module Language.Sunroof.JS.Date
 
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), JSArgument(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..) )
 import Language.Sunroof.Types ( JS, invoke, new, cast )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -65,7 +65,7 @@ instance EqB JSDate where
 
 -- | Creates a new @Date@ object.
 --   See: <http://www.w3schools.com/jsref/jsref_obj_date.asp>
-newDate :: (JSArgument a) => a -> JS t JSDate
+newDate :: (SunroofArgument a) => a -> JS t JSDate
 newDate args = cast `fmap` new "Date" args
 
 -- | Returns the hour (from 0-23).

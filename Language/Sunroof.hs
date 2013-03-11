@@ -5,7 +5,7 @@ module Language.Sunroof
   -- JavaScript
   ( Type(..)
   -- Classes
-  , Sunroof(..), SunroofValue(..), JSArgument(..)
+  , Sunroof(..), SunroofValue(..), SunroofArgument(..)
   -- Types
   , T(..), ThreadProxy(..)
   , JSThread(..), JSThreadReturn(..)
@@ -67,7 +67,7 @@ module Language.Sunroof
 import Language.Sunroof.JavaScript ( Type(..) )
 
 import Language.Sunroof.Classes
-  ( Sunroof(..), SunroofValue(..), JSArgument(..) )
+  ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
 
 import Language.Sunroof.Types
   ( T(..), ThreadProxy(..)

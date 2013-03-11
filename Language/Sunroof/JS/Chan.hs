@@ -13,7 +13,7 @@ module Language.Sunroof.JS.Chan
 
 import Data.Boolean ( IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), JSArgument(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..) )
 import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSB
@@ -46,7 +46,7 @@ instance Sunroof (JSChan o) where
   box = JSChan . box
   unbox (JSChan o) = unbox o
 
-instance (JSArgument o) => JSTuple (JSChan o) where
+instance (SunroofArgument o) => JSTuple (JSChan o) where
   type Internals (JSChan o) = ( (JSArray (JSFunction (JSFunction o ()) ())) -- callbacks of written data
                               , (JSArray (JSFunction o ()))                 -- callbacks of waiting readers
                               )
@@ -61,13 +61,13 @@ instance (JSArgument o) => JSTuple (JSChan o) where
 -- JSChan Combinators
 -- -------------------------------------------------------------
 
-newChan :: (JSArgument a) => JS t (JSChan a)
+newChan :: (SunroofArgument a) => JS t (JSChan a)
 newChan = do
   written <- newArray ()
   waiting <- newArray ()
   tuple (written, waiting)
 
-writeChan :: forall t a . (JSThread t, JSArgument a) => a -> JSChan a -> JS t ()
+writeChan :: forall t a . (JSThread t, SunroofArgument a) => a -> JSChan a -> JS t ()
 writeChan a (match -> (written,waiting)) = do
   ifB (lengthArray waiting ==* 0)
       (do f <- reify $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()
@@ -78,7 +78,7 @@ writeChan a (match -> (written,waiting)) = do
           return ()
       )
 
-readChan :: forall a . (Sunroof a, JSArgument a) => JSChan a -> JS B a
+readChan :: forall a . (Sunroof a, SunroofArgument a) => JSChan a -> JS B a
 readChan (match -> (written,waiting)) = do
   ifB (lengthArray written ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.

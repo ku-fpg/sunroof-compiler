@@ -36,7 +36,7 @@ import Language.Sunroof.Types
   , JS, JSThread
   , JSFunction
   , function )
-import Language.Sunroof.Classes ( Sunroof, SunroofValue(..), JSArgument(..) )
+import Language.Sunroof.Classes ( Sunroof, SunroofValue(..), SunroofArgument(..) )
 import Language.Sunroof.JS.Bool ( JSBool )
 import Language.Sunroof.JS.Number ( JSNumber )
 
@@ -71,7 +71,7 @@ instance FractionalOf JSTime JSNumber where
 instance (BooleanOf b ~ JSBool, IfB b, Deadline JSTime b) => Deadline JSTime (a -> b) where
   choose (JSTime t1) (JSTime t2) f1 f2 a = ifB (t1 <=* t2) (f1 a) (f2 a)
 
-instance (Sunroof a, JSArgument a, JSThread t) => Deadline JSTime (JS t a) where
+instance (Sunroof a, SunroofArgument a, JSThread t) => Deadline JSTime (JS t a) where
   choose (JSTime t1) (JSTime t2) = ifB (t1 <=* t2)
 
 instance Deadline JSTime JSNumber where

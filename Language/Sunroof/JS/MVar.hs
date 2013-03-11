@@ -13,7 +13,7 @@ module Language.Sunroof.JS.MVar
 
 import Data.Boolean ( IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), JSArgument(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..) )
 import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSB
@@ -45,7 +45,7 @@ instance Sunroof (JSMVar o) where
   box = JSMVar . box
   unbox (JSMVar o) = unbox o
 
-instance (JSArgument o) => JSTuple (JSMVar o) where
+instance (SunroofArgument o) => JSTuple (JSMVar o) where
   type Internals (JSMVar o) = ( (JSArray (JSFunction (JSFunction o ()) ())) -- callbacks of written data
                               , (JSArray (JSFunction o ()))                 -- callbacks of waiting readers
                               )
@@ -60,13 +60,13 @@ instance (JSArgument o) => JSTuple (JSMVar o) where
 -- JSMVar Combinators
 -- -------------------------------------------------------------
 
-newMVar :: (JSArgument a) => a -> JS B (JSMVar a)
+newMVar :: (SunroofArgument a) => a -> JS B (JSMVar a)
 newMVar a = do
   o <- newEmptyMVar
   o # putMVar a
   return o
 
-newEmptyMVar :: (JSArgument a) => JS t (JSMVar a)
+newEmptyMVar :: (SunroofArgument a) => JS t (JSMVar a)
 newEmptyMVar = do
   written <- newArray ()
   waiting <- newArray ()
@@ -74,7 +74,7 @@ newEmptyMVar = do
 
 
 -- Not quite right; pauses until someone bites
-putMVar :: forall a . (JSArgument a) => a -> JSMVar a -> JS B ()
+putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
   ifB (lengthArray waiting ==* 0)
       (reifyccJS $ \ (k :: JSFunction () ()) -> do
@@ -91,7 +91,7 @@ putMVar a (match -> (written,waiting)) = do
           return ()
       )
 
-takeMVar :: forall a . (Sunroof a, JSArgument a) => JSMVar a -> JS B a
+takeMVar :: forall a . (Sunroof a, SunroofArgument a) => JSMVar a -> JS B a
 takeMVar (match -> (written,waiting)) = do
   ifB (lengthArray written ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.

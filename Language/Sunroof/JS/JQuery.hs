@@ -14,7 +14,7 @@ module Language.Sunroof.JS.JQuery
   ) where
 
 import Language.Sunroof.Classes
-  ( JSArgument(..)
+  ( SunroofArgument(..)
   )
 import Language.Sunroof.Types
   ( JSFunction
@@ -61,7 +61,7 @@ html nm = invoke "html"  nm
 text :: JSString -> JSObject -> JS t JSObject
 text = invoke "text"
 
-on :: (JSArgument a) => JSString -> JSString -> (a -> JS A ()) -> JSObject -> JS t ()
+on :: (SunroofArgument a) => JSString -> JSString -> (a -> JS A ()) -> JSObject -> JS t ()
 on nm sel f o = do
      callback <- function f
      o # invoke "on" (nm,sel,callback)

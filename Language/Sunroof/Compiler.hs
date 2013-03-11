@@ -38,7 +38,7 @@ import Language.Sunroof.JavaScript
   , Type(..)
   , showStmt )
 import Language.Sunroof.Classes 
-  ( Sunroof(..), JSArgument(..)
+  ( Sunroof(..), SunroofArgument(..)
   , UniqM(..), Uniq )
 import Language.Sunroof.Selector ( unboxSelector )
 import Language.Sunroof.Internal ( proxyOf )
@@ -155,7 +155,7 @@ compileBranch_A b c1 c2 k = do
   rest <- compile (k (var res))
   return ( [VarStmt res (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
-compileBranch_B :: forall a bool t . (Sunroof bool, JSArgument a, JSThread t)
+compileBranch_B :: forall a bool t . (Sunroof bool, SunroofArgument a, JSThread t)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_B b c1 c2 k = do
   fn_e <- compileFunction (\ a -> JS $ \ k2 -> k a >>= k2)
@@ -166,14 +166,14 @@ compileBranch_B b c1 c2 k = do
   src2 <- compile $ extractProgramJS (apply (var fn)) c2
   return ( [VarStmt fn fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
 
-compileBranch :: forall a bool t . (JSThread t, Sunroof bool, Sunroof a, JSArgument a)
+compileBranch :: forall a bool t . (JSThread t, Sunroof bool, Sunroof a, SunroofArgument a)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch b c1 c2 k = 
   case evalStyle (ThreadProxy :: ThreadProxy t) of
     A -> compileBranch_A b c1 c2 k
     B -> compileBranch_B b c1 c2 k
 
-compileFunction :: forall a b t . (JSThreadReturn t b, JSArgument a, Sunroof b)
+compileFunction :: forall a b t . (JSThreadReturn t b, SunroofArgument a, Sunroof b)
                 => (a -> JS t b)
                 -> CompM Expr
 compileFunction m2 = do

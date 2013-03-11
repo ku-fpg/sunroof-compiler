@@ -45,7 +45,7 @@ import Language.Sunroof.JavaScript
   ( Expr, Type(Fun), Id
   , showExpr, literal )
 import Language.Sunroof.Classes
-  ( Sunroof(..), SunroofValue(..), JSArgument(..)
+  ( Sunroof(..), SunroofValue(..), SunroofArgument(..)
   , jsArgs )
 import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
@@ -134,7 +134,7 @@ instance Functor (JS t) where
 
 type instance BooleanOf (JS t a) = JSBool
 
-instance (JSThread t, Sunroof a, JSArgument a) => IfB (JS t a) where
+instance (JSThread t, Sunroof a, SunroofArgument a) => IfB (JS t a) where
     ifB i h e = single $ JS_Branch i h e
 
 -- | We define the Semigroup instance for JS, where
@@ -177,11 +177,11 @@ data JSI :: T -> * -> * where
   JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject -> JSI t ()
   JS_Select  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t a
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
-  JS_Invoke :: (JSArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
+  JS_Invoke :: (SunroofArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
   JS_Eval   :: (Sunroof a) => a -> JSI t a
-  JS_Function :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
+  JS_Function :: (JSThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-  JS_Branch :: (JSThread t, Sunroof a, JSArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
+  JS_Branch :: (JSThread t, Sunroof a, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   JS_Return  :: (Sunroof a) => a -> JSI t ()
   JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
   -- TODO: generalize Assign[_] to have a RHS
@@ -203,7 +203,7 @@ callcc f = JS $ \ cc -> unJS (f (goto cc)) cc
 -- | reify the current contination as a JavaScript function.
 -- unlike callcc, captures then discards the continuation.
 
-reifyccJS :: JSArgument a => (JSFunction a () -> JS B ()) -> JS B a
+reifyccJS :: SunroofArgument a => (JSFunction a () -> JS B ()) -> JS B a
 reifyccJS f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
                                     f o
                                ) (\ _ -> return ())
@@ -224,7 +224,7 @@ liftJS m = do
 
 -- | Type of Javascript functions.
 --   The first type argument is the type of function argument. 
---   This needs to be a instance of 'JSArgument'.
+--   This needs to be a instance of 'SunroofArgument'.
 --   The second type argument of 'JSFunction' is the function return type.
 --   It needs to be a instance of 'Sunroof'.
 data JSFunction args ret = JSFunction Expr
@@ -234,7 +234,7 @@ instance Show (JSFunction a r) where
 
 -- | Functions are first-class citizens of Javascript. Therefore they
 --   are 'Sunroof' values.
-instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
+instance forall a r . (SunroofArgument a, Sunroof r) => Sunroof (JSFunction a r) where
   box = JSFunction
   unbox (JSFunction e) = e
   typeOf _ = Fun (typesOf (Proxy :: Proxy a)) (typeOf (Proxy :: Proxy r))
@@ -242,12 +242,12 @@ instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) wher
 type instance BooleanOf (JSFunction a r) = JSBool
 
 -- | Functions may be the result of a branch.
-instance (JSArgument a, Sunroof r) => IfB (JSFunction a r) where
+instance (SunroofArgument a, Sunroof r) => IfB (JSFunction a r) where
   ifB = jsIfB
 
 -- | 'JSFunction's may be created from Haskell functions if they have
 --   the right form.
-instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
+instance (SunroofArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
   type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
   js = function
 
@@ -262,21 +262,21 @@ instance (JSArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
 --   
 -- > alert :: JSFunction JSString ()
 -- > alert = fun "alert"
-fun :: (JSArgument a, Sunroof r) => String -> JSFunction a r
+fun :: (SunroofArgument a, Sunroof r) => String -> JSFunction a r
 fun = JSFunction . literal
 
 -- | Create an 'A'tomic Javascript function from a Haskell function.
-function :: (JSArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
+function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
 function = reify
 
 -- | We can compile 'B'lockable functions that return @()@.
 --   Note that, with the 'B'-style threads, we return from a 
 --   call when we first block, not at completion of the call.
-continuation :: (JSArgument a) => (a -> JS B ()) -> JS t (JSFunction a ())
+continuation :: (SunroofArgument a) => (a -> JS B ()) -> JS t (JSFunction a ())
 continuation = reify
 
 -- | The generalization of 'function' and 'continuation' is call reify.
-reify :: (JSThreadReturn t2 b, JSArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
+reify :: (JSThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
 reify = single . JS_Function
 
 infixl 1 `apply`
@@ -287,15 +287,15 @@ infixl 1 `apply`
 -- > foo `apply` (x,y)
 --
 --   See '$$' for a convenient infix operator to do this.
-apply :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
+apply :: (SunroofArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 apply f args = f # with args
   where
-    with :: (JSArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
+    with :: (SunroofArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
     with a fn = single $ JS_Invoke (jsArgs a) fn
 
 -- | @f $$ a@ applies the function 'f' to the given arguments @a@.
 --   See 'apply'.
-($$) :: (JSArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
+($$) :: (SunroofArgument args, Sunroof ret) => JSFunction args ret -> args -> JS t ret
 ($$) = apply
 
 -- -------------------------------------------------------------
@@ -345,7 +345,7 @@ attr a = label $ string a
 --
 --   Like this the flexible type signature gets fixed. See 'Language.Sunroof.Types.#' 
 --   for how to use these bindings.
-invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
+invoke :: (SunroofArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
 invoke str args obj = (obj ! attr str) `apply` args
 
 -- | @new n a@ calls the new operator on the constructor @n@
@@ -353,7 +353,7 @@ invoke str args obj = (obj ! attr str) `apply` args
 --
 -- > new "Object" ()
 --
-new :: (JSArgument a) => String -> a -> JS t JSObject
+new :: (SunroofArgument a) => String -> a -> JS t JSObject
 new cons args = fun ("new " ++ cons) `apply` args
 
 -- | Evaluate a 'Sunroof' value. This forces evaluation
@@ -384,7 +384,7 @@ value = evaluate
 --   expressions in the cases.
 switch :: ( EqB a, BooleanOf a ~ JSBool
           , Sunroof a, Sunroof b
-          , JSArgument b
+          , SunroofArgument b
           , JSThread t
           ) => a -> [(a,JS t b)] -> JS t b
 switch _a [] = return (cast (object "undefined"))

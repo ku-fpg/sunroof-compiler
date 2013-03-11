@@ -73,7 +73,7 @@ import Language.Sunroof.Types
   , apply
   , (#)
   )
-import Language.Sunroof.Classes ( Sunroof(..), JSArgument )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument )
 import Language.Sunroof.Selector ( JSSelector )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
@@ -279,19 +279,19 @@ instance EqB JSConsole where
 console :: JSConsole
 console = JSConsole (object "console")
 
-log :: (JSArgument a) => a -> JSConsole -> JS t ()
+log :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 log a (JSConsole o) = o # invoke "log" a
 
-debug :: (JSArgument a) => a -> JSConsole -> JS t ()
+debug :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 debug a (JSConsole o) = o # invoke "debug" a
 
-info :: (JSArgument a) => a -> JSConsole -> JS t ()
+info :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 info a (JSConsole o) = o # invoke "info" a
 
-warn :: (JSArgument a) => a -> JSConsole -> JS t ()
+warn :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 warn a (JSConsole o) = o # invoke "warn" a
 
-error :: (JSArgument a) => a -> JSConsole -> JS t ()
+error :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 error a (JSConsole o) = o # invoke "error" a
 
 
