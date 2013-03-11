@@ -52,12 +52,12 @@ class Show a => Sunroof a where
   -- | Reveal the plain Javascript expression that represents this Sunroof value.
   unbox :: a -> Expr
   
-  -- | Create a string representation of this Sunroof value.
+  --   Create a string representation of this Sunroof value.
   --   The created representation has to be executable Javascript.
   --   The default implentation uses 'show'. This 
   --   function is needed, because unit is a Sunroof value.
-  showVar :: a -> String
-  showVar = show
+  --showVar :: a -> String
+  --showVar = show
   
   -- | Returns the type of Javascript expression this Sunroof value
   --   represents. The default implementation returns 'Base' as type.
