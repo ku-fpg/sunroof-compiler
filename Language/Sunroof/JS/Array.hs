@@ -66,7 +66,7 @@ instance (Sunroof a) => Semigroup (JSArray a) where
 -- -------------------------------------------------------------
 
 array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
-array l  = box $ literal $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
+array l  = box $ literal $ "[" ++ intercalate "," (fmap (showExpr False . unbox . js) l) ++ "]"
 
 -- Operations on arrays
 newArray :: (Sunroof a) => JS t (JSArray a)
