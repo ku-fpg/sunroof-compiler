@@ -51,7 +51,7 @@ example = do
   let full :: Active JSTime Painting
       full = prog <> (timeline (100,200) (300,220) `during` prog)
 
-  (s,e,f) <- reifyActiveJS $ fmap (c #) $ scopeA $ full
+  (s,e,f) <- reifyActive $ fmap (c #) $ scopeA $ full
 
   let mul :: JSNumber
       mul = 400 / (e - s)
