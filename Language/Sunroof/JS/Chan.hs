@@ -18,7 +18,7 @@ import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSB
   , JSTuple(..), JSFunction
-  , JSThread
+  , SunroofThread
   , (#)
   , apply, new, reify
   , reifyccJS )
@@ -67,7 +67,7 @@ newChan = do
   waiting <- newArray ()
   tuple (written, waiting)
 
-writeChan :: forall t a . (JSThread t, SunroofArgument a) => a -> JSChan a -> JS t ()
+writeChan :: forall t a . (SunroofThread t, SunroofArgument a) => a -> JSChan a -> JS t ()
 writeChan a (match -> (written,waiting)) = do
   ifB (lengthArray waiting ==* 0)
       (do f <- reify $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()

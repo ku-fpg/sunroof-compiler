@@ -14,7 +14,7 @@
 module Language.Sunroof.Types
   ( T(..)
   , ThreadProxy(..)
-  , JSThread(..), JSThreadReturn(..)
+  , SunroofThread(..), SunroofThreadReturn(..)
   , JS(..), JSA, JSB
   , unJS
   , single
@@ -63,35 +63,35 @@ data T = A -- ^ Atomic - The computation will not be interrupted.
        deriving (Eq, Ord, Show)
 
 -- | A proxy to capture the type of threading model used.
---   See 'JSThread'.
+--   See 'SunroofThread'.
 data ThreadProxy (t :: T) = ThreadProxy
 
 -- | When implemented the type supports determining the threading model
 --   during runtime.
-class JSThreadReturn t () => JSThread (t :: T) where
+class SunroofThreadReturn t () => SunroofThread (t :: T) where
   -- | Determine the used threading model captured the given 'ThreadProxy'
   --   object.
   evalStyle    :: ThreadProxy t -> T
 
-instance JSThread A where
+instance SunroofThread A where
   evalStyle _ = A
 
-instance JSThread B where
+instance SunroofThread B where
   evalStyle _ = B
 
 -- | Provides the terminating function of the continuation associated
 --   with the given threading model.
-class (Sunroof a) => JSThreadReturn (t :: T) a where
+class (Sunroof a) => SunroofThreadReturn (t :: T) a where
   -- The terminating function of the continuation.
   threadCloser :: a -> Program (JSI t) ()
 
 -- | For atomic computations a Javascript @return@-statement
 --   closes the continuation.
-instance (Sunroof a) => JSThreadReturn A a where
+instance (Sunroof a) => SunroofThreadReturn A a where
   threadCloser = singleton . JS_Return
 
 -- | For blocking computations we just return unit.
-instance JSThreadReturn B () where
+instance SunroofThreadReturn B () where
   threadCloser () = return ()
 
 -- -------------------------------------------------------------
@@ -134,7 +134,7 @@ instance Functor (JS t) where
 
 type instance BooleanOf (JS t a) = JSBool
 
-instance (JSThread t, Sunroof a, SunroofArgument a) => IfB (JS t a) where
+instance (SunroofThread t, Sunroof a, SunroofArgument a) => IfB (JS t a) where
     ifB i h e = single $ JS_Branch i h e
 
 -- | We define the Semigroup instance for JS, where
@@ -179,9 +179,9 @@ data JSI :: T -> * -> * where
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
   JS_Invoke :: (SunroofArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
   JS_Eval   :: (Sunroof a) => a -> JSI t a
-  JS_Function :: (JSThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
+  JS_Function :: (SunroofThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-  JS_Branch :: (JSThread t, Sunroof a, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
+  JS_Branch :: (SunroofThread t, Sunroof a, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   JS_Return  :: (Sunroof a) => a -> JSI t ()
   JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
   -- TODO: generalize Assign[_] to have a RHS
@@ -276,7 +276,7 @@ continuation :: (SunroofArgument a) => (a -> JS B ()) -> JS t (JSFunction a ())
 continuation = reify
 
 -- | The generalization of 'function' and 'continuation' is call reify.
-reify :: (JSThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
+reify :: (SunroofThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
 reify = single . JS_Function
 
 infixl 1 `apply`
@@ -385,7 +385,7 @@ value = evaluate
 switch :: ( EqB a, BooleanOf a ~ JSBool
           , Sunroof a, Sunroof b
           , SunroofArgument b
-          , JSThread t
+          , SunroofThread t
           ) => a -> [(a,JS t b)] -> JS t b
 switch _a [] = return (cast (object "undefined"))
 switch a ((c,t):e) = ifB (a ==* c) t (switch a e)

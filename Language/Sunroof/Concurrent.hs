@@ -8,7 +8,7 @@ module Language.Sunroof.Concurrent
 
 import Language.Sunroof.Types
   ( JSB, JS
-  , JSThread
+  , SunroofThread
   , continuation, reify
   , apply, cast, nullJS
   , (#)
@@ -43,7 +43,7 @@ loop start m = do
   return ()
 
 -- | Fork of another thread of execution.
-forkJS :: JSThread t => JS t () -> JS t2 ()
+forkJS :: SunroofThread t => JS t () -> JS t2 ()
 forkJS m = do
   f <- reify $ \ () -> m
   _ <- liftJS $ window # setTimeout f 0

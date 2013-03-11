@@ -29,7 +29,7 @@ import Data.Default
 import Language.Sunroof.Types 
   ( T(..)
   , JS(..), JSI(..)
-  , JSThread(..), JSThreadReturn(..)
+  , SunroofThread(..), SunroofThreadReturn(..)
   , ThreadProxy(..)
   , single, apply, unJS )
 import Language.Sunroof.JavaScript 
@@ -155,7 +155,7 @@ compileBranch_A b c1 c2 k = do
   rest <- compile (k (var res))
   return ( [VarStmt res (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
-compileBranch_B :: forall a bool t . (Sunroof bool, SunroofArgument a, JSThread t)
+compileBranch_B :: forall a bool t . (Sunroof bool, SunroofArgument a, SunroofThread t)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_B b c1 c2 k = do
   fn_e <- compileFunction (\ a -> JS $ \ k2 -> k a >>= k2)
@@ -166,14 +166,14 @@ compileBranch_B b c1 c2 k = do
   src2 <- compile $ extractProgramJS (apply (var fn)) c2
   return ( [VarStmt fn fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
 
-compileBranch :: forall a bool t . (JSThread t, Sunroof bool, Sunroof a, SunroofArgument a)
+compileBranch :: forall a bool t . (SunroofThread t, Sunroof bool, Sunroof a, SunroofArgument a)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch b c1 c2 k = 
   case evalStyle (ThreadProxy :: ThreadProxy t) of
     A -> compileBranch_A b c1 c2 k
     B -> compileBranch_B b c1 c2 k
 
-compileFunction :: forall a b t . (JSThreadReturn t b, SunroofArgument a, Sunroof b)
+compileFunction :: forall a b t . (SunroofThreadReturn t b, SunroofArgument a, Sunroof b)
                 => (a -> JS t b)
                 -> CompM Expr
 compileFunction m2 = do
@@ -182,7 +182,7 @@ compileFunction m2 = do
   return $ Function (map varIdE $ jsArgs arg) fStmts
 
 {-
-compileForeach :: forall a b t . (JSThread t, Sunroof a, Sunroof b)
+compileForeach :: forall a b t . (SunroofThread t, Sunroof a, Sunroof b)
                => JSArray a -> (a -> JS t b) -> CompM [Stmt]
 compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
   counter <- newVar
