@@ -189,7 +189,7 @@ getElementsByTagName tag = invoke "getElementsByTagName" (tag)
 --   For use with 'document'.
 createAttribute :: JSString -- ^ The name of the new attribute.
                 -> JSObject -> JS t JSObject
-createAttribute attr = invoke "createAttribute" (attr)
+createAttribute a = invoke "createAttribute" (a)
 
 -- | Create a element DOM node with the given tag name.
 --   For use with 'document'.
