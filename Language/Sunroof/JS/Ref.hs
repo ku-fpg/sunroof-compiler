@@ -23,7 +23,7 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 -- JSRef Type
 -- -------------------------------------------------------------
 
--- | This is the IORef of Sunroof.
+-- | This is the 'IORef' of Sunroof.
 newtype JSRef a = JSRef JSObject
 
 instance (Sunroof a) => Show (JSRef a) where
@@ -46,20 +46,22 @@ instance (Sunroof a) => EqB (JSRef a) where
 -- JSRef Combinators
 -- -------------------------------------------------------------
 
+-- | Create a new 'JSRef' with the given intial value.
 newJSRef :: (Sunroof a) => a -> JS t (JSRef a)
 newJSRef a = do
   obj <- new "Object" ()
   obj # "val" := a
   return $ JSRef obj
 
--- | This a a non-blocking read
+-- | Non-blocking read of a 'JSRef'.
 readJSRef :: (Sunroof a) => JSRef a -> JS t a
 readJSRef (JSRef obj) = evaluate $ obj ! "val"
 
--- | This a a non-blocking write
+-- | Non-blocking write of a 'JSRef'.
 writeJSRef :: (Sunroof a) => JSRef a -> a -> JS t ()
 writeJSRef (JSRef obj) a = obj # "val" := a
 
+-- | Non-blocking modification of a 'JSRef'.
 modifyJSRef :: (Sunroof a) => JSRef a -> (a -> JS A a) -> JS A ()
 modifyJSRef ref f = do
   val <- readJSRef ref
