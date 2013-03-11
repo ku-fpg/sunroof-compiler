@@ -272,7 +272,7 @@ runFib doc n = monadicIO $ do
 
 
 -- Needs to be in Utils module
-fixJS :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> a -> JSA b
+fixJS :: (SunroofArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> a -> JSA b
 fixJS f a = do
         ref <- newJSRef (cast nullJS)
         fn <- function $ \ a' -> do

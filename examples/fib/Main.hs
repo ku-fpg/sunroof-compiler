@@ -98,7 +98,7 @@ click = event "click" Click
             <&> "pageX"   .=  "event.pageX"
             <&> "pageY"   .=  "event.pageY"
 
-recfunction :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> JS t (JSFunction a b)
+recfunction :: (SunroofArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> JS t (JSFunction a b)
 recfunction fn = do
         obj <- new "Object" ()
         f <- function $ fn (\ n -> obj # invoke "rec" n)
@@ -107,7 +107,7 @@ recfunction fn = do
 
 -- To be moved to a more general place
 
-fixJS :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> a -> JSA b
+fixJS :: (SunroofArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> a -> JSA b
 fixJS f a = do
         ref <- newJSRef (cast nullJS)
         fn <- function $ \ a' -> do
