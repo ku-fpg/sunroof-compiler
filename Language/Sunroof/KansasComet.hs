@@ -9,8 +9,8 @@
 
 module Language.Sunroof.KansasComet
   -- Basic Comet
-  ( sync
-  , async
+  ( syncJS
+  , asyncJS
   , wait
   , SunroofResult(..)
   , SunroofEngine(..)
@@ -115,8 +115,8 @@ compileLog engine src = do
 
 
 -- | Compile js using unique variables each time.
-compileRequest :: SunroofEngine -> JS t () -> IO String
-compileRequest engine jsm = do
+compileRequestJS :: SunroofEngine -> JS t () -> IO String
+compileRequestJS engine jsm = do
   -- Allocate a standard amount of uniq for compilation
   uq <- docUniqs compileUniqAlloc (cometDocument engine)
   -- Compile
@@ -139,9 +139,9 @@ compileRequest engine jsm = do
       return txt'
 
 -- | Executes the Javascript in the browser without waiting for a result.
-async :: SunroofEngine -> JS t () -> IO ()
-async engine jsm = do
-  src <- compileRequest engine jsm
+asyncJS :: SunroofEngine -> JS t () -> IO ()
+asyncJS engine jsm = do
+  src <- compileRequestJS engine jsm
   send (cometDocument engine) src  -- send it, and forget it
   return ()
 
@@ -166,14 +166,14 @@ rsync engine jsm = do
 --   The result value is given the corresponding Haskell type,
 --   if possible (see 'SunroofResult').
 
-sync :: forall a t . (SunroofResult a) => SunroofEngine -> JS t a -> IO (ResultOf a)
-sync engine jsm | typeOf (Proxy :: Proxy a) == Unit = do
-  _ <- sync engine (jsm >> return (0 :: JSNumber))
+syncJS :: forall a t . (SunroofResult a) => SunroofEngine -> JS t a -> IO (ResultOf a)
+syncJS engine jsm | typeOf (Proxy :: Proxy a) == Unit = do
+  _ <- syncJS engine (jsm >> return (0 :: JSNumber))
   return $ jsonToValue (Proxy :: Proxy a) Null
-sync engine jsm = do
+syncJS engine jsm = do
   up <- newUplink engine
   t0 <- getCurrentTime
-  src <- compileRequest engine (jsm >>= putUplink up)
+  src <- compileRequestJS engine (jsm >>= putUplink up)
   addCompileTime engine t0
   t1 <- getCurrentTime
   send (cometDocument engine) src
