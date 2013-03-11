@@ -236,7 +236,7 @@ data JSFunction args ret = JSFunction Expr
 instance Show (JSFunction a r) where
   show (JSFunction v) = showExpr False v
 
--- | Functions a first-class citizens of Javascript. Therefore they
+-- | Functions are first-class citizens of Javascript. Therefore they
 --   are 'Sunroof' values.
 instance forall a r . (JSArgument a, Sunroof r) => Sunroof (JSFunction a r) where
   box = JSFunction
