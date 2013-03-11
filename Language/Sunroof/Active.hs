@@ -13,7 +13,7 @@
 module Language.Sunroof.Active
   ( JSTime
   , JSDuration
-  , reifyActiveJS
+  , reifyActive
   ) where
 
 import Control.Newtype ( Newtype(..) )
@@ -112,9 +112,9 @@ instance FractionalOf JSDuration JSNumber where
 --ex1 :: Active JSTime (JS t JSNumber)
 --ex1 = fmap return ui
 
-reifyActiveJS :: Active JSTime (JS A ()) 
+reifyActive :: Active JSTime (JS A ()) 
               -> JS A (JSNumber, JSNumber, JSFunction JSNumber ())
-reifyActiveJS = onActive
+reifyActive = onActive
   (\ x -> do 
     f <- function (\ _ -> x)
     return ( 0, 0, f )
