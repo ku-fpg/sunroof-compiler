@@ -382,7 +382,7 @@ runTests doc all_tests = do
                      return Nothing
                afterTestCallback :: Int -> Callback
                afterTestCallback count = PostTest NotCounterexample $ \ state result -> do
-                 if not (abort result) && isJust (ok result)
+                 if not (P.abort result) && isJust (ok result)
                    then do
                      progressVal doc i j (((numSuccessTests state + 1) * 100) `div` count)
                      if numSuccessTests state `mod` (casesPerTest `div` 10) == 0
