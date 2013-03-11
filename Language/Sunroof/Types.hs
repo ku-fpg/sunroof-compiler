@@ -20,7 +20,7 @@ module Language.Sunroof.Types
   , single
   , JSI(..)
   , callcc
-  , reifyccJS, abortJS, liftJS
+  , reifycc, abort, liftJS
   , JSFunction
   , function, reify, continuation
   , apply, ($$)
@@ -203,14 +203,14 @@ callcc f = JS $ \ cc -> unJS (f (goto cc)) cc
 -- | reify the current contination as a JavaScript function.
 -- unlike callcc, captures then discards the continuation.
 
-reifyccJS :: SunroofArgument a => (JSFunction a () -> JS B ()) -> JS B a
-reifyccJS f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
-                                    f o
-                               ) (\ _ -> return ())
+reifycc :: SunroofArgument a => (JSFunction a () -> JS B ()) -> JS B a
+reifycc f = JS $ \ cc -> unJS (do o <- continuation (goto cc)
+                                  f o
+                              ) (\ _ -> return ())
 
 -- | Abort the current computation at this point.
-abortJS :: JS B a
-abortJS = JS $ \ _ -> return ()
+abort :: JS B a
+abort = JS $ \ _ -> return ()
 
 -- | Lift the atomic computation into another computation.
 liftJS :: (Sunroof a) => JS A a -> JS t a

@@ -10,7 +10,7 @@ module Language.Sunroof
   , T(..), ThreadProxy(..)
   , SunroofThread(..), SunroofThreadReturn(..)
   , JS(..), JSA, JSB
-  , abortJS, liftJS
+  , abort, liftJS
   , JSFunction
   , function, continuation
   , apply, ($$)
@@ -73,7 +73,7 @@ import Language.Sunroof.Types
   ( T(..), ThreadProxy(..)
   , SunroofThread(..), SunroofThreadReturn(..)
   , JS(..), JSA, JSB
-  , abortJS, liftJS
+  , abort, liftJS
   , JSFunction
   , function, continuation
   , apply, ($$)

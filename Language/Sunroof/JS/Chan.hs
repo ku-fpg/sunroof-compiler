@@ -21,7 +21,7 @@ import Language.Sunroof.Types
   , SunroofThread
   , (#)
   , apply, new, reify
-  , reifyccJS )
+  , reifycc )
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
@@ -82,11 +82,11 @@ readChan :: forall a . (Sunroof a, SunroofArgument a) => JSChan a -> JS B a
 readChan (match -> (written,waiting)) = do
   ifB (lengthArray written ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
-          reifyccJS $ \ k -> waiting # push (k :: JSFunction a ())
+          reifycc $ \ k -> waiting # push (k :: JSFunction a ())
       )
       (do f <- shift written
           -- Here, we add our continuation into the written Q.
-          reifyccJS $ \ k -> apply f k
+          reifycc $ \ k -> apply f k
       )
 
 

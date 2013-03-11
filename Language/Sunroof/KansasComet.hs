@@ -66,7 +66,7 @@ import qualified Web.KansasComet as KC
 import Language.Sunroof.Types
   ( T(..), JS
   , nullJS
-  , reifyccJS
+  , reifycc
   , apply, fun )
 import Language.Sunroof.JavaScript
   ( Expr, Type(Unit)
@@ -195,7 +195,7 @@ sync engine jsm = do
 --  ((a -> Program (JSI t) ()) -> Program (JSI t) ())
 
 wait :: Scope -> Template event -> JS B JSObject
-wait scope tmpl = reifyccJS $ \ o -> do
+wait scope tmpl = reifycc $ \ o -> do
   apply (fun "$.kc.waitFor") ( string scope
                              , object (show (map fst (extract tmpl)))
                              , o

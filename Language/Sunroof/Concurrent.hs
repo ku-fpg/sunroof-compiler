@@ -12,7 +12,7 @@ import Language.Sunroof.Types
   , continuation, reify
   , apply, cast, nullJS
   , (#)
-  , liftJS, reifyccJS )
+  , liftJS, reifycc )
 import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.JS.Ref ( newJSRef, readJSRef, writeJSRef )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -52,7 +52,7 @@ forkJS m = do
 -- | Delay the execution of all instructions after this one by
 --   the given amount of milliseconds.
 threadDelay :: JSNumber -> JSB ()
-threadDelay n = reifyccJS $ \ o -> do
+threadDelay n = reifycc $ \ o -> do
   _ <- liftJS $ window # setTimeout o n
   return ()
 

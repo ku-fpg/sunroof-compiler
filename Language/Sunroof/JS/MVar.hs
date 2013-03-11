@@ -20,7 +20,7 @@ import Language.Sunroof.Types
   , JSTuple(..), JSFunction
   , (#)
   , apply, new, reify
-  , reifyccJS )
+  , reifycc )
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
@@ -77,7 +77,7 @@ newEmptyMVar = do
 putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
   ifB (lengthArray waiting ==* 0)
-      (reifyccJS $ \ (k :: JSFunction () ()) -> do
+      (reifycc $ \ (k :: JSFunction () ()) -> do
             f <- reify $ \ (kr :: JSFunction a ()) -> do
                 -- we've got a request for the contents
                 -- so we can continue
@@ -95,11 +95,11 @@ takeMVar :: forall a . (Sunroof a, SunroofArgument a) => JSMVar a -> JS B a
 takeMVar (match -> (written,waiting)) = do
   ifB (lengthArray written ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
-          reifyccJS $ \ k -> waiting # push (k :: JSFunction a ())
+          reifycc $ \ k -> waiting # push (k :: JSFunction a ())
       )
       (do f <- shift written
           -- Here, we add our continuation into the written Q.
-          reifyccJS $ \ k -> apply f k
+          reifycc $ \ k -> apply f k
       )
 
 
