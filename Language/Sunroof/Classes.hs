@@ -5,6 +5,7 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- | Provides the central type classes used by Sunroof.
 module Language.Sunroof.Classes
   ( Sunroof(..)
   , SunroofValue(..)
@@ -23,14 +24,19 @@ import Language.Sunroof.JavaScript ( Expr, E(Var), Type(Base,Unit), literal )
 -- UniqM Type Class
 -- -------------------------------------------------------------
 
-type Uniq = Int -- used as a unique label
+-- | Used for unique number generation.
+type Uniq = Int
 
+-- | Implemented if a monad supports unique number generation.
 class Monad m => UniqM m where
+  -- | Generate a unique number.
   uniqM :: m Uniq
 
+-- | Creates a Javascript variable of any Sunroof type.
 mkVar :: Sunroof a => Uniq -> a
 mkVar = box . Var . ("v" ++) . show
 
+-- | Create a unique Javascript variable of any Sunroof type.
 jsVar :: (Sunroof a, UniqM m) => m a
 jsVar = uniqM >>= return . mkVar
 
@@ -38,17 +44,28 @@ jsVar = uniqM >>= return . mkVar
 -- Sunroof Type Class
 -- -------------------------------------------------------------
 
+-- | Central type class of Sunroof. Every type that can be translated
+--   into Javascript with Sunroof has to implement this type class.
 class Show a => Sunroof a where
+  -- | Create a Sunroof value from a plain Javascript expression.
   box :: Expr -> a
+  -- | Reveal the plain Javascript expression that represents this Sunroof value.
   unbox :: a -> Expr
-
-  showVar :: a -> String -- needed because show instance for unit is problematic
+  
+  -- | Create a string representation of this Sunroof value.
+  --   The created representation has to be executable Javascript.
+  --   The default implentation uses 'show'. This 
+  --   function is needed, because unit is a Sunroof value.
+  showVar :: a -> String
   showVar = show
-
+  
+  -- | Returns the type of Javascript expression this Sunroof value
+  --   represents. The default implementation returns 'Base' as type.
   typeOf :: Proxy a -> Type
   typeOf _ = Base
 
--- unit is the oddball
+-- | Unit is a Sunroof value. It can be viewed as a representation
+--   of @null@ or @void@.
 instance Sunroof () where
 --  showVar _ = ""
   box _ = ()
