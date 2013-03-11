@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -60,6 +61,8 @@ module Language.Sunroof.JS.Browser
 
 import Prelude hiding (isNaN)
 
+import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
+
 import Language.Sunroof.Types
   ( JSFunction
   , JS
@@ -72,7 +75,7 @@ import Language.Sunroof.Types
   )
 import Language.Sunroof.Classes ( Sunroof(..), JSArgument )
 import Language.Sunroof.Selector ( JSSelector )
-import Language.Sunroof.JS.Bool ( JSBool )
+import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
 import Language.Sunroof.JS.String ( JSString )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -255,11 +258,22 @@ url = attribute "URL"
 -- -----------------------------------------------------------------------
 
 data JSConsole = JSConsole JSObject
-        deriving (Show)
+
+instance Show JSConsole where
+  show (JSConsole o) = show o
 
 instance Sunroof JSConsole where
         box = JSConsole . box
         unbox (JSConsole e) = unbox e
+
+type instance BooleanOf JSConsole = JSBool
+
+instance IfB JSConsole where
+  ifB = jsIfB
+
+-- | Reference equality, not value equality.
+instance EqB JSConsole where
+  (JSConsole a) ==* (JSConsole b) = a ==* b
 
 -- | The console object.
 console :: JSConsole
