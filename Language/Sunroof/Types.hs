@@ -19,7 +19,7 @@ module Language.Sunroof.Types
   , unJS
   , single
   , JSI(..)
-  , goto, callcc, callcc'
+  , callcc
   , reifyccJS, abortJS, liftJS
   , JSFunction
   , function, reify, continuation
@@ -199,10 +199,6 @@ goto cont argument = JS $ \ _ -> cont argument
 --callCC :: ((a -> JS 'B x) -> JS 'B a) -> JS 'B a
 callcc :: (x ~ ()) => ((a -> JS 'B x) -> JS 'B a) -> JS 'B a
 callcc f = JS $ \ cc -> unJS (f (goto cc)) cc
-
--- this one discards its
-callcc' :: ((a -> JS 'B ()) -> JS 'B ()) -> JS 'B a
-callcc' f = JS $ \ cc -> unJS (f (goto cc)) return
 
 -- | reify the current contination as a JavaScript function.
 -- unlike callcc, captures then discards the continuation.
