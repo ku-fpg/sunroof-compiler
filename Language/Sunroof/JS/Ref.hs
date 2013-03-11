@@ -3,6 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 
+-- | This module provides the equivalent of a 'IORef' in the Sunroof world.
 module Language.Sunroof.JS.Ref
         ( JSRef
         , newJSRef
