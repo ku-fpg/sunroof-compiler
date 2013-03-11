@@ -9,9 +9,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Language.Sunroof.Compiler
-  ( sunroofCompiler
+  ( sunroofCompileJS
   , compileJSI
-  , extractProgram
+  , extractProgramJS
   , CompilerOpts(..)
   ) where
 
@@ -58,13 +58,13 @@ data CompilerOpts = CompilerOpts
 instance Default CompilerOpts where
   def = CompilerOpts True False False 0
 
-sunroofCompiler :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
-sunroofCompiler opts fName f = do
-  (stmts,_) <- compileJSI opts 0 $ extractProgram (single . JS_Return) f
+sunroofCompileJS :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
+sunroofCompileJS opts fName f = do
+  (stmts,_) <- compileJSI opts 0 $ extractProgramJS (single . JS_Return) f
   return $ showStmt $ VarStmt fName $ Apply (ExprE $ Function [] stmts) []
 
-extractProgram :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
-extractProgram k m = unJS (m >>= k) return
+extractProgramJS :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
+extractProgramJS k m = unJS (m >>= k) return
 
 -- TODO: generalize with a closer
 compileJSI :: CompilerOpts -> Uniq -> Program (JSI t) () -> IO ([Stmt], Uniq)
@@ -150,8 +150,8 @@ compileBranch_A b c1 c2 k = do
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
   res          <- newVar
   (src0, res0) <- compileExpr (unbox b)
-  src1 <- compile $ extractProgram (single . JS_Assign_ res) c1
-  src2 <- compile $ extractProgram (single . JS_Assign_ res) c2
+  src1 <- compile $ extractProgramJS (single . JS_Assign_ res) c1
+  src2 <- compile $ extractProgramJS (single . JS_Assign_ res) c2
   rest <- compile (k (var res))
   return ( [VarStmt res (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
@@ -162,8 +162,8 @@ compileBranch_B b c1 c2 k = do
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
   fn           <- newVar
   (src0, res0) <- compileExpr (unbox b)
-  src1 <- compile $ extractProgram (apply (var fn)) c1
-  src2 <- compile $ extractProgram (apply (var fn)) c2
+  src1 <- compile $ extractProgramJS (apply (var fn)) c1
+  src2 <- compile $ extractProgramJS (apply (var fn)) c2
   return ( [VarStmt fn fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
 
 compileBranch :: forall a bool t . (JSThread t, Sunroof bool, Sunroof a, JSArgument a)
@@ -178,7 +178,7 @@ compileFunction :: forall a b t . (JSThreadReturn t b, JSArgument a, Sunroof b)
                 -> CompM Expr
 compileFunction m2 = do
   (arg :: a) <- jsValue
-  fStmts <- compile $ extractProgram (\ a -> JS $ \ k -> threadCloser a >>= k) (m2 arg)
+  fStmts <- compile $ extractProgramJS (\ a -> JS $ \ k -> threadCloser a >>= k) (m2 arg)
   return $ Function (map varIdE $ jsArgs arg) fStmts
 
 {-
@@ -191,7 +191,7 @@ compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
   arrVar <- newVar
 
   let condRet = unbox $ (var counter :: JSNumber) <* (var arrVar ! attr "length")
-  bodyStmts <- compile $ extractProgram (const $ return ()) $ do
+  bodyStmts <- compile $ extractProgramJS (const $ return ()) $ do
     e <- evaluate $ var arrVar ! label (cast (var counter :: JSNumber))
     _ <- body e
     return ()
