@@ -20,11 +20,11 @@ main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \ doc -> do
   registerEvents (cometDocument doc) "body" click
   sequence_ $ map (\ex -> whenEvent (cometDocument doc) "body" click 
-                        $ async doc $ onClick $ ex)
+                        $ asyncJS doc $ onClick $ ex)
                   (cycle examples)
   --whenEvent doc "body" click
-  --  $ sync doc $ onClick $ examples !! 0
-  --sequence_ $ map (sync doc) $ map waitForClick $ examples
+  --  $ syncJS doc $ onClick $ examples !! 0
+  --sequence_ $ map (syncJS doc) $ map waitForClick $ examples
   --return ()
 
 default(JSNumber, JSString, String)

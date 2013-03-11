@@ -31,7 +31,7 @@ main = do
     sunroofCompileJS def "main" example >>= writeFile "main.js"
     sunroofServer (def { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \ doc -> do
         registerEvents (cometDocument doc) "body" (slide <> click)
-        async doc example
+        asyncJS doc example
 
 example :: JS A ()
 example = do

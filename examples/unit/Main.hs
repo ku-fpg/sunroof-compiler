@@ -144,13 +144,13 @@ checkConstValue :: ( Eq a
                    , a ~ ResultOf (ValueOf a)
                    ) => TestEngine -> a -> Property
 checkConstValue doc n = monadicIO $ do
-  n' <- run $ sync (srEngine doc) (return $ js n)
+  n' <- run $ syncJS (srEngine doc) (return $ js n)
   assert $ n == n'
 
 -- | Check if a constant literal number is the same after sync.
 checkConstNumber :: TestEngine -> Double -> Property
 checkConstNumber doc n = monadicIO $ do
-  n' <- run $ sync (srEngine doc) (return $ js n)
+  n' <- run $ syncJS (srEngine doc) (return $ js n)
   -- Some weird conversion error going on. The returned value has more digits!
   assert $ n `deltaEqual` n'
 
@@ -159,7 +159,7 @@ checkConstNumber doc n = monadicIO $ do
 checkBasicArith :: TestEngine -> (forall b. (Num b) => b -> b -> b) -> Double -> Double -> Property
 checkBasicArith doc op x y = monadicIO $ do
   let r = (x `op` y)
-  r' <- run $ sync (srEngine doc) (return (js x `op` js y :: JSNumber))
+  r' <- run $ syncJS (srEngine doc) (return (js x `op` js y :: JSNumber))
   assert $ r `deltaEqual` r'
 
 -- | Check if arithmetic expressions of arbitrary size produce the same result
@@ -170,7 +170,7 @@ checkArbitraryArith doc seed = monadicIO $ do
   (r, e) <- pick $ sameSeed (numExprGen n :: Gen Double)
                             (numExprGen n :: Gen JSNumber)
   pre $ abs r < (100000000 :: Double)
-  r' <- run $ sync (srEngine doc) (return e)
+  r' <- run $ syncJS (srEngine doc) (return e)
   assert $ r `deltaEqual` r'
 
 checkArbitraryBool :: TestEngine -> Int -> Property
@@ -178,7 +178,7 @@ checkArbitraryBool doc seed = monadicIO $ do
   let n = (abs seed `mod` 8) + 1
   (b, e) <- pick $ sameSeed (boolExprGen n :: Gen Bool)
                             (boolExprGen n :: Gen JSBool)
-  b' <- run $ sync (srEngine doc) (return e)
+  b' <- run $ syncJS (srEngine doc) (return e)
   assert $ b == b'
 
 checkArbitraryIfThenElse_Int :: forall t . (SunroofThread t) => TestEngine -> ThreadProxy t -> Int -> Property
@@ -193,7 +193,7 @@ checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
   pre $ abs r1 < (100000000 :: Double)
   pre $ abs r2 < (100000000 :: Double)
 --  run $ print ("e,e1,e2",e,e1,e2)
-  r12' <- run $ sync (srEngine doc) (ifB e (return e1) (return e2) >>= return :: JS t JSNumber)
+  r12' <- run $ syncJS (srEngine doc) (ifB e (return e1) (return e2) >>= return :: JS t JSNumber)
   assert $ (if b then r1 else r2) == r12'
 
 {-
@@ -250,7 +250,7 @@ checkArbitraryChan_Int doc wbr newChan writeChan readChan seed = monadicIO $ do
 
 
           return arr
-  res :: [Double] <- run $ sync (srEngine doc) prog
+  res :: [Double] <- run $ syncJS (srEngine doc) prog
   assert $ map round res == dat
 
 
@@ -258,7 +258,7 @@ checkArbitraryChan_Int doc wbr newChan writeChan readChan seed = monadicIO $ do
 --   the same value after sync.
 runFib :: TestEngine -> Int -> Property
 runFib doc n = monadicIO $ do
-  r' <- run $ sync (srEngine doc) $ do
+  r' <- run $ syncJS (srEngine doc) $ do
         fib <- function $ fixJS $ \ fib (n :: JSNumber) -> do
                 ifB (n <* 2)
                     (return (1 :: JSNumber))
@@ -289,7 +289,7 @@ data Test = forall a. Testable a => Test Int String a
 
 runTests :: TestEngine -> [(String,[Test])] -> IO ()
 runTests doc all_tests = do
-  sync (srEngine doc) $ do
+  syncJS (srEngine doc) $ do
           -- Set the fatal callback to continue, because we are testing things.
           fatal <- function $ \ (_::JSObject,_::JSObject,_::JSObject,f::JSFunction () ()) -> apply f ()
           () <- fun "$.kc.failure"  `apply` fatal
@@ -297,7 +297,7 @@ runTests doc all_tests = do
 
 
   let section title body = do
-          async (srEngine doc) $ do
+          asyncJS (srEngine doc) $ do
                    jQuery "#testing-text" >>= JQuery.append (cast $ js $
                           "<h1>" ++ title ++ "</h1>" ++ "<table>" ++ body ++ "</table>")
                    return ()
@@ -324,7 +324,7 @@ runTests doc all_tests = do
       casesPerTest = 100
 
   -- set them all to 100 max
-  async (srEngine doc) $ do
+  asyncJS (srEngine doc) $ do
     () <- jQuery ".progressbar" >>= invoke "progressbar" ()  :: JS t ()
     () <- jQuery ".progressbar" >>= invoke "progressbar" ( "option" :: JSString
                                                    , "max" :: JSString
@@ -399,7 +399,7 @@ runTests doc all_tests = do
     | (i::Int,(txt,tests)) <- [1..] `zip` all_tests
     ]
 
-  async (srEngine doc) $ do
+  asyncJS (srEngine doc) $ do
     p <- pbObject 0 0 $ \ n -> "." ++ n ++ " td.progress"
     p # JQuery.html$ js $ "<b align=\"center\">" ++
                     show (length result) ++ " test(s), "++
@@ -428,7 +428,7 @@ pbObject :: Int -> Int -> (String -> String) -> JS t JSObject
 pbObject i j f = jQuery $ js $ f $ pbName i j
 
 progressVal :: TestEngine -> Int -> Int -> Int -> IO ()
-progressVal doc i j n = async (srEngine doc) $ do
+progressVal doc i j n = asyncJS (srEngine doc) $ do
   p <- pbObject i j $ \ n -> "." ++ n ++ " .progressbar"
   p # invoke "progressbar" ( "option" :: JSString
                            , "value" :: JSString
@@ -436,7 +436,7 @@ progressVal doc i j n = async (srEngine doc) $ do
 
 
 overwriteMessage :: TestEngine -> Int -> Int -> String -> String -> IO ()
-overwriteMessage doc i j msg cls = async (srEngine doc) $ do
+overwriteMessage doc i j msg cls = asyncJS (srEngine doc) $ do
   p <- pbObject i j $ \ n -> "." ++ n ++ " td.progress"
   p # JQuery.html(js msg)
   p # JQuery.addClass(js cls)
@@ -444,7 +444,7 @@ overwriteMessage doc i j msg cls = async (srEngine doc) $ do
 
 writeTimings :: TestEngine -> Int -> Int -> Timings Double -> IO ()
 writeTimings doc i j t | teStyle doc /= TestWithTiming = return ()
-writeTimings doc i j t = async (srEngine doc) $ do
+writeTimings doc i j t = asyncJS (srEngine doc) $ do
         pnt 1 (compileTime t)
         pnt 2 (sendTime t)
         pnt 3 (waitTime t)

@@ -22,7 +22,7 @@ import Language.Sunroof.JS.Date
 
 main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." })
-     $ \doc -> async doc clockJS
+     $ \doc -> asyncJS doc clockJS
 
 default(JSNumber, JSString, String)
 

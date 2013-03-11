@@ -19,7 +19,7 @@ import Language.Sunroof.JS.JQuery
 main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \doc -> do
   registerEvents (cometDocument doc) "body" (slide <> click)
-  async doc prog
+  asyncJS doc prog
 
 prog :: JSB ()
 prog = do

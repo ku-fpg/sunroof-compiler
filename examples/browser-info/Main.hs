@@ -26,40 +26,40 @@ main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \doc -> do
 --  registerEvents (cometDocument doc) "body" mempty
 
-  theCookie <- sync doc $ evaluate $ document ! cookie
+  theCookie <- syncJS doc $ evaluate $ document ! cookie
   putStrLn $ "Cookie:     " ++ show theCookie
 
-  theTitle <- sync doc $ evaluate $ document ! title
+  theTitle <- syncJS doc $ evaluate $ document ! title
   putStrLn $ "Title:      " ++ show theTitle
 
-  theReferrer <- sync doc $ evaluate $ document ! referrer
+  theReferrer <- syncJS doc $ evaluate $ document ! referrer
   putStrLn $ "Referrer:   " ++ show theReferrer
 
-  theUrl <- sync doc $ evaluate $ document ! url
+  theUrl <- syncJS doc $ evaluate $ document ! url
   putStrLn $ "URL:        " ++ show theUrl
 
-  theUserAgent <- sync doc $ evaluate $ object "navigator" ! (attr "userAgent" :: JSSelector JSString)
+  theUserAgent <- syncJS doc $ evaluate $ object "navigator" ! (attr "userAgent" :: JSSelector JSString)
   putStrLn $ "User Agent: " ++ show theUserAgent
 
-  theWidth  <- sync doc
+  theWidth  <- syncJS doc
              $ evaluate $ screen ! (attr "width" :: JSSelector JSNumber)
-  theHeight <- sync doc
+  theHeight <- syncJS doc
              $ evaluate $ screen ! (attr "height" :: JSSelector JSNumber)
   putStrLn $ "Screen Size:   " ++ show theWidth ++ " x " ++ show theHeight
 
-  theOuterWidth  <- sync doc
+  theOuterWidth  <- syncJS doc
                   $ evaluate $ window ! (attr "outerWidth" :: JSSelector JSNumber)
-  theOuterHeight <- sync doc
+  theOuterHeight <- syncJS doc
                   $ evaluate $ window ! (attr "outerHeight" :: JSSelector JSNumber)
   putStrLn $ "Window Size:   " ++ show theOuterWidth ++ " x " ++ show theOuterHeight
 
-  theInnerWidth  <- sync doc
+  theInnerWidth  <- syncJS doc
                   $ evaluate $ window ! (attr "innerWidth" :: JSSelector JSNumber)
-  theInnerHeight <- sync doc
+  theInnerHeight <- syncJS doc
                   $ evaluate $ window ! (attr "innerHeight" :: JSSelector JSNumber)
   putStrLn $ "Viewport Size: " ++ show theInnerWidth ++ " x " ++ show theInnerHeight
 
-  async doc $ do
+  asyncJS doc $ do
     println "Cookie" theCookie
     println "Title" theTitle
     println "Referrer" theReferrer
