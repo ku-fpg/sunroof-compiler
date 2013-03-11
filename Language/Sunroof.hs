@@ -61,11 +61,16 @@ module Language.Sunroof
   , JSChan
   , newChan
   , writeChan, readChan
+  -- MVar
+  , JSMVar
+  , newMVar
+  , newEmptyMVar
+  , takeMVar, putMVar
   ) where
 
 import Language.Sunroof.JavaScript ( Type(..) )
 
-import Language.Sunroof.Classes 
+import Language.Sunroof.Classes
   ( Sunroof(..), SunroofValue(..), JSArgument(..) )
 
 import Language.Sunroof.Types
@@ -113,7 +118,7 @@ import Language.Sunroof.JS.Object ( JSObject, object, this )
 import Language.Sunroof.JS.Number ( JSNumber, int )
 import Language.Sunroof.JS.String ( JSString, string )
 
-import Language.Sunroof.JS.Array 
+import Language.Sunroof.JS.Array
   ( JSArray
   , array, newArray
   , lengthArray
@@ -126,6 +131,11 @@ import Language.Sunroof.JS.Chan
   ( JSChan
   , newChan
   , writeChan, readChan )
+
+import Language.Sunroof.JS.MVar
+  ( JSMVar
+  , newMVar, newEmptyMVar
+  , takeMVar, putMVar )
 
 
 
