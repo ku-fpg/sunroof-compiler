@@ -16,10 +16,6 @@ import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser ( alert )
 import Language.Sunroof.JS.JQuery
 
-main2 :: IO ()
-main2 = do
-    staticCompiler def "main" prog >>= writeFile "main.js"
-
 main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \doc -> do
   registerEvents (cometDocument doc) "body" (slide <> click)

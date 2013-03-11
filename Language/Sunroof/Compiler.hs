@@ -9,10 +9,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Language.Sunroof.Compiler
-  ( staticCompiler
-  , sunroofCompiler
-  , compileJS_A
-  , compileJS_B
+  ( sunroofCompiler
   , compileJSI
   , extractProgram
   , CompilerOpts(..)
@@ -61,24 +58,10 @@ data CompilerOpts = CompilerOpts
 instance Default CompilerOpts where
   def = CompilerOpts True False False 0
 
-
-staticCompiler :: CompilerOpts -> String -> JS t () -> IO String
-staticCompiler opts fName jsm = do
-  (stmts,_) <- compileJSI opts 0 $ extractProgram return jsm
-  return $ showStmt $ VarStmt fName $ Function [] stmts
-
 sunroofCompiler :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
 sunroofCompiler opts fName f = do
   (stmts,_) <- compileJSI opts 0 $ extractProgram (single . JS_Return) f
   return $ showStmt $ VarStmt fName $ Apply (ExprE $ Function [] stmts) []
-
-
-compileJS_A :: (Sunroof a) => CompilerOpts -> Uniq -> JS A a -> IO ([Stmt], Uniq)
-compileJS_A opts uq = compileJSI opts uq . extractProgram (single . JS_Return)
-
--- It is not possible to compile JS B a, because where does the 'a' get returned to?
-compileJS_B :: (Sunroof a) => CompilerOpts -> Uniq -> JS B () -> IO ([Stmt], Uniq)
-compileJS_B opts uq = compileJSI opts uq . extractProgram (const $ return ())
 
 extractProgram :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
 extractProgram k m = unJS (m >>= k) return
@@ -349,9 +332,4 @@ varIdE e = case e of
   v -> error $ "varId: Expressions is not a variable: " ++ show v
 
 ----------------------------------------------------------------------------------
-
-testA :: (Sunroof a) => JS A a -> IO [Stmt]
-testA m = do
-  (stmts,_) <- compileJS_A def 0 m
-  return stmts
 

@@ -23,7 +23,6 @@ module Language.Sunroof
   , nullJS
   , JSTuple(..)
   -- Compiler
-  , staticCompiler
   , sunroofCompiler
   , CompilerOpts(..)
   -- Selector
@@ -88,8 +87,7 @@ import Language.Sunroof.Types
   , JSTuple(..) )
 
 import Language.Sunroof.Compiler
-  ( staticCompiler
-  , sunroofCompiler
+  ( sunroofCompiler
   , CompilerOpts(..) )
 
 import Language.Sunroof.Selector

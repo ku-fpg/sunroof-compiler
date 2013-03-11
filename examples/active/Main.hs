@@ -28,7 +28,7 @@ import Language.Sunroof.Active
 
 main :: IO ()
 main = do
-    staticCompiler def "main" example >>= writeFile "main.js"
+    sunroofCompiler def "main" example >>= writeFile "main.js"
     sunroofServer (def { sunroofVerbose = 3, cometResourceBaseDir = ".." }) $ \ doc -> do
         registerEvents (cometDocument doc) "body" (slide <> click)
         async doc example
