@@ -19,6 +19,7 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 -- JSObject Type
 -- -------------------------------------------------------------
 
+-- | Data type for all Javascript objects.
 data JSObject = JSObject Expr
 
 instance Show JSObject where
@@ -45,5 +46,6 @@ instance SunroofValue Expr where
 object :: String -> JSObject
 object = box . literal
 
+-- | The @this@ reference.
 this :: JSObject
 this = object "this"

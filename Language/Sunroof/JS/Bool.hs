@@ -18,6 +18,7 @@ import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 -- JSBool Type
 -- -------------------------------------------------------------
 
+-- | Booleans in Javascript.
 data JSBool = JSBool Expr
 
 instance Show JSBool where
@@ -54,5 +55,8 @@ instance SunroofValue Bool where
 -- JSBool Combinators
 -- -------------------------------------------------------------
 
+-- | Combinator for @if-then-else@ expressions. Not intended
+--   for usage. Provided as a convenience for 'Data.Boolean.IfB'
+--   instances. Use 'Data.Boolean.ifB' instead.
 jsIfB :: (Sunroof a) => JSBool -> a -> a -> a
 jsIfB (JSBool c) t e = box $ operator "?:" [c, unbox t, unbox e]
