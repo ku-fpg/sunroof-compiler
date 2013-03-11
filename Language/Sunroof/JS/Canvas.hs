@@ -402,66 +402,66 @@ quadraticCurveTo (cx, cy) (ex, ey) =
 
 -- | Selects the width attribute.
 width :: JSSelector JSNumber
-width = attribute "width"
+width = attr "width"
 
 -- | Selects the height attribute.
 height :: JSSelector JSNumber
-height = attribute "height"
+height = attr "height"
 
 -- | Selects the data attribute.
 data' :: JSSelector JSObject
-data' = attribute "data"
+data' = attr "data"
 
 -- | Selects the global alpha attribute.
 globalAlpha :: JSSelector JSNumber
-globalAlpha = attribute "globalAlpha"
+globalAlpha = attr "globalAlpha"
 
 -- | Selects the shadow color attribute.
 shadowColor :: JSSelector JSString
-shadowColor = attribute "shadowColor"
+shadowColor = attr "shadowColor"
 
 -- | Selects the blur level for shadows.
 shadowBlur :: JSSelector JSNumber
-shadowBlur = attribute "shadowBlur"
+shadowBlur = attr "shadowBlur"
 
 -- | Selects the x offset of a shadow from a shape.
 shadowOffsetX :: JSSelector JSNumber
-shadowOffsetX = attribute "shadowOffsetX"
+shadowOffsetX = attr "shadowOffsetX"
 
 -- | Selects the y offset of a shadow from a shape.
 shadowOffsetY :: JSSelector JSNumber
-shadowOffsetY = attribute "shadowOffsetY"
+shadowOffsetY = attr "shadowOffsetY"
 
 -- | Selects the stroke style of the context.
 strokeStyle :: JSSelector JSString
 -- TODO: Add support for patterns and gradients.
-strokeStyle = attribute "strokeStyle"
+strokeStyle = attr "strokeStyle"
 
 -- | Selects the text alignment to be used when drawing text.
 --   Possible values are: "center", "end", "left", "right", "start"
 textAlign :: JSSelector JSString
-textAlign = attribute "textAlign"
+textAlign = attr "textAlign"
 
 -- | Selects the baseline to use when drawing text.
 --   Possible values are: "alphabetic", "top", "hanging", "middle", "ideographic", "bottom"
 textBaseline :: JSSelector JSString
-textBaseline = attribute "textBaseline"
+textBaseline = attr "textBaseline"
 
 -- | Sets the line cap style to use.
 --   Possible values are: "butt", "round", "square";
 lineCap :: JSSelector JSString
-lineCap = attribute "lineCap"
+lineCap = attr "lineCap"
 
 -- | Selects the line join style to use.
 --   Possible values are: "bevel", "round", "meter";
 lineJoin :: JSSelector JSString
-lineJoin = attribute "lineJoin"
+lineJoin = attr "lineJoin"
 
 -- | Selects the line width used when stroking.
 lineWidth :: JSSelector JSNumber
-lineWidth = attribute "lineWidth"
+lineWidth = attr "lineWidth"
 
 -- | Selects the font used by the context.
 font :: JSSelector JSString
-font = attribute "font"
+font = attr "font"
 

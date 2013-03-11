@@ -69,7 +69,7 @@ import Language.Sunroof.Types
   , JS ( (:=) )
   , fun
   , invoke
-  , attribute
+  , attr
   , apply
   , (#)
   )
@@ -231,12 +231,12 @@ setCookie c = "cookie" := c
 -- | Returns the value of the cookie.
 --   For use with 'document'.
 cookie :: JSSelector JSString
-cookie = attribute "cookie"
+cookie = attr "cookie"
 
 -- | Returns the referrer of the document.
 --   For use with 'document'.
 referrer :: JSSelector JSString
-referrer = attribute "referrer"
+referrer = attr "referrer"
 
 -- | Sets the title of the document.
 --   For use with 'document'.
@@ -246,12 +246,12 @@ setTitle t = "title" := t
 -- | Returns the title of the document.
 --   For use with 'document'.
 title :: JSSelector JSString
-title = attribute "title"
+title = attr "title"
 
 -- | Returns the complete URL of the document.
 --   For use with 'document'.
 url :: JSSelector JSString
-url = attribute "URL"
+url = attr "URL"
 
 -- -----------------------------------------------------------------------
 -- Console API

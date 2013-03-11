@@ -63,8 +63,8 @@ instance (JSArgument o) => JSTuple (JSChan o) where
 
 newChan :: (JSArgument a) => JS t (JSChan a)
 newChan = do
-  written <- newArray
-  waiting <- newArray
+  written <- newArray ()
+  waiting <- newArray ()
   tuple (written, waiting)
 
 writeChan :: forall t a . (JSThread t, JSArgument a) => a -> JSChan a -> JS t ()

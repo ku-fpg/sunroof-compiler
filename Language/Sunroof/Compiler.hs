@@ -207,7 +207,7 @@ compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
   -- is not reprinted for each access.
   arrVar <- newVar
 
-  let condRet = unbox $ (var counter :: JSNumber) <* (var arrVar ! attribute "length")
+  let condRet = unbox $ (var counter :: JSNumber) <* (var arrVar ! attr "length")
   bodyStmts <- compile $ extractProgram (const $ return ()) $ do
     e <- evaluate $ var arrVar ! label (cast (var counter :: JSNumber))
     _ <- body e

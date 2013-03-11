@@ -26,7 +26,7 @@ module Language.Sunroof.Types
   , apply, ($$)
   , cast
   , (#)
-  , attribute
+  , attr
   , fun, invoke, new
   , evaluate, value
   , switch
@@ -331,11 +331,11 @@ infixr 0 #
 --   signature to avoid ambiguity. Example:
 --   
 -- > length :: JSSelector JSNumber
--- > length = attribute "length"
+-- > length = attr "length"
 --   
 --   Selectors can be used with '!'.
-attribute :: String -> JSSelector a
-attribute attr = label $ string attr
+attr :: String -> JSSelector a
+attr a = label $ string a
 
 -- | @invoke s a o@ calls the method with name @s@ using the arguments @a@
 --   on the object @o@. A typical use would look like this:
@@ -350,7 +350,7 @@ attribute attr = label $ string attr
 --   Like this the flexible type signature gets fixed. See 'Language.Sunroof.Types.#' 
 --   for how to use these bindings.
 invoke :: (JSArgument a, Sunroof r, Sunroof o) => String -> a -> o -> JS t r
-invoke str args obj = (obj ! attribute str) `apply` args
+invoke str args obj = (obj ! attr str) `apply` args
 
 -- | @new n a@ calls the new operator on the constructor @n@
 --   supplying the argument @a@. A typical use would look like this:

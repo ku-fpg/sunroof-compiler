@@ -21,13 +21,12 @@ import Data.Boolean ( BooleanOf, IfB(..) )
 import Language.Sunroof.JavaScript ( Expr, showExpr, literal, binOp )
 import Language.Sunroof.Types 
   ( JS, T(A)
-  , cast, invoke, function, evaluate, attribute
+  , cast, invoke, function, attr, new
   , (#) )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), JSArgument(..) )
 import Language.Sunroof.Selector ( index, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Number ( JSNumber )
-import Language.Sunroof.JS.Object ( object )
 
 -- -------------------------------------------------------------
 -- JSArray Type
@@ -69,14 +68,14 @@ array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
 array l  = box $ literal $ "[" ++ intercalate "," (fmap (showExpr False . unbox . js) l) ++ "]"
 
 -- Operations on arrays
-newArray :: (Sunroof a) => JS t (JSArray a)
-newArray = evaluate $ cast $ object "new Array()"
+newArray :: (JSArgument args, Sunroof a) => args -> JS t (JSArray a)
+newArray args = cast `fmap` new "Array" args
 
 emptyArray :: (Sunroof a) => JSArray a
 emptyArray = box $ literal "[]"
 
 lengthArray :: (Sunroof a) => JSArray a -> JSNumber
-lengthArray o = o ! attribute "length"
+lengthArray o = o ! attr "length"
 
 pushArray :: (JSArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 pushArray a = invoke "push" a

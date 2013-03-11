@@ -16,7 +16,7 @@ module Language.Sunroof
   , apply, ($$)
   , cast
   , (#)
-  , attribute
+  , attr
   , fun, invoke, new
   , evaluate, value
   , switch
@@ -78,7 +78,7 @@ import Language.Sunroof.Types
   , apply, ($$)
   , cast
   , (#)
-  , attribute
+  , attr
   , fun, invoke, new
   , evaluate, value
   , switch
