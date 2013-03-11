@@ -43,7 +43,7 @@ prog = do
                 ch # writeChan o)
 
       obj <- new "Object" ()
-      obj # attribute "model" := (0 :: JSNumber)
+      obj # attr "model" := (0 :: JSNumber)
 
       -- This is using the imperative update to enable the
       let slider :: JSNumber -> JSObject -> JSB JSObject
@@ -52,7 +52,7 @@ prog = do
           update :: String -> JSNumber -> JSNumber -> JSNumber -> JSB ()
           update nm val mn mx =
               ifB ((val <=* mx) &&* (val >=* mn))
-                  (obj # attribute nm := val)
+                  (obj # attr nm := val)
                   (return ())
 
           switchB _   []         def = def
@@ -106,7 +106,7 @@ recfunction :: (JSArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> JS
 recfunction fn = do
         obj <- new "Object" ()
         f <- function $ fn (\ n -> obj # invoke "rec" n)
-        obj # attribute "rec" := f
+        obj # attr "rec" := f
         return f
 
 -- To be moved to a more general place

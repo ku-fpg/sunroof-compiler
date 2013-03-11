@@ -38,25 +38,25 @@ main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \doc -> do
   theUrl <- sync doc $ evaluate $ document ! url
   putStrLn $ "URL:        " ++ show theUrl
 
-  theUserAgent <- sync doc $ evaluate $ object "navigator" ! (attribute "userAgent" :: JSSelector JSString)
+  theUserAgent <- sync doc $ evaluate $ object "navigator" ! (attr "userAgent" :: JSSelector JSString)
   putStrLn $ "User Agent: " ++ show theUserAgent
 
   theWidth  <- sync doc
-             $ evaluate $ screen ! (attribute "width" :: JSSelector JSNumber)
+             $ evaluate $ screen ! (attr "width" :: JSSelector JSNumber)
   theHeight <- sync doc
-             $ evaluate $ screen ! (attribute "height" :: JSSelector JSNumber)
+             $ evaluate $ screen ! (attr "height" :: JSSelector JSNumber)
   putStrLn $ "Screen Size:   " ++ show theWidth ++ " x " ++ show theHeight
 
   theOuterWidth  <- sync doc
-                  $ evaluate $ window ! (attribute "outerWidth" :: JSSelector JSNumber)
+                  $ evaluate $ window ! (attr "outerWidth" :: JSSelector JSNumber)
   theOuterHeight <- sync doc
-                  $ evaluate $ window ! (attribute "outerHeight" :: JSSelector JSNumber)
+                  $ evaluate $ window ! (attr "outerHeight" :: JSSelector JSNumber)
   putStrLn $ "Window Size:   " ++ show theOuterWidth ++ " x " ++ show theOuterHeight
 
   theInnerWidth  <- sync doc
-                  $ evaluate $ window ! (attribute "innerWidth" :: JSSelector JSNumber)
+                  $ evaluate $ window ! (attr "innerWidth" :: JSSelector JSNumber)
   theInnerHeight <- sync doc
-                  $ evaluate $ window ! (attribute "innerHeight" :: JSSelector JSNumber)
+                  $ evaluate $ window ! (attr "innerHeight" :: JSSelector JSNumber)
   putStrLn $ "Viewport Size: " ++ show theInnerWidth ++ " x " ++ show theInnerHeight
 
   async doc $ do
