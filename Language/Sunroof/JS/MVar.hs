@@ -18,7 +18,6 @@ import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSB
   , JSTuple(..), JSFunction
-  , JSThread
   , (#)
   , apply, new, reify
   , reifyccJS )
@@ -69,13 +68,13 @@ newMVar a = do
 
 newEmptyMVar :: (JSArgument a) => JS t (JSMVar a)
 newEmptyMVar = do
-  written <- newArray
-  waiting <- newArray
+  written <- newArray ()
+  waiting <- newArray ()
   tuple (written, waiting)
 
 
 -- Not quite right; pauses until someone bites
-putMVar :: forall t a . (JSArgument a) => a -> JSMVar a -> JS B ()
+putMVar :: forall a . (JSArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
   ifB (lengthArray waiting ==* 0)
       (reifyccJS $ \ (k :: JSFunction () ()) -> do
