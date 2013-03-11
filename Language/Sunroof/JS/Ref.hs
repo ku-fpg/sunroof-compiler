@@ -1,6 +1,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Language.Sunroof.JS.Ref
         ( JSRef
@@ -10,10 +11,13 @@ module Language.Sunroof.JS.Ref
         , modifyJSRef
         ) where
 
+import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
+
 import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.Types ( T(..), JS(..), evaluate, new, (#) )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
 -- -------------------------------------------------------------
 -- JSRef Type
@@ -28,6 +32,15 @@ instance (Sunroof a) => Show (JSRef a) where
 instance (Sunroof a) => Sunroof (JSRef a) where
   box = JSRef . box
   unbox (JSRef o) = unbox o
+
+type instance BooleanOf (JSRef a) = JSBool
+
+instance (Sunroof a) => IfB (JSRef a) where
+  ifB = jsIfB
+
+-- | Reference equality, not value equality.
+instance (Sunroof a) => EqB (JSRef a) where
+  (JSRef a) ==* (JSRef b) = a ==* b
 
 -- -------------------------------------------------------------
 -- JSRef Combinators

@@ -1,4 +1,6 @@
 
+{-# LANGUAGE TypeFamilies #-}
+
 -- | The 'Date' module provides the API for the Javascript @Date@
 --   object. The API documentation is mainly taken from 
 --   w3schools (<http://www.w3schools.com/jsref/jsref_obj_date.asp>).
@@ -26,11 +28,14 @@ module Language.Sunroof.JS.Date
   , toTimeString, toUTCString
   ) where
 
+import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
+
 import Language.Sunroof.Classes ( Sunroof(..), JSArgument(..) )
 import Language.Sunroof.Types ( JS, invoke, new, cast )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.String ( JSString )
+import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
 -- -------------------------------------------------------------
 -- JSDate Type
@@ -44,6 +49,15 @@ instance Show JSDate where
 instance Sunroof JSDate where
   box = JSDate . box
   unbox (JSDate o) = unbox o
+
+type instance BooleanOf JSDate = JSBool
+
+instance IfB JSDate where
+  ifB = jsIfB
+
+-- | Reference equality, not value equality.
+instance EqB JSDate where
+  (JSDate a) ==* (JSDate b) = a ==* b
 
 -- -------------------------------------------------------------
 -- JSDate Methods

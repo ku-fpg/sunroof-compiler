@@ -1,5 +1,6 @@
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Language.Sunroof.JS.Canvas
   ( JSCanvas
@@ -49,10 +50,12 @@ module Language.Sunroof.JS.Canvas
   , font
   ) where
 
+import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
+
 import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.Types
 import Language.Sunroof.Selector ( JSSelector, label )
-import Language.Sunroof.JS.Bool ( JSBool )
+import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( JSString, string )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -69,6 +72,15 @@ instance Show JSCanvas where
 instance Sunroof JSCanvas where
   box = JSCanvas . box
   unbox (JSCanvas o) = unbox o
+
+type instance BooleanOf JSCanvas = JSBool
+
+instance IfB JSCanvas where
+  ifB = jsIfB
+
+-- | Reference equality, not value equality.
+instance EqB JSCanvas where
+  (JSCanvas a) ==* (JSCanvas b) = a ==* b
 
 -- -------------------------------------------------------------
 -- JSCanvas Combinators

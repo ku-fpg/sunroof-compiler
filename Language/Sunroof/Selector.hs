@@ -15,7 +15,6 @@ import Language.Sunroof.JavaScript ( Expr, E(Dot), ExprE(ExprE) )
 import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.JS.String ( JSString, string )
 import Language.Sunroof.JS.Number ( JSNumber )
-import Language.Sunroof.JS.Object ( JSObject )
 
 -- | A 'JSSelector' selects a field or attribute from a Javascript object.
 --   The phantom is the type of the selected value. Note the selected 
