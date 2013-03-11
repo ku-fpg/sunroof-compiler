@@ -181,7 +181,7 @@ checkArbitraryBool doc seed = monadicIO $ do
   b' <- run $ sync (srEngine doc) (return e)
   assert $ b == b'
 
-checkArbitraryIfThenElse_Int :: forall t . (JSThread t) => TestEngine -> ThreadProxy t -> Int -> Property
+checkArbitraryIfThenElse_Int :: forall t . (SunroofThread t) => TestEngine -> ThreadProxy t -> Int -> Property
 checkArbitraryIfThenElse_Int doc ThreadProxy seed = monadicIO $ do
   let n = (abs seed `mod` 8) + 1
   (b, e) <- pick $ sameSeed (boolExprGen n :: Gen Bool)
