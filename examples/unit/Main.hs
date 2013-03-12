@@ -242,7 +242,7 @@ checkArbitraryChan_Int doc wbr newChan writeChan readChan seed = monadicIO $ do
           when (teLog doc) $ do
                  -- debugging Glyph; perhaps send to Haskell-land,
                  -- or somehow print on the screen?
-                 B.console # B.log (mconcat [ ifB (A.lookup (js n :: JSNumber) note)
+                 B.console # B.log (mconcat [ ifB (note ! index (js n))
                                                   (">"::JSString)
                                                   "<"
                                             | n <- [0..19::Int]
