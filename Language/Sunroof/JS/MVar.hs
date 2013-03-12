@@ -26,7 +26,7 @@ import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Array
   ( JSArray
-  , newArray, lengthArray
+  , newArray, length'
   , push, shift )
 
 -- -------------------------------------------------------------
@@ -76,7 +76,7 @@ newEmptyMVar = do
 -- Not quite right; pauses until someone bites
 putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
-  ifB (lengthArray waiting ==* 0)
+  ifB ((waiting ! length') ==* 0)
       (reifycc $ \ (k :: JSFunction () ()) -> do
             f <- reify $ \ (kr :: JSFunction a ()) -> do
                 -- we've got a request for the contents
@@ -93,7 +93,7 @@ putMVar a (match -> (written,waiting)) = do
 
 takeMVar :: forall a . (Sunroof a, SunroofArgument a) => JSMVar a -> JS B a
 takeMVar (match -> (written,waiting)) = do
-  ifB (lengthArray written ==* 0)
+  ifB ((written ! length') ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
           reifycc $ \ k -> waiting # push (k :: JSFunction a ())
       )

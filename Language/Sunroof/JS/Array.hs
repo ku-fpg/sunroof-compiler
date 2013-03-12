@@ -6,14 +6,13 @@
 module Language.Sunroof.JS.Array
   ( JSArray
   , array, newArray
-  , lengthArray
+  , length'
   , push, pop
   , shift, unshift
-  , lookup
   , forEach
   ) where
 
-import Prelude hiding ( lookup )
+import Prelude hiding ( lookup, length )
 
 import Data.List ( intercalate )
 import Data.Monoid ( Monoid(..) )
@@ -26,7 +25,7 @@ import Language.Sunroof.Types
   , cast, invoke, function, attr, new
   , (#) )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
-import Language.Sunroof.Selector ( index, (!) )
+import Language.Sunroof.Selector ( JSSelector )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Number ( JSNumber )
 
@@ -76,8 +75,9 @@ newArray args = cast `fmap` new "Array" args
 emptyArray :: (Sunroof a) => JSArray a
 emptyArray = box $ literal "[]"
 
-lengthArray :: (Sunroof a) => JSArray a -> JSNumber
-lengthArray o = o ! attr "length"
+-- | The @length@ property of arrays.
+length' :: JSSelector JSNumber
+length' = attr "length"
 
 push :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 push a = invoke "push" a
@@ -90,9 +90,6 @@ pop = invoke "pop" ()
 
 shift :: (Sunroof a) => JSArray a -> JS t a
 shift = invoke "shift" ()
-
-lookup :: (Sunroof a) => JSNumber -> JSArray a -> a
-lookup idx arr = arr ! index idx
 
 forEach :: (Sunroof a, SunroofArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do

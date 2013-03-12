@@ -51,7 +51,9 @@ module Language.Sunroof
   -- Array
   , JSArray
   , array, newArray
-  , lengthArray
+  , length'
+  , shift, unshift
+  , pop, push
   , forEach
   -- Chan
   , JSChan
@@ -116,8 +118,10 @@ import Language.Sunroof.JS.String ( JSString, string )
 import Language.Sunroof.JS.Array
   ( JSArray
   , array, newArray
-  , lengthArray
-  , forEach )
+  , length'
+  , forEach
+  , shift, unshift
+  , pop, push )
 
 import Language.Sunroof.JS.Chan
   ( JSChan

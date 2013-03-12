@@ -27,7 +27,7 @@ import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Array
   ( JSArray
-  , newArray, lengthArray
+  , newArray, length'
   , push, shift )
 
 -- -------------------------------------------------------------
@@ -69,7 +69,7 @@ newChan = do
 
 writeChan :: forall t a . (SunroofThread t, SunroofArgument a) => a -> JSChan a -> JS t ()
 writeChan a (match -> (written,waiting)) = do
-  ifB (lengthArray waiting ==* 0)
+  ifB ((waiting ! length') ==* 0)
       (do f <- reify $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()
           written # push (f :: JSFunction (JSFunction a ()) ())
       )
@@ -80,7 +80,7 @@ writeChan a (match -> (written,waiting)) = do
 
 readChan :: forall a . (Sunroof a, SunroofArgument a) => JSChan a -> JS B a
 readChan (match -> (written,waiting)) = do
-  ifB (lengthArray written ==* 0)
+  ifB ((written ! length') ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
           reifycc $ \ k -> waiting # push (k :: JSFunction a ())
       )
