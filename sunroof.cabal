@@ -40,6 +40,7 @@ Library
                        Language.Sunroof.JS.Array
                        Language.Sunroof.JS.Date
                        Language.Sunroof.JS.Chan
+                       Language.Sunroof.JS.MVar
                        Language.Sunroof.JS.Canvas
                        Language.Sunroof.JS.Browser
                        Language.Sunroof.JS.JQuery
