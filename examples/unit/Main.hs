@@ -291,7 +291,11 @@ runTests :: TestEngine -> [(String,[Test])] -> IO ()
 runTests doc all_tests = do
   syncJS (srEngine doc) $ do
           -- Set the fatal callback to continue, because we are testing things.
-          fatal <- function $ \ (_::JSObject,_::JSObject,_::JSObject,f::JSFunction () ()) -> apply f ()
+          fatal <- function $ \ (_::JSObject,_::JSObject,_::JSObject,f::JSFunction () ()) ->
+                        forkJS $ do
+                                -- wait a second before retrying
+                                SR.threadDelay 1000
+                                apply f ()
           () <- fun "$.kc.failure"  `apply` fatal
           return ()
 
