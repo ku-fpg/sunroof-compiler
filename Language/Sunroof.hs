@@ -12,7 +12,7 @@ module Language.Sunroof
   , JS(..), JSA, JSB
   , abort, liftJS
   , JSFunction
-  , function, continuation
+  , function, continuation, reify
   , apply, ($$)
   , cast
   , (#)
@@ -75,7 +75,7 @@ import Language.Sunroof.Types
   , JS(..), JSA, JSB
   , abort, liftJS
   , JSFunction
-  , function, continuation
+  , function, continuation, reify
   , apply, ($$)
   , cast
   , (#)
