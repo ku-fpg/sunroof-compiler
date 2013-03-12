@@ -67,8 +67,8 @@ import qualified Control.Exception as E
 main :: IO ()
 main = sunroofServer (def { sunroofVerbose = 0, cometResourceBaseDir = ".." }) $ \ doc0 -> do
         let do_log = False
-        let te_style = TestWithTiming
---        let te_style = TestInPar 20
+--        let te_style = TestWithTiming
+        let te_style = TestInPar 4
         doc <- case te_style of
                   TestWithTiming -> newTimings doc0
                   _ -> return doc0

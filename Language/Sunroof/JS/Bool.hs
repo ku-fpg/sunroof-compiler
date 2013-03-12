@@ -49,7 +49,11 @@ instance EqB JSBool where
 instance SunroofValue Bool where
   type ValueOf Bool = JSBool
   js True = true
-  js False = false 
+  js False = false
+
+instance SunroofValue JSBool where
+  type ValueOf JSBool = JSBool
+  js = id
 
 -- -------------------------------------------------------------
 -- JSBool Combinators

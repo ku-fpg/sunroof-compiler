@@ -52,7 +52,7 @@ module Language.Sunroof.JS.Canvas
 
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
 import Language.Sunroof.Types
 import Language.Sunroof.Selector ( JSSelector, label )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
@@ -81,6 +81,10 @@ instance IfB JSCanvas where
 -- | Reference equality, not value equality.
 instance EqB JSCanvas where
   (JSCanvas a) ==* (JSCanvas b) = a ==* b
+
+instance SunroofValue JSCanvas where
+  type ValueOf JSCanvas = JSCanvas
+  js = id
 
 -- -------------------------------------------------------------
 -- JSCanvas Combinators

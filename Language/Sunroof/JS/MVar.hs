@@ -13,7 +13,8 @@ module Language.Sunroof.JS.MVar
 
 import Data.Boolean ( IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..) )
+import Language.Sunroof.Classes
+  ( Sunroof(..), SunroofArgument(..), SunroofValue(..) )
 import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSB
@@ -41,7 +42,7 @@ data JSMVar a = JSMVar
 
 newtype JSMVar a = JSMVar JSObject deriving Show
 
-instance Sunroof (JSMVar o) where
+instance (SunroofArgument o) => Sunroof (JSMVar o) where
   box = JSMVar . box
   unbox (JSMVar o) = unbox o
 
@@ -55,6 +56,10 @@ instance (SunroofArgument o) => JSTuple (JSMVar o) where
     o # "written" := written
     o # "waiting" := waiting
     return (JSMVar o)
+
+instance (SunroofArgument o) => SunroofValue (JSMVar o) where
+  type ValueOf (JSMVar o) = JSMVar o
+  js = id
 
 -- -------------------------------------------------------------
 -- JSMVar Combinators

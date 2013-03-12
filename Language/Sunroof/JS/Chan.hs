@@ -13,7 +13,8 @@ module Language.Sunroof.JS.Chan
 
 import Data.Boolean ( IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..) )
+import Language.Sunroof.Classes 
+  ( Sunroof(..), SunroofArgument(..), SunroofValue(..) )
 import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSB
@@ -42,7 +43,7 @@ data JSChan a = JSChan
 
 newtype JSChan a = JSChan JSObject deriving Show
 
-instance Sunroof (JSChan o) where
+instance (SunroofArgument o) => Sunroof (JSChan o) where
   box = JSChan . box
   unbox (JSChan o) = unbox o
 
@@ -56,6 +57,10 @@ instance (SunroofArgument o) => JSTuple (JSChan o) where
     o # "written" := written
     o # "waiting" := waiting
     return (JSChan o)
+
+instance (SunroofArgument a) => SunroofValue (JSChan a) where
+  type ValueOf (JSChan a) = JSChan a
+  js = id
 
 -- -------------------------------------------------------------
 -- JSChan Combinators

@@ -392,11 +392,11 @@ jsonArrayToJS arr = literal $
 
 instance SunroofValue Value where
   type ValueOf Value = JSObject
-  js = js . jsonToJS
+  js = box . jsonToJS
 
 instance SunroofValue Text where
   type ValueOf Text = JSString
-  js = js . unpack
+  js = string . unpack
 
 -- -------------------------------------------------------------
 -- Uplink and Downlink API

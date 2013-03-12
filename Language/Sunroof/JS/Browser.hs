@@ -73,7 +73,7 @@ import Language.Sunroof.Types
   , apply
   , (#)
   )
-import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument, SunroofValue(..) )
 import Language.Sunroof.Selector ( JSSelector )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
@@ -274,6 +274,10 @@ instance IfB JSConsole where
 -- | Reference equality, not value equality.
 instance EqB JSConsole where
   (JSConsole a) ==* (JSConsole b) = a ==* b
+
+instance SunroofValue JSConsole where
+  type ValueOf JSConsole = JSConsole
+  js = id
 
 -- | The console object.
 console :: JSConsole

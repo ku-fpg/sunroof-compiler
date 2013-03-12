@@ -59,6 +59,10 @@ instance SunroofValue Char where
   type ValueOf Char = JSString
   js c = fromString [c]
 
+instance SunroofValue JSString where
+  type ValueOf JSString = JSString
+  js = id
+
 -- -------------------------------------------------------------
 -- JSString Combinators
 -- -------------------------------------------------------------

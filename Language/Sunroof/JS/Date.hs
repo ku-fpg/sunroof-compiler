@@ -30,7 +30,7 @@ module Language.Sunroof.JS.Date
 
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..), SunroofValue(..) )
 import Language.Sunroof.Types ( JS, invoke, new, cast )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -58,6 +58,10 @@ instance IfB JSDate where
 -- | Reference equality, not value equality.
 instance EqB JSDate where
   (JSDate a) ==* (JSDate b) = a ==* b
+
+instance SunroofValue JSDate where
+  type ValueOf JSDate = JSDate
+  js = id
 
 -- -------------------------------------------------------------
 -- JSDate Methods

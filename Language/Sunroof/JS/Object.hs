@@ -37,10 +37,14 @@ instance IfB JSObject where
 -- | Reference equality, not value equality.
 instance EqB JSObject where
   (JSObject a) ==* (JSObject b) = box $ binOp "==" a b
-
+{-
 instance SunroofValue Expr where
   type ValueOf Expr = JSObject
   js = box
+-}
+instance SunroofValue JSObject where
+  type ValueOf JSObject = JSObject
+  js = id
 
 -- -------------------------------------------------------------
 -- JSObject Combinators
