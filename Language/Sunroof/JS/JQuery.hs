@@ -70,13 +70,13 @@ html = invoke "html" ()
 setHtml :: JSString -> JSObject -> JS t JSObject
 setHtml s = invoke "html" s
 
--- | See <http://api.jquery.com/text/>.
-text :: JSString -> JSObject -> JS t JSObject
-text = invoke "text"
+-- | See @.text()@ at <http://api.jquery.com/text/>.
+text :: JSObject -> JS t JSObject
+text = invoke "text" ()
 
--- | See <http://api.jquery.com/text/>.
+-- | See @.text(textString)@ at <http://api.jquery.com/text/>.
 setText :: JSString -> JSObject -> JS t JSObject
-setText = invoke "text"
+setText s = invoke "text" s
 
 -- -------------------------------------------------------------
 -- Event Handling
