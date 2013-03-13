@@ -56,8 +56,8 @@ example = do
   let mul :: JSNumber
       mul = 400 / (e - s)
 
-  jQuery "#start" >>= text (cast s)
-  jQuery "#end"   >>= text (cast e)
+  jQuery "#start" >>= setText (cast s)
+  jQuery "#end"   >>= setText (cast e)
 
 --  alert("Count" <> cast s <> " " <> cast e)
 
@@ -149,7 +149,7 @@ switchB tag ((a,b):xs) = ifB (tag ==* a) b (switchB tag xs)
 printFixed :: JSString -> JSNumber -> JSNumber -> JS A ()
 printFixed tag prec val = do
         val' <- val # invoke "toFixed" prec
-        jQuery tag >>= text val'
+        jQuery tag >>= setText val'
         return ()
 
 -- Active versions of painting commands
