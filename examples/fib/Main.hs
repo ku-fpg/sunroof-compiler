@@ -74,9 +74,9 @@ prog = do
           model <- evaluate (obj ! "model") :: JSB JSNumber
           jQuery "#slider"  >>= slider (cast model)
           liftJS $ do
-                jQuery "#fib-out" >>= html ("fib " <> cast model <> "...")
+                jQuery "#fib-out" >>= setHtml ("fib " <> cast model <> "...")
                 res <- apply fib model
-                jQuery "#fib-out" >>= html ("fib " <> cast model <> " = " <> cast res)
+                jQuery "#fib-out" >>= setHtml ("fib " <> cast model <> " = " <> cast res)
                 return ()
 
       return ()

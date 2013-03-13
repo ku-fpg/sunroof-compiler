@@ -405,7 +405,7 @@ runTests doc all_tests = do
 
   asyncJS (srEngine doc) $ do
     p <- pbObject 0 0 $ \ n -> "." ++ n ++ " td.progress"
-    p # JQuery.html$ js $ "<b align=\"center\">" ++
+    p # JQuery.setHtml $ js $ "<b align=\"center\">" ++
                     show (length result) ++ " test(s), "++
                     show (length [ () | Just _ <- result ]) ++ " passed / " ++
                     show (length [ () | Nothing <- result ]) ++ " failed " ++
@@ -442,7 +442,7 @@ progressVal doc i j n = asyncJS (srEngine doc) $ do
 overwriteMessage :: TestEngine -> Int -> Int -> String -> String -> IO ()
 overwriteMessage doc i j msg cls = asyncJS (srEngine doc) $ do
   p <- pbObject i j $ \ n -> "." ++ n ++ " td.progress"
-  p # JQuery.html(js msg)
+  p # JQuery.setHtml(js msg)
   p # JQuery.addClass(js cls)
   return ()
 
@@ -456,7 +456,7 @@ writeTimings doc i j t = asyncJS (srEngine doc) $ do
   where
         pnt n v = do
                 p <- pbObject i j $ \ nd -> "." ++ nd ++ " td:eq(" ++ show n ++ ")"
-                p # JQuery.html (js $ Numeric.showFFloat (Just 2) v "s")
+                p # JQuery.setHtml (js $ Numeric.showFFloat (Just 2) v "s")
 
 -- -----------------------------------------------------------------------
 -- Test Utilities
