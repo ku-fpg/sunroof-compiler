@@ -211,12 +211,12 @@ counter (width,height)
           countPlease = clamp $ scopeA $
                 pure ((setFont "40pt Calibri")) <>
                      (\ (n :: JSNumber) -> \ c -> do
---                                        alert(cast n)
-                                        c # fillText (cast (N.floor (n*100))) (n*100,0)
-                                        date <- evaluate $ object "new Date()"
-                                        s <- date # invoke "getSeconds" ()
-                                        c # fillText (cast (s :: JSNumber)) (n*100,100)
---                                        alert("X" <> cast n)
+--                        alert(cast n)
+                        c # fillText (cast (N.floor (n*100) :: JSNumber)) (n*100,0)
+                        date <- evaluate $ object "new Date()"
+                        s <- date # invoke "getSeconds" ()
+                        c # fillText (cast (s :: JSNumber)) (n*100,100)
+--                        alert("X" <> cast n)
                      ) <$> ui
 --                     painting $ fillText ("X") (n*10,0)) <$> ui
 --                ("X: " {- <> cast (Deep.floor (n :: JSNumber)) -})

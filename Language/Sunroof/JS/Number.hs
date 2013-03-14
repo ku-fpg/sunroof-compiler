@@ -9,7 +9,10 @@ module Language.Sunroof.JS.Number
 import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
 
 import Data.Boolean ( BooleanOf, Boolean(..), IfB(..), EqB(..), OrdB(..) )
-import Data.Boolean.Numbers ( RealFloatB(..), RealFracB(..), IntegralB(..) )
+import Data.Boolean.Numbers 
+  ( NumB(..)
+  , RealFloatB(..), RealFracB(..)
+  , IntegralB(..), fromIntegralB )
 import Data.AdditiveGroup ( AdditiveGroup(..) )
 import Data.VectorSpace ( VectorSpace(..) )
 import Data.Ratio ( Ratio )
@@ -44,6 +47,10 @@ instance Num JSNumber where
   signum (JSNumber _e1) = error "signum" -- JSNumber $ uniOp "ERROR" e1
   fromInteger = box . literal . litparen . show
 
+instance NumB JSNumber where
+  type IntegerOf JSNumber = JSNumber
+  fromIntegerB = id
+
 instance IntegralB JSNumber where
   quot a b = ifB ((a / b) <* 0)
                  (box $ uniOp "Math.ceil" (unbox $ a / b))
@@ -51,6 +58,7 @@ instance IntegralB JSNumber where
   rem a b = a - (a `quot` b)*b
   div a b = box $ uniOp "Math.floor" (unbox $ a / b)
   mod (JSNumber a) (JSNumber b) = box $ binOp "%" a b
+  toIntegerB = id
 
 
 instance Fractional JSNumber where
@@ -74,12 +82,12 @@ instance Floating JSNumber where
 
 instance RealFracB JSNumber where
   properFraction n =
-    ( ifB (n >=* 0) (floor n) (ceiling n)
+    ( fromIntegralB $ ifB (n >=* 0) (floor n :: JSNumber) (ceiling n :: JSNumber)
     , ifB (n >=* 0) (n - floor n) (n - ceiling n)
     )
-  round   (JSNumber e) = box $ uniOp "Math.round" e
-  ceiling (JSNumber e) = box $ uniOp "Math.ceil"  e
-  floor   (JSNumber e) = box $ uniOp "Math.floor" e
+  round   (JSNumber e) = fromIntegralB $ JSNumber $ uniOp "Math.round" e
+  ceiling (JSNumber e) = fromIntegralB $ JSNumber $ uniOp "Math.ceil"  e
+  floor   (JSNumber e) = fromIntegralB $ JSNumber $ uniOp "Math.floor" e
 
 instance RealFloatB JSNumber where
   isNaN (JSNumber a) = box $ uniOp "isNaN" a
