@@ -1,6 +1,6 @@
 
 Main:
-	ghc --make Main.hs -o sunroof-example -threaded \
+	ghc --make Main.hs -o Main -threaded \
              -fforce-recomp -O2 -dcore-lint 
 
 run: Main

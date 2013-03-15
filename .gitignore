@@ -8,3 +8,4 @@ dist/*
 sunroof-example
 Main
 .shake.database
+/examples/clock/main.js
