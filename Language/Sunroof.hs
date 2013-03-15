@@ -10,7 +10,7 @@ module Language.Sunroof
   , T(..), ThreadProxy(..)
   , SunroofThread(..)
   , JS(..), JSA, JSB
-  , abort, liftJS
+  , done, liftJS
   , JSFunction
   , function, continuation
   , apply, ($$)
@@ -29,6 +29,8 @@ module Language.Sunroof
   , JSSelector
   , label, index
   , (!)
+  -- Continuation
+  , callcc
   -- Concurrent
   , loop
   , forkJS
@@ -75,9 +77,9 @@ import Language.Sunroof.Types
   ( T(..), ThreadProxy(..)
   , SunroofThread(..)
   , JS(..), JSA, JSB
-  , abort, liftJS
+  , done, liftJS
   , JSFunction
-  , function, continuation
+  , function, continuation, callcc
   , apply, ($$)
   , cast
   , (#)

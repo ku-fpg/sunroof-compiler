@@ -20,7 +20,7 @@ module Language.Sunroof.Types
   , single
   , JSI(..)
   , callcc
-  , reifycc, abort, liftJS, kast
+  , done, liftJS, kast
   , JSFunction, JSContinuation
   , function , continuation, goto
   , apply, ($$)
@@ -240,10 +240,6 @@ fun = JSFunction . literal
 function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
 function = single . JS_Function
 
--- | The generalization of 'function' and 'continuation' is call reify.
---reify :: (SunroofThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
---reify = single . JS_Function
-
 infixl 1 `apply`
 
 -- | @apply f a@ applies the function @f@ to the given arguments @a@.
@@ -315,24 +311,18 @@ kast = cast
 -- Implementation of goto and callCC from
 --   http://stackoverflow.com/questions/9050725/call-cc-implementation
 --
-goto' :: (x ~ ()) => (a -> Program (JSI B) ()) -> a -> JS B x
-goto' cont argument = JS $ \ _ -> cont argument
+-- | reify the current contination as a JavaScript continuation
+callcc :: SunroofArgument a => (JSContinuation a -> JS B a) -> JS B a
+callcc f = JS $ \ cc -> unJS (do o <- continuation (goto' cc)
+                                 f o
+                              ) cc
+   where goto' :: (x ~ ()) => (a -> Program (JSI B) ()) -> a -> JS B x
+         goto' cont argument = JS $ \ _ -> cont argument
 
---callCC :: ((a -> JS 'B x) -> JS 'B a) -> JS 'B a
-callcc :: (x ~ ()) => ((a -> JS 'B x) -> JS 'B a) -> JS 'B a
-callcc f = JS $ \ cc -> unJS (f (goto' cc)) cc
-
--- | reify the current contination as a JavaScript function.
--- unlike callcc, captures then discards the continuation.
-
-reifycc :: SunroofArgument a => (JSContinuation a -> JS B ()) -> JS B a
-reifycc f = JS $ \ cc -> unJS (do o <- continuation (goto' cc)
-                                  f o
-                              ) (\ _ -> return ())
 
 -- | Abort the current computation at this point.
-abort :: JS B a
-abort = JS $ \ _ -> return ()
+done :: JS B a
+done = JS $ \ _ -> return ()
 
 -- @goto@ calls the given continuation with the given argument, and never returns.
 goto :: forall args a . (SunroofArgument args) => JSContinuation args -> args -> JS B a

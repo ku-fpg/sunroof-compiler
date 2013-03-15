@@ -9,13 +9,6 @@ module Language.Sunroof.Concurrent
   ) where
 
 import Language.Sunroof.Types
-  ( JSA, JSB, JS
-  , SunroofThread
-  , function, continuation, goto, kast
-  , apply, cast, nullJS, blockableJS
-  , (#)
-  , JSContinuation, JSFunction
-  , liftJS, reifycc )
 import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.JS.Ref ( newJSRef, readJSRef, writeJSRef, JSRef )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -54,9 +47,9 @@ forkJS m = do
 -- | Delay the execution of all instructions after this one by
 --   the given amount of milliseconds.
 threadDelay :: JSNumber -> JSB ()
-threadDelay n = reifycc $ \ o -> do
+threadDelay n = callcc $ \ o -> do
   _ <- liftJS $ window # setTimeout o n
-  return ()
+  done
 
 -- | Give another thread time to execute.
 yield :: JSB ()

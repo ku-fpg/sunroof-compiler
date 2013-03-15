@@ -16,13 +16,6 @@ import Data.Boolean ( IfB(..), EqB(..) )
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..), SunroofValue(..) )
 import Language.Sunroof.Types
-  ( T(..)
-  , JS(..), JSB
-  , JSTuple(..), JSFunction, JSContinuation
-  , SunroofThread
-  , (#)
-  , apply, new, goto, continuation
-  , reifycc )
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
@@ -86,11 +79,12 @@ readChan :: forall a . (Sunroof a, SunroofArgument a) => JSChan a -> JS B a
 readChan (match -> (written,waiting)) = do
   ifB ((written ! length') ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
-          reifycc $ \ k -> waiting # push (k :: JSContinuation a)
+          callcc $ \ k -> do waiting # push (k :: JSContinuation a)
+                             done
       )
       (do f <- shift written
           -- Here, we add our continuation into the written Q.
-          reifycc $ \ k -> goto f k
+          callcc $ \ k -> goto f k
       )
 
 

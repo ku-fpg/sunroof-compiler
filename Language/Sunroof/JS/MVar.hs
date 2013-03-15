@@ -16,12 +16,6 @@ import Data.Boolean ( IfB(..), EqB(..) )
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..), SunroofValue(..) )
 import Language.Sunroof.Types
-  ( T(..)
-  , JS(..), JSB
-  , JSTuple(..), JSFunction, JSContinuation
-  , (#)
-  , apply, new, goto, continuation
-  , reifycc )
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
@@ -81,7 +75,7 @@ newEmptyMVar = do
 putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
   ifB ((waiting ! length') ==* 0)
-      (reifycc $ \ (k :: JSContinuation ()) -> do
+      (callcc $ \ (k :: JSContinuation ()) -> do
             f <- continuation $ \ (kr :: JSContinuation a) -> do
                 -- we've got a request for the contents
                 -- so we can continue
@@ -89,6 +83,7 @@ putMVar a (match -> (written,waiting)) = do
                 -- and send the boxed value
                 goto kr a :: JSB ()
             written # push (f :: JSContinuation (JSContinuation a))
+            done
       )
       (do f <- shift waiting
           forkJS (goto f a :: JSB ())
@@ -99,11 +94,12 @@ takeMVar :: forall a . (Sunroof a, SunroofArgument a) => JSMVar a -> JS B a
 takeMVar (match -> (written,waiting)) = do
   ifB ((written ! length') ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
-          reifycc $ \ k -> waiting # push (k :: JSContinuation a)
+          callcc $ \ k -> do waiting # push (k :: JSContinuation a)
+                             done
       )
       (do f <- shift written
           -- Here, we add our continuation into the written Q.
-          reifycc $ \ k -> goto f k
+          callcc $ \ k -> goto f k
       )
 
 
