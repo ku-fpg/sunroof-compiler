@@ -8,11 +8,11 @@ module Language.Sunroof
   , Sunroof(..), SunroofValue(..), SunroofArgument(..)
   -- Types
   , T(..), ThreadProxy(..)
-  , SunroofThread(..), SunroofThreadReturn(..)
+  , SunroofThread(..)
   , JS(..), JSA, JSB
   , abort, liftJS
   , JSFunction
-  , function, continuation, reify
+  , function, continuation
   , apply, ($$)
   , cast
   , (#)
@@ -73,11 +73,11 @@ import Language.Sunroof.Classes
 
 import Language.Sunroof.Types
   ( T(..), ThreadProxy(..)
-  , SunroofThread(..), SunroofThreadReturn(..)
+  , SunroofThread(..)
   , JS(..), JSA, JSB
   , abort, liftJS
   , JSFunction
-  , function, continuation, reify
+  , function, continuation
   , apply, ($$)
   , cast
   , (#)

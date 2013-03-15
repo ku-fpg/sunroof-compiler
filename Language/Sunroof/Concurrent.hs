@@ -11,8 +11,8 @@ module Language.Sunroof.Concurrent
 import Language.Sunroof.Types
   ( JSA, JSB, JS
   , SunroofThread
-  , function, continuation, goto, kast, SunroofThreadReturn -- reify
-  , apply, cast, nullJS
+  , function, continuation, goto, kast
+  , apply, cast, nullJS, blockableJS
   , (#)
   , JSContinuation, JSFunction
   , liftJS, reifycc )
@@ -45,9 +45,9 @@ loop start m = do
   goto f () -- and call the function
   return ()
 
-forkJS :: (SunroofThreadReturn t1 ()) => JS t1 () -> JS t2 ()
+forkJS :: (SunroofThread t1) => JS t1 () -> JS t2 ()
 forkJS m = do
-  f <- continuation $ \ () -> m
+  f <- continuation $ \ () -> blockableJS m
   _ <- liftJS $ window # setTimeout f 0
   return ()
 

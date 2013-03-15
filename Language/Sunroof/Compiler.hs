@@ -26,18 +26,18 @@ import Data.Proxy ( Proxy(..) )
 import qualified Data.Map as Map
 import Data.Default
 
-import Language.Sunroof.Types 
+import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSI(..)
-  , SunroofThread(..), SunroofThreadReturn(..)
+  , SunroofThread(..)
   , ThreadProxy(..)
   , single, apply, unJS )
-import Language.Sunroof.JavaScript 
+import Language.Sunroof.JavaScript
   ( Stmt(..), Id
   , E(..), ExprE(..), Expr
   , Type(..)
   , showStmt )
-import Language.Sunroof.Classes 
+import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..)
   , UniqM(..), Uniq )
 import Language.Sunroof.Selector ( unboxSelector )
@@ -75,7 +75,7 @@ compile = eval . view
   -- since the type  Program  is abstract (for efficiency),
   -- we have to apply the  view  function first,
   -- to get something we can pattern match on
-  where 
+  where
     eval :: ProgramView (JSI t) () -> CompM [Stmt]
     -- Return *will* be (), because of the normalization to CPS.
     eval (Return ()) = return []
@@ -123,6 +123,11 @@ compile = eval . view
       e <- compileFunction f
       compileBind e g
 
+    eval (JS_Continuation f :>>= g) = do
+      e <- compileContinuation f
+      compileBind e g
+
+
     eval (JS_Branch b c1 c2 :>>= g) = compileBranch b c1 c2 g
     {-
     eval (JS_Foreach arr body :>>= g) = do
@@ -158,7 +163,7 @@ compileBranch_A b c1 c2 k = do
 compileBranch_B :: forall a bool t . (Sunroof bool, SunroofArgument a, SunroofThread t)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_B b c1 c2 k = do
-  fn_e <- compileFunction (\ a -> JS $ \ k2 -> k a >>= k2)
+  fn_e <- compileContinuation (\ a -> blockableJS $ JS $ \ k2 -> k a >>= k2)
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
   fn           <- newVar
   (src0, res0) <- compileExpr (unbox b)
@@ -168,18 +173,27 @@ compileBranch_B b c1 c2 k = do
 
 compileBranch :: forall a bool t . (SunroofThread t, Sunroof bool, Sunroof a, SunroofArgument a)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
-compileBranch b c1 c2 k = 
+compileBranch b c1 c2 k =
   case evalStyle (ThreadProxy :: ThreadProxy t) of
     A -> compileBranch_A b c1 c2 k
     B -> compileBranch_B b c1 c2 k
 
-compileFunction :: forall a b t . (SunroofThreadReturn t b, SunroofArgument a, Sunroof b)
-                => (a -> JS t b)
+compileFunction :: forall a b . (SunroofArgument a, Sunroof b)
+                => (a -> JS A b)
                 -> CompM Expr
 compileFunction m2 = do
   (arg :: a) <- jsValue
-  fStmts <- compile $ extractProgramJS (\ a -> JS $ \ k -> threadCloser a >>= k) (m2 arg)
+  fStmts <- compile $ extractProgramJS (\ a -> JS $ \ k -> singleton (JS_Return a) >>= k) (m2 arg)
   return $ Function (map varIdE $ jsArgs arg) fStmts
+
+compileContinuation :: forall a b t . (SunroofArgument a, Sunroof b)
+                => (a -> JS B b)
+                -> CompM Expr
+compileContinuation m2 = do
+  (arg :: a) <- jsValue
+  fStmts <- compile $ extractProgramJS (\ a -> JS $ \ k -> k ()) (m2 arg)
+  return $ Function (map varIdE $ jsArgs arg) fStmts
+
 
 {-
 compileForeach :: forall a b t . (SunroofThread t, Sunroof a, Sunroof b)

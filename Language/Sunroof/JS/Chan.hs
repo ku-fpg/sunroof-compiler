@@ -21,7 +21,7 @@ import Language.Sunroof.Types
   , JSTuple(..), JSFunction, JSContinuation
   , SunroofThread
   , (#)
-  , apply, new, reify, goto, continuation
+  , apply, new, goto, continuation
   , reifycc )
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )

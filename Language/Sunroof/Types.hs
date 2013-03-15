@@ -14,7 +14,7 @@
 module Language.Sunroof.Types
   ( T(..)
   , ThreadProxy(..)
-  , SunroofThread(..), SunroofThreadReturn(..)
+  , SunroofThread(..)
   , JS(..), JSA, JSB
   , unJS
   , single
@@ -22,7 +22,7 @@ module Language.Sunroof.Types
   , callcc
   , reifycc, abort, liftJS, kast
   , JSFunction, JSContinuation
-  , function , reify, continuation, goto
+  , function , continuation, goto
   , apply, ($$)
   , cast
   , (#)
@@ -68,34 +68,20 @@ data ThreadProxy (t :: T) = ThreadProxy
 
 -- | When implemented the type supports determining the threading model
 --   during runtime.
-class SunroofThreadReturn t () => SunroofThread (t :: T) where
+class SunroofThread (t :: T) where
   -- | Determine the used threading model captured the given 'ThreadProxy'
   --   object.
   evalStyle    :: ThreadProxy t -> T
 
+  blockableJS :: (Sunroof a) => JS t a -> JS B a
+
 instance SunroofThread A where
   evalStyle _ = A
+  blockableJS = liftJS
 
 instance SunroofThread B where
   evalStyle _ = B
-
--- | Provides the terminating function of the continuation associated
---   with the given threading model.
-class (Sunroof a) => SunroofThreadReturn (t :: T) a where
-  -- The terminating function of the continuation.
-  threadCloser :: a -> Program (JSI t) ()
-
--- | For atomic computations a Javascript @return@-statement
---   closes the continuation.
-instance (Sunroof a) => SunroofThreadReturn A a where
-  threadCloser = singleton . JS_Return
-
--- | For blocking computations we just return unit.
-instance SunroofThreadReturn B () where
-  threadCloser () = return ()
-
-done :: JS t a
-done = undefined
+  blockableJS = id
 
 -- -------------------------------------------------------------
 -- JS Monad - The Javascript Monad
@@ -167,6 +153,9 @@ instance Monoid (JS t ()) where
 --     [@JS_Function f@] creates a Javascript function
 --       from the Haskell function @f@.
 --
+--     [@JS_Function f@] creates a Javascript continuation (function that never returns a value)
+--       from the Haskell function @f@.
+--
 --     [@JS_Branch b t f@] creates a @if-then-else@ statement in Javascript.
 --       In that statement @b@ is the condition, @t@ is the true branch and
 --       @f@ is the false branch.
@@ -182,7 +171,8 @@ data JSI :: T -> * -> * where
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
   JS_Invoke :: (SunroofArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
   JS_Eval   :: (Sunroof a) => a -> JSI t a
-  JS_Function :: (SunroofThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JSI t (JSFunction a b)
+  JS_Function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JSI t (JSFunction a b)
+  JS_Continuation :: (SunroofArgument a) => (a -> JS B ()) -> JSI t (JSContinuation a)
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
   JS_Branch :: (SunroofThread t, Sunroof a, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   JS_Return  :: (Sunroof a) => a -> JSI t ()
@@ -190,14 +180,13 @@ data JSI :: T -> * -> * where
   -- TODO: generalize Assign[_] to have a RHS
 
 -- -------------------------------------------------------------
--- Continuation Combinators
+-- Cross the Threading Model Combinators
 -- -------------------------------------------------------------
-
 
 -- | Lift the atomic computation into another computation.
 liftJS :: (Sunroof a) => JS A a -> JS t a
 liftJS m = do
-        o <- function (\ () -> m) -- This is hacked right now
+        o <- function (\ () -> m)
         apply o ()
 
 -- -------------------------------------------------------------
@@ -249,12 +238,11 @@ fun = JSFunction . literal
 
 -- | Create an 'A'tomic Javascript function from a Haskell function.
 function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
-function = reify
-
+function = single . JS_Function
 
 -- | The generalization of 'function' and 'continuation' is call reify.
-reify :: (SunroofThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
-reify = single . JS_Function
+--reify :: (SunroofThreadReturn t2 b, SunroofArgument a, Sunroof b) => (a -> JS t2 b) -> JS t (JSFunction a b)
+--reify = single . JS_Function
 
 infixl 1 `apply`
 
@@ -317,8 +305,8 @@ instance (SunroofArgument a) => SunroofValue (a -> JS B ()) where
 --   call when we first block, not at completion of the call.
 -- Consider returning Bool, for done/not done.
 
-continuation :: (SunroofThreadReturn t2 (), SunroofArgument a) => (a -> JS t2 ()) -> JS t (JSContinuation a)
-continuation = fmap cast . reify
+continuation :: (SunroofArgument a) => (a -> JS B ()) -> JS t (JSContinuation a)
+continuation = single . JS_Continuation
 
 -- @kast@ is cast to continuation. @k@ is the letter often used to signify a continuation.
 kast :: (SunroofArgument a) => JSFunction a () -> JSContinuation a
