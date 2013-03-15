@@ -1,11 +1,8 @@
 <html>
   <head>
-    <title>Kansas Comet + Sunroof = Clock Example</title>
-    <script type="text/javascript" src="js/jquery.js"></script>
-    <script type="text/javascript" src="js/jquery-json.js"></script>
-    <script type="text/javascript" src="js/kansas-comet.js"></script>
-    <link type="text/css" href="css/ui-lightness/jquery-ui.css" rel="Stylesheet" />
-    <script type="text/javascript" src="js/jquery-ui.js"></script>
+    <title>Sunroof - Static Clock Example</title>
+    <script type="text/javascript" src="../js/jquery.js"></script>
+    <script type="text/javascript" src="main.js"></script>
   </head>
   <body>
     <div style="padding: 0px; margin: 20px; margin-left: auto; margin-right: auto; width: 502px;">
@@ -17,10 +14,9 @@
       class="click">
     </canvas>
     </div>
-    <div id="no-debug-log"></div>
     <script type="text/javascript">
       $(document).ready(function() {
-        $.kc.connect("/ajax");
+        main();
       });
     </script>
   </body>

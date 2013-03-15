@@ -1,36 +1,33 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings, TypeFamilies, DataKinds #-}
 
 module Main where
 
 import Prelude hiding (mod, div)
 
-import Data.Default
 import Data.Monoid
 import Data.Boolean
 import Data.Boolean.Numbers
+import Data.Default
 
-import Web.KansasComet
+import Control.Monad
+import Control.Monad.IO.Class
 
 import Language.Sunroof
-import Language.Sunroof.KansasComet
+import Language.Sunroof.Types
 import Language.Sunroof.JS.Canvas
-import Language.Sunroof.JS.Browser
+import Language.Sunroof.JS.Browser hiding ( eval )
 import Language.Sunroof.JS.JQuery
 import Language.Sunroof.JS.Date
 
 main :: IO ()
-main = sunroofServer (def { cometResourceBaseDir = ".." })
-     $ \doc -> asyncJS doc clockJS
+main = sunroofCompileJS def "main" clockJS >>= writeFile "main.js"
 
 default(JSNumber, JSString, String)
 
 type instance BooleanOf () = JSBool
 
--- TODO: Would be neat to create JS functions with more then one parameter.
-clockJS :: JS A ()
-clockJS = do
+clockJS :: JS A (JSFunction () ())
+clockJS = function $ \() -> do
 
   -- Renders a single line (with number) of the clock face.
   renderClockFaceLine <- function $ \(c, u, n) -> do
@@ -73,15 +70,14 @@ clockJS = do
     c # save
     c # setLineCap "round"
     -- Hour pointer
-    apply renderClockPointer
+    renderClockPointer $$
       (c, u, (2 * pi / 12) * ((h `mod` 12) + (m `mod` 60) / 60), 15, 0.4)
     -- Minute pointer
-    apply renderClockPointer
+    renderClockPointer $$ 
       ( c, u, (2 * pi / 60) * ((m `mod` 60) + (s `mod` 60) / 60), 10, 0.7)
     -- Second pointer
     c # setStrokeStyle "red"
-    apply renderClockPointer
-      ( c, u, (2 * pi / 60) * (s `mod` 60), 4, 0.9)
+    renderClockPointer $$ ( c, u, (2 * pi / 60) * (s `mod` 60), 4, 0.9)
     -- Restore everything
     c # restore
 
@@ -93,7 +89,7 @@ clockJS = do
     array [1..60::Int] # forEach $ \n -> do
       c # save
       c # rotate ((2 * pi / 60) * n)
-      renderClockFaceLine `apply` (c, u, n)
+      renderClockFaceLine $$ (c, u, n)
       c # restore
     c # restore -- Undo all the rotation.
 
@@ -113,13 +109,13 @@ clockJS = do
     c # clearRect (0,0) (w,h)
     c # translate (w / 2, h / 2)
     -- Draw all hour lines.
-    renderClockFace `apply` (c, u)
+    renderClockFace $$ (c, u)
     -- Draw the clock pointers
-    renderClockPointers `apply` (c, u)
+    renderClockPointers $$ (c, u)
     c # restore
     return ()
 
-  renderClock `apply` ()
+  renderClock $$ ()
   window # setInterval renderClock 1000
 
   return ()
