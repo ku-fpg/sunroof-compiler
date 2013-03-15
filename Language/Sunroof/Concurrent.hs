@@ -1,4 +1,6 @@
-
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Language.Sunroof.Concurrent
   ( loop
   , forkJS
@@ -7,14 +9,15 @@ module Language.Sunroof.Concurrent
   ) where
 
 import Language.Sunroof.Types
-  ( JSB, JS
+  ( JSA, JSB, JS
   , SunroofThread
-  , continuation, reify
+  , function, continuation, goto, kast, SunroofThreadReturn -- reify
   , apply, cast, nullJS
   , (#)
+  , JSContinuation, JSFunction
   , liftJS, reifycc )
 import Language.Sunroof.Classes ( Sunroof(..) )
-import Language.Sunroof.JS.Ref ( newJSRef, readJSRef, writeJSRef )
+import Language.Sunroof.JS.Ref ( newJSRef, readJSRef, writeJSRef, JSRef )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Browser ( window, setTimeout )
 
@@ -27,9 +30,9 @@ import Language.Sunroof.JS.Browser ( window, setTimeout )
 --   is feed back as input of the next iteration.
 --   The initial value supplied for the first iteration is @x@.
 --   This loop will never terminate.
-loop :: (Sunroof a) => a -> (a -> JSB a) -> JSB ()
+loop :: forall a . (Sunroof a) => a -> (a -> JSB a) -> JSB ()
 loop start m = do
-  v <- newJSRef (cast nullJS)
+  v :: JSRef (JSContinuation ()) <- newJSRef (cast nullJS)
   s <- newJSRef start
   f <- continuation $ \ () -> do
           a <- readJSRef s
@@ -39,13 +42,12 @@ loop start m = do
           _ <- liftJS $ window # setTimeout f 0
           return ()
   writeJSRef v f
-  apply f () -- and call the function
+  goto f () -- and call the function
   return ()
 
--- | Fork of another thread of execution.
-forkJS :: SunroofThread t => JS t () -> JS t2 ()
+forkJS :: (SunroofThreadReturn t1 ()) => JS t1 () -> JS t2 ()
 forkJS m = do
-  f <- reify $ \ () -> m
+  f <- continuation $ \ () -> m
   _ <- liftJS $ window # setTimeout f 0
   return ()
 

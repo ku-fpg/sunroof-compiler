@@ -59,11 +59,13 @@ module Language.Sunroof
   , JSChan
   , newChan
   , writeChan, readChan
+{-
   -- MVar
   , JSMVar
   , newMVar
   , newEmptyMVar
   , takeMVar, putMVar
+-}
   ) where
 
 import Language.Sunroof.JavaScript ( Type(..) )
@@ -127,11 +129,11 @@ import Language.Sunroof.JS.Chan
   ( JSChan
   , newChan
   , writeChan, readChan )
-
+{-
 import Language.Sunroof.JS.MVar
   ( JSMVar
   , newMVar, newEmptyMVar
   , takeMVar, putMVar )
 
 
-
+-}

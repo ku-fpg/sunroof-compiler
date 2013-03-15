@@ -125,7 +125,7 @@ web_app doc = do
           , ("Channels and MVars",
                 [ Test  10 "Chan (rand)"              (checkArbitraryChan_Int doc False SR.newChan SR.writeChan SR.readChan)
                 , Test  10 "Chan (write before read)" (checkArbitraryChan_Int doc True SR.newChan SR.writeChan SR.readChan)
-                , Test  10 "MVar (rand)"              (checkArbitraryChan_Int doc False SR.newEmptyMVar SR.putMVar SR.takeMVar)
+--                , Test  10 "MVar (rand)"              (checkArbitraryChan_Int doc False SR.newEmptyMVar SR.putMVar SR.takeMVar)
                 ])
           , ("Performance",
                 [ Test   1 ("Fib " ++ show n)           (runFib doc n) | n <- [10,      30]
@@ -271,11 +271,11 @@ runFib doc n = monadicIO $ do
   assert $ r `deltaEqual` r'
 
 
--- Needs to be in Utils module
-fixJS :: (SunroofArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> a -> JSA b
+--  | @fixJS@ is the fix point combinator for functions that return the JS monad.
+fixJS :: (SunroofArgument a, Sunroof b, SunroofThreadReturn t b) => ( (a -> JS t b) -> (a -> JS t b)) -> a -> JS t b
 fixJS f a = do
         ref <- newJSRef (cast nullJS)
-        fn <- function $ \ a' -> do
+        fn <- SR.reify $ \ a' -> do
                         fn' <- readJSRef ref
                         f (apply fn') a'
         writeJSRef ref fn

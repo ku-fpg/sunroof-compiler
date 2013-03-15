@@ -13,15 +13,15 @@ module Language.Sunroof.JS.Chan
 
 import Data.Boolean ( IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes 
+import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..), SunroofValue(..) )
 import Language.Sunroof.Types
   ( T(..)
   , JS(..), JSB
-  , JSTuple(..), JSFunction
+  , JSTuple(..), JSFunction, JSContinuation
   , SunroofThread
   , (#)
-  , apply, new, reify
+  , apply, new, reify, goto, continuation
   , reifycc )
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
@@ -48,8 +48,8 @@ instance (SunroofArgument o) => Sunroof (JSChan o) where
   unbox (JSChan o) = unbox o
 
 instance (SunroofArgument o) => JSTuple (JSChan o) where
-  type Internals (JSChan o) = ( (JSArray (JSFunction (JSFunction o ()) ())) -- callbacks of written data
-                              , (JSArray (JSFunction o ()))                 -- callbacks of waiting readers
+  type Internals (JSChan o) = ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
+                              , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
                               )
   match (JSChan o) = ( o ! "written", o ! "waiting" )
   tuple (written,waiting) = do
@@ -75,23 +75,22 @@ newChan = do
 writeChan :: forall t a . (SunroofThread t, SunroofArgument a) => a -> JSChan a -> JS t ()
 writeChan a (match -> (written,waiting)) = do
   ifB ((waiting ! length') ==* 0)
-      (do f <- reify $ \ (k :: JSFunction a ()) -> apply k a :: JSB ()
-          written # push (f :: JSFunction (JSFunction a ()) ())
+      (do f <- continuation $ \ (k :: JSContinuation a) -> goto k a :: JSB ()
+          written # push (f :: JSContinuation (JSContinuation a))
       )
       (do f <- shift waiting
-          forkJS (apply f a :: JSB ())
-          return ()
+          forkJS (goto f a :: JSB ())
       )
 
 readChan :: forall a . (Sunroof a, SunroofArgument a) => JSChan a -> JS B a
 readChan (match -> (written,waiting)) = do
   ifB ((written ! length') ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
-          reifycc $ \ k -> waiting # push (k :: JSFunction a ())
+          reifycc $ \ k -> waiting # push (k :: JSContinuation a)
       )
       (do f <- shift written
           -- Here, we add our continuation into the written Q.
-          reifycc $ \ k -> apply f k
+          reifycc $ \ k -> goto f k
       )
 
 

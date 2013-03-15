@@ -5,7 +5,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Language.Sunroof.JS.MVar
+module Language.Sunroof.JS.MVar where
+{-
   ( JSMVar
   , newMVar, newEmptyMVar
   , putMVar, takeMVar
@@ -77,7 +78,7 @@ newEmptyMVar = do
   waiting <- newArray ()
   tuple (written, waiting)
 
-
+{-
 -- Not quite right; pauses until someone bites
 putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
@@ -107,5 +108,5 @@ takeMVar (match -> (written,waiting)) = do
           reifycc $ \ k -> apply f k
       )
 
-
-
+-}
+-}

@@ -65,6 +65,7 @@ import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
 import Language.Sunroof.Types
   ( JSFunction
+  , JSContinuation
   , JS
   , JS ( (:=) )
   , fun
@@ -138,14 +139,14 @@ window = object "window"
 -- | Calls a function at specified intervals in milliseconds.
 --   It will continue calling the function until 'clearInterval' is called,
 --   or the window is closed. The returned number is needed for 'clearInterval'.
-setInterval :: (Sunroof r) => JSFunction () r -> JSNumber -> JSObject -> JS t JSNumber
+setInterval :: JSContinuation () -> JSNumber -> JSObject -> JS t JSNumber
 setInterval f interval = invoke "setInterval" (f, interval)
 
 -- | Clears a timer set with the 'setInterval' method.
 clearInterval :: JSNumber -> JSObject -> JS t ()
 clearInterval ident = invoke "clearInterval" (ident)
 
-setTimeout :: (Sunroof r) => JSFunction () r -> JSNumber -> JSObject -> JS t JSNumber
+setTimeout :: JSContinuation () -> JSNumber -> JSObject -> JS t JSNumber
 setTimeout f interval = invoke "setTimeout" (f, interval)
 
 clearTimeout :: JSNumber -> JSObject -> JS t ()
