@@ -125,7 +125,7 @@ web_app doc = do
           , ("Channels and MVars",
                 [ Test  10 "Chan (rand)"              (checkArbitraryChan_Int doc False SR.newChan SR.writeChan SR.readChan)
                 , Test  10 "Chan (write before read)" (checkArbitraryChan_Int doc True SR.newChan SR.writeChan SR.readChan)
---                , Test  10 "MVar (rand)"              (checkArbitraryChan_Int doc False SR.newEmptyMVar SR.putMVar SR.takeMVar)
+                , Test  10 "MVar (rand)"              (checkArbitraryChan_Int doc False SR.newEmptyMVar SR.putMVar SR.takeMVar)
                 ])
           , ("Performance",
                 [ Test   1 ("Fib " ++ show n)           (runFib doc n) | n <- [10,      30]
