@@ -321,11 +321,11 @@ callcc f = JS $ \ cc -> unJS (do o <- continuation (goto' cc)
 
 
 -- | Abort the current computation at this point.
-done :: JS B a
+done :: JS t a
 done = JS $ \ _ -> return ()
 
 -- @goto@ calls the given continuation with the given argument, and never returns.
-goto :: forall args a . (SunroofArgument args) => JSContinuation args -> args -> JS B a
+goto :: forall args a t . (SunroofArgument args) => JSContinuation args -> args -> JS t a
 goto k args = JS $ \ _ -> singleton $ JS_Invoke (jsArgs args) (cast k  :: JSFunction args ())
 
 -- -------------------------------------------------------------

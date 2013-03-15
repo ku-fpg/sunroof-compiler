@@ -73,7 +73,7 @@ clockJS = function $ \() -> do
     renderClockPointer $$
       (c, u, (2 * pi / 12) * ((h `mod` 12) + (m `mod` 60) / 60), 15, 0.4)
     -- Minute pointer
-    renderClockPointer $$ 
+    renderClockPointer $$
       ( c, u, (2 * pi / 60) * ((m `mod` 60) + (s `mod` 60) / 60), 10, 0.7)
     -- Second pointer
     c # setStrokeStyle "red"
@@ -94,7 +94,7 @@ clockJS = function $ \() -> do
     c # restore -- Undo all the rotation.
 
   -- Renders the complete clock.
-  renderClock <- function $ \() -> do
+  renderClock <- continuation $ \() -> do
     u <- clockUnit
     (w,h) <- canvasSize
     c <- context
@@ -115,30 +115,31 @@ clockJS = function $ \() -> do
     c # restore
     return ()
 
-  renderClock $$ ()
   window # setInterval renderClock 1000
+  -- and draw one now, rather than wait till later
+  goto renderClock ()
 
   return ()
 
-canvas :: JS A JSObject
+canvas :: JS t JSObject
 canvas = document # getElementById "canvas"
 
-context :: JS A JSCanvas
+context :: JS t JSCanvas
 context = canvas >>= getContext "2d"
 
-clockUnit :: JS A JSNumber
+clockUnit :: JS t JSNumber
 clockUnit = do
   (w, h) <- canvasSize
   return $ (maxB w h) / 2
 
-canvasSize :: JS A (JSNumber, JSNumber)
+canvasSize :: JS t (JSNumber, JSNumber)
 canvasSize = do
   c <- jQuery "#canvas"
   w <- c # invoke "innerWidth" ()
   h <- c # invoke "innerHeight" ()
   return (w, h)
 
-currentTime :: JS A (JSNumber, JSNumber, JSNumber)
+currentTime :: JS t (JSNumber, JSNumber, JSNumber)
 currentTime = do
   date <- newDate ()
   h <- date # getHours
