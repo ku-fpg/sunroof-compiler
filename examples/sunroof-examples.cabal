@@ -6,10 +6,61 @@ Copyright:           (c) 2013 The University of Kansas
 Build-type:          Simple
 Cabal-version:       >= 1.10
 
+Executable browser-info
+    Build-Depends: 
+         base                   >= 4.6,
+         sunroof                == 0.1,
+         Boolean                >= 0.2,
+         semigroups             >= 0.9,
+         data-default           >= 0.5
+                  
+    Main-is: Main.hs
+    Hs-Source-Dirs: browser-info
+    Ghc-Options: -threaded
+    default-language:    Haskell2010
+
+
+Executable clock
+    Build-Depends: 
+         base                   >= 4.6,
+         sunroof                == 0.1,
+         Boolean                >= 0.2,
+         data-default           >= 0.5
+                  
+    Main-is: Main.hs
+    Hs-Source-Dirs: clock
+    Ghc-Options: -threaded
+    default-language:    Haskell2010
+
+Executable canvas
+    Build-Depends: 
+         base                   >= 4.6,
+         sunroof                == 0.1,
+         Boolean                >= 0.2,
+         data-default           >= 0.5
+                  
+    Main-is: Main.hs
+    Hs-Source-Dirs: canvas
+    Ghc-Options: -threaded
+    default-language:    Haskell2010
+
+Executable fib
+    Build-Depends: 
+         base                   >= 4.6,
+         sunroof                == 0.1,
+         Boolean                >= 0.2,
+         semigroups             >= 0.9,
+         data-default           >= 0.5
+                  
+    Main-is: Main.hs
+    Hs-Source-Dirs: fib
+    Ghc-Options: -threaded
+    default-language:    Haskell2010
+
 Executable unit
     Build-Depends: 
          sunroof                == 0.1,
-         Boolean                >= 0.1.2,
+         Boolean                >= 0.2,
          data-default           >= 0.5,
          semigroups             >= 0.9,
          base                   >= 4.3.1 && < 5,

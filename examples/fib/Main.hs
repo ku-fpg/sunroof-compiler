@@ -7,9 +7,6 @@ import Data.Semigroup ( (<>) )
 import Control.Monad ( liftM2 )
 import Data.Boolean
 
-import Web.KansasComet ( registerEvents, event, (<&>), (.=) )
-import qualified Web.KansasComet as KC
-
 import Language.Sunroof
 import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
@@ -18,7 +15,6 @@ import Language.Sunroof.JS.JQuery
 
 main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \doc -> do
-  registerEvents (cometDocument doc) "body" (slide <> click)
   asyncJS doc prog
 
 prog :: JSB ()
@@ -82,38 +78,5 @@ prog = do
       return ()
 
 default(JSNumber, JSString, String)
-
-fib n = if n < 2 then 1 else fib (n-1) + fib (n-2)
-
-data Event = Slide String Int
-           | Click String Int Int
-    deriving (Show)
-
-slide = event "slide" Slide
-            <&> "id"      .= "$(widget).attr('id')"
-            <&> "value"   .= "aux.value"
-
-click = event "click" Click
-            <&> "id"      .= "$(widget).attr('id')"
-            <&> "pageX"   .=  "event.pageX"
-            <&> "pageY"   .=  "event.pageY"
-
-recfunction :: (SunroofArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> JS t (JSFunction a b)
-recfunction fn = do
-        obj <- new "Object" ()
-        f <- function $ fn (\ n -> obj # invoke "rec" n)
-        obj # attr "rec" := f
-        return f
-
--- To be moved to a more general place
-
-fixJS :: (SunroofArgument a, Sunroof b) => ((a -> JSA b) -> (a -> JSA b)) -> a -> JSA b
-fixJS f a = do
-        ref <- newJSRef (cast nullJS)
-        fn <- function $ \ a' -> do
-                        fn' <- readJSRef ref
-                        f (apply fn') a'
-        writeJSRef ref fn
-        apply fn a
 
 

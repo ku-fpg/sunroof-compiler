@@ -6,8 +6,6 @@ module Main where
 import Data.Default
 import Data.Boolean
 
-import Web.KansasComet
-
 import Language.Sunroof
 import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.Canvas
@@ -18,45 +16,32 @@ import Language.Sunroof.JS.JQuery
 
 main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \ doc -> do
-  registerEvents (cometDocument doc) "body" click
-  sequence_ $ map (\ex -> whenEvent (cometDocument doc) "body" click 
-                        $ asyncJS doc $ onClick $ ex)
-                  (cycle examples)
+
+  ch <- rsyncJS doc $ newChan
+  asyncJS doc $ do
+          jq "body" >>= on "click" ".click" (\ () -> do
+                  o <- new "Object" ()
+                  o # "id" := ("click" :: JSString)
+                  ch # writeChan o)
+
+  sequence_ $ map (\ (ex,msg) -> do
+      syncJS doc $ do
+          canvas <- document # getElementById "canvas"
+          c <- canvas # getContext "2d"
+          c # clearRect (0,0) (canvas ! width, canvas ! height)
+          forkJS $ do
+                  ex canvas c
+                  message canvas c msg
+          -- wait for a click
+          _ :: JSObject <- ch # readChan
+          return ()) (cycle examples)
+
   --whenEvent doc "body" click
   --  $ syncJS doc $ onClick $ examples !! 0
   --sequence_ $ map (syncJS doc) $ map waitForClick $ examples
   --return ()
 
 default(JSNumber, JSString, String)
-
-whenEvent :: Document -> Scope -> Template event -> IO a -> IO a
-whenEvent doc scope event m = do
-  e <- waitForEvent doc scope event
-  case e of
-    Nothing -> whenEvent doc scope event m
-    Just e  -> m
-
-onClick :: (JSObject -> JSCanvas -> JSA (), JSString) -> JSA()
-onClick (js, msg) = do
-  canvas <- document # getElementById "canvas"
-  c <- canvas # getContext "2d"
-  c # clearRect (0,0) (canvas ! width, canvas ! height)
-  js canvas c
-  message canvas c msg
-    {-
-  wait "body" click $ \ res -> do
-    ifB ((res ! "id" :: JSString) ==* "canvas")
-      (do )
-      (return ())
-      waitForClick [] = return ()-}
-
-data Event = Click String Int Int
-    deriving (Show)
-
-click = event "click" Click
-            <&> "id"      .= "$(widget).attr('id')"
-            <&> "pageX"   .=  "event.pageX"
-            <&> "pageY"   .=  "event.pageY"
 
 examples :: [(JSObject -> JSCanvas -> JSA (), JSString)]
 examples =

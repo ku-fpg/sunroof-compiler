@@ -9,9 +9,6 @@ import Data.Boolean
 import Data.Boolean.Numbers
 import Data.Default
 
-import Control.Monad
-import Control.Monad.IO.Class
-
 import Language.Sunroof
 import Language.Sunroof.Types
 import Language.Sunroof.JS.Canvas

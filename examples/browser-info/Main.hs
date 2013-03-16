@@ -9,10 +9,6 @@ import Data.Maybe ( fromJust )
 import Data.String ( IsString(..) )
 
 import Control.Monad ( liftM2 )
-import Control.Monad.IO.Class
-
-import Web.KansasComet ( registerEvents, event, (<&>), (.=) )
-import qualified Web.KansasComet as KC
 
 import Language.Sunroof
 import Language.Sunroof.KansasComet
@@ -24,7 +20,6 @@ default(JSNumber, JSString, String)
 
 main :: IO ()
 main = sunroofServer (def { cometResourceBaseDir = ".." }) $ \doc -> do
---  registerEvents (cometDocument doc) "body" mempty
 
   theCookie <- syncJS doc $ evaluate $ document ! cookie
   putStrLn $ "Cookie:     " ++ show theCookie
