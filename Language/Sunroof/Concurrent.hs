@@ -30,11 +30,11 @@ loop start m = do
   f <- continuation $ \ () -> do
           a <- readJSRef s
           a' <- m a
-          writeJSRef s a'
+          s # writeJSRef a'
           f <- readJSRef v
           _ <- liftJS $ window # setTimeout f 0
           return ()
-  writeJSRef v f
+  v # writeJSRef f
   goto f () -- and call the function
   return ()
 

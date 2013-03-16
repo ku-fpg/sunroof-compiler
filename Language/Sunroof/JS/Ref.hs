@@ -63,11 +63,11 @@ readJSRef :: (Sunroof a) => JSRef a -> JS t a
 readJSRef (JSRef obj) = evaluate $ obj ! "val"
 
 -- | Non-blocking write of a 'JSRef'.
-writeJSRef :: (Sunroof a) => JSRef a -> a -> JS t ()
-writeJSRef (JSRef obj) a = obj # "val" := a
+writeJSRef :: (Sunroof a) => a -> JSRef a ->  JS t ()
+writeJSRef a (JSRef obj) = obj # "val" := a
 
 -- | Non-blocking modification of a 'JSRef'.
-modifyJSRef :: (Sunroof a) => JSRef a -> (a -> JS A a) -> JS A ()
-modifyJSRef ref f = do
+modifyJSRef :: (Sunroof a) => (a -> JS A a) -> JSRef a -> JS A ()
+modifyJSRef f ref = do
   val <- readJSRef ref
-  f val >>= writeJSRef ref 
+  f val >>= \ v -> ref # writeJSRef v

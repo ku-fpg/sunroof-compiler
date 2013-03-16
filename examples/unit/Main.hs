@@ -267,7 +267,7 @@ fixJS f a = do
         fn <- SR.function $ \ a' -> do
                         fn' <- readJSRef ref
                         f (apply fn') a'
-        writeJSRef ref fn
+        ref # writeJSRef fn
         apply fn a
 
 -- -----------------------------------------------------------------------
