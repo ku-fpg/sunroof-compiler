@@ -22,6 +22,8 @@ module Language.Sunroof
   , switch
   , nullJS
   , JSTuple(..)
+  -- Utils
+  , fixJS
   -- Compiler
   , sunroofCompileJS
   , CompilerOpts(..)
@@ -88,7 +90,8 @@ import Language.Sunroof.Types
   , evaluate, value
   , switch
   , nullJS
-  , JSTuple(..) )
+  , JSTuple(..)
+  )
 
 import Language.Sunroof.Compiler
   ( sunroofCompileJS
@@ -134,3 +137,6 @@ import Language.Sunroof.JS.MVar
   ( JSMVar
   , newMVar, newEmptyMVar
   , takeMVar, putMVar )
+
+import Language.Sunroof.Utils
+  ( fixJS )
