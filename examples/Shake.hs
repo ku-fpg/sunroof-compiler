@@ -77,10 +77,11 @@ main2 xs execs = shake (shakeOptions) $ do
                 need ["../Language" </> file | file <- files ]
                 liftIO $ putStrLn $ "Building: " ++ out
                 -- compile inside the build dir
+                let cache = takeDirectory out </> "cache"
                 systemCwd "."
                           "ghc"
                           ["--make",the_dir exec </> the_main exec, the_opts exec,
-                           "-hidir",the_dir exec </> "cache","-odir",the_dir exec </> "cache",
+                           "-hidir",cache,"-odir",cache,
                            "-dcore-lint",
                            "-o", out,
                            "-i" ++ concat (intersperse  ":"  (the_dir exec : repos))
