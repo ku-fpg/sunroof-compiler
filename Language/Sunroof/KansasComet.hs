@@ -11,7 +11,6 @@ module Language.Sunroof.KansasComet
   -- Basic Comet
   ( syncJS
   , asyncJS
-  , wait
   , SunroofResult(..)
   , SunroofEngine(..)
   , jsonToJS
@@ -56,11 +55,9 @@ import Network.Wai.Middleware.Static
   , (<|>), (>->) )
 import qualified Web.Scotty as SC
 import Web.KansasComet
-  ( Template(..), Scope
-  , extract, send, connect
+  ( send, connect
   , Document, Options
-  , kCometPlugin
-  , docUniqs, docUniq )
+  , kCometPlugin )
 import qualified Web.KansasComet as KC
 
 import Language.Sunroof.Types
@@ -87,10 +84,23 @@ import Language.Sunroof.JS.Array ( JSArray )
 --   kansas comet document to the 'SunroofApp'.
 data SunroofEngine = SunroofEngine
   { cometDocument :: Document
-  , engineVerbose :: Int -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
+  , uVar          :: TVar Int   -- Uniq number supply for our engine
+  , engineVerbose :: Int        -- 0 == none, 1 == inits, 2 == cmds done, 3 == complete log
   , compilerOpts  :: CompilerOpts
   , timings       :: Maybe (TVar (Timings NominalDiffTime))
   }
+
+-- TODO: rename these internal functions?
+-- Generate one unique integer from the document.
+docUniq :: SunroofEngine -> IO Int
+docUniq = docUniqs 1
+
+-- Generate n unique integers from the document.
+docUniqs :: Int -> SunroofEngine -> IO Int
+docUniqs n doc = atomically $ do
+        u <- readTVar (uVar doc)
+        writeTVar (uVar doc) (u + n)
+        return u
 
 -- | The number of uniques allocated for the first try of a compilation.
 compileUniqAlloc :: Uniq
@@ -117,7 +127,7 @@ compileLog engine src = do
 compileRequestJS :: SunroofEngine -> JS t () -> IO String
 compileRequestJS engine jsm = do
   -- Allocate a standard amount of uniq for compilation
-  uq <- docUniqs compileUniqAlloc (cometDocument engine)
+  uq <- docUniqs compileUniqAlloc engine
   -- Compile
   (stmts, uq') <- compileJSI (compilerOpts engine) uq $ extractProgramJS return jsm
   -- Check if the allocated amount was sufficient
@@ -130,7 +140,7 @@ compileRequestJS engine jsm = do
     -- It wasn't sufficient
     else do
       -- Allocate all that are needed
-      newUq <- docUniqs (uq' - uq) (cometDocument engine)
+      newUq <- docUniqs (uq' - uq) engine
       -- Compile again
       (stmts', _) <- compileJSI (compilerOpts engine) newUq $ extractProgramJS return jsm
       let txt' = showExpr False $ scopeForEffect stmts'
@@ -192,7 +202,7 @@ syncJS engine jsm = do
 --up = undefined
 
 --  ((a -> Program (JSI t) ()) -> Program (JSI t) ())
-
+{-
 wait :: Scope -> Template event -> JS B JSObject
 wait scope tmpl = callcc $ \ o -> do
   () <- apply (fun "$.kc.waitFor") ( string scope
@@ -200,6 +210,7 @@ wait scope tmpl = callcc $ \ o -> do
                                    , o
                                    )
   done
+-}
 
 -- -----------------------------------------------------------------------
 -- Default Server Instance
@@ -289,9 +300,11 @@ sunroofServer opts cometApp = do
 
 -- | Wrap the document into the sunroof engine.
 wrapDocument :: SunroofServerOptions -> SunroofApp -> (Document -> IO ())
-wrapDocument opts cometApp doc = cometApp
-                               $ SunroofEngine
+wrapDocument opts cometApp doc = do
+        uqVar <- atomically $ newTVar 0
+        cometApp $ SunroofEngine
                                { cometDocument = doc
+                               , uVar = uqVar
                                , engineVerbose = sunroofVerbose opts
                                , compilerOpts = sunroofCompilerOpts opts
                                , timings = Nothing
@@ -406,7 +419,7 @@ data Uplink a = Uplink SunroofEngine Int
 
 newUplink :: SunroofEngine -> IO (Uplink a)
 newUplink eng = do
-  u <- docUniq (cometDocument eng)
+  u <- docUniq eng
   return $ Uplink eng u
 
 putUplink :: (Sunroof a) => Uplink a -> a -> JS t ()
@@ -443,7 +456,8 @@ kc_reply n a = fun "$.kc.reply" `apply` (n,a)
 debugSunroofEngine :: IO SunroofEngine
 debugSunroofEngine = do
   doc <- KC.debugDocument
-  return $ SunroofEngine doc 3 def Nothing
+  uqVar <- atomically $ newTVar 0
+  return $ SunroofEngine doc uqVar 3 def Nothing
 
 data Timings a = Timings
         { compileTime :: !a        -- how long spent compiling
