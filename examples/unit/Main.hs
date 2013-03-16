@@ -344,13 +344,16 @@ runTests doc all_tests = do
                    return ()
 
   sequence_ [ do section txt $ concat
-                              [ "<tr class=\"" ++ pbName i j ++ "\"><td class=\"progress\"><div class=\"progressbar\"> </div></td><th>"
+                              [ "<tr class=\"" ++ pbName i j ++ "\">" ++
+                                "<td class=\"count\">" ++ {-show n-} show 0 ++ "</td>" ++
+                                "<td class=\"progress\"><div class=\"progressbar\"> </div></td><th>"
                                         ++ msg ++ "</th>" ++
                                                 "<td class=\"data\"></td>" ++
                                                 "<td class=\"data\"></td>" ++
                                                 "<td class=\"data\"></td>" ++
+                                                "<td class=\"space\">&nbsp;</td>" ++
                                                 "</tr>"
-                              | (j::Int,Test _ msg _) <- [1..] `zip` tests
+                              | (j::Int,Test n msg _) <- [1..] `zip` tests
                               ]
            | (i::Int,(txt,tests)) <- [1..] `zip` all_tests
            ]
@@ -425,7 +428,7 @@ runTests doc all_tests = do
                afterTestCallback count = PostTest NotCounterexample $ \ state result -> do
                  if not (P.abort result) && isJust (ok result)
                    then do
-                     progressVal doc i j (((numSuccessTests state + 1) * 100) `div` count)
+                     progressVal doc i j (numSuccessTests state + 1) (((numSuccessTests state + 1) * 100) `div` count)
                      if numSuccessTests state `mod` (casesPerTest `div` 10) == 0
                        then do
                          putStr "."
@@ -468,13 +471,15 @@ pbName i j = "pb-" ++ show i ++ "-" ++ show j
 pbObject :: Int -> Int -> (String -> String) -> JS t JSObject
 pbObject i j f = jQuery $ js $ f $ pbName i j
 
-progressVal :: TestEngine -> Int -> Int -> Int -> IO ()
-progressVal doc i j n = asyncJS (srEngine doc) $ do
+progressVal :: TestEngine -> Int -> Int -> Int -> Int -> IO ()
+progressVal doc i j n np = asyncJS (srEngine doc) $ do
   p <- pbObject i j $ \ n -> "." ++ n ++ " .progressbar"
-  p # invoke "progressbar" ( "option" :: JSString
+  () <- p # invoke "progressbar" ( "option" :: JSString
                            , "value" :: JSString
-                           , js n :: JSNumber)
-
+                           , js np :: JSNumber)
+  p <- pbObject i j $ \ n -> "." ++ n ++ " .count"
+  p # JQuery.setHtml (cast ("" <> cast (js n) :: JSString))
+  return ()
 
 overwriteMessage :: TestEngine -> Int -> Int -> String -> String -> IO ()
 overwriteMessage doc i j msg cls = asyncJS (srEngine doc) $ do
