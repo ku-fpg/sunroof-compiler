@@ -24,9 +24,6 @@ import qualified Numeric
 
 import Control.Concurrent
 
-import Web.KansasComet hiding ( abort )
-import qualified Web.KansasComet as KC
-
 import Language.Sunroof as SR
 import Language.Sunroof.KansasComet
 import Language.Sunroof.JS.JQuery (jQuery)
@@ -92,14 +89,6 @@ data TestStyle = TestWithTiming         -- single core, do timing
 -- This is run each time the page is first accessed
 web_app :: TestEngine -> IO ()
 web_app doc = do
-        -- We use the lower-level waitForEvent, so we can test the JS compiler.
-        {-
-        forkIO $ do
-                print "waiting"
-                a <- waitForEvent (cometDocument doc) "session" abort
-                print "waited"
-                print a
-        -}
 
         let tA = ThreadProxy :: ThreadProxy A
         let tB = ThreadProxy :: ThreadProxy B

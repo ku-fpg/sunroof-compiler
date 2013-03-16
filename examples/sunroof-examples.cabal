@@ -9,7 +9,6 @@ Cabal-version:       >= 1.10
 Executable unit
     Build-Depends: 
          sunroof                == 0.1,
-         kansas-comet           == 0.1,
          Boolean                >= 0.1.2,
          data-default           >= 0.5,
          semigroups             >= 0.9,
