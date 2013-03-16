@@ -75,7 +75,14 @@ newEmptyMVar = do
 putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
   ifB ((waiting ! length') ==* 0)
-      (callcc $ \ (k :: JSContinuation ()) -> do
+      (-- no-one is waiting, so check for fullness
+       ifB ((written ! length') ==* 0)
+          (-- mvar empty, so just push and continue
+           do f <- continuation $ \ (k :: JSContinuation a) -> goto k a :: JSB ()
+              written # push (f :: JSContinuation (JSContinuation a))
+          )
+          (-- mvar full, so block
+           callcc $ \ (k :: JSContinuation ()) -> do
             f <- continuation $ \ (kr :: JSContinuation a) -> do
                 -- we've got a request for the contents
                 -- so we can continue
@@ -84,7 +91,9 @@ putMVar a (match -> (written,waiting)) = do
                 goto kr a :: JSB ()
             written # push (f :: JSContinuation (JSContinuation a))
             done
+         )
       )
+        -- If someone is already waiting, then just pass the value (and continue without pausing)
       (do f <- shift waiting
           forkJS (goto f a :: JSB ())
           return ()

@@ -22,7 +22,7 @@ import Data.Boolean
 
 import qualified Numeric
 
-import Control.Concurrent
+import Control.Concurrent as CC
 
 import Language.Sunroof as SR
 import Language.Sunroof.KansasComet
@@ -114,7 +114,18 @@ web_app doc = do
           , ("Channels and MVars",
                 [ Test  10 "Chan (rand)"              (checkArbitraryChan_Int doc False SR.newChan SR.writeChan SR.readChan)
                 , Test  10 "Chan (write before read)" (checkArbitraryChan_Int doc True SR.newChan SR.writeChan SR.readChan)
+                , Test  1  "Chan (Empty)"             (checkMVars doc 3 SR.writeChan $ SR.newChan)
                 , Test  10 "MVar (rand)"              (checkArbitraryChan_Int doc False SR.newEmptyMVar SR.putMVar SR.takeMVar)
+                , Test  1  "MVar (Empty)"             (checkMVars doc 1 SR.putMVar $ SR.newEmptyMVar)
+                , Test  1  "MVar (Full)"              (checkMVars doc 0 SR.putMVar $ SR.newMVar (-1))
+                , Test  1  "MVar (Empty + put)"       (checkMVars doc 0 SR.putMVar $
+                                                                           do { v <- SR.newEmptyMVar
+                                                                              ; v # SR.putMVar (-1)
+                                                                              ; return v })
+                , Test  1  "MVar (Full + take)"       (checkMVars doc 1 SR.putMVar $
+                                                                           do { v <- SR.newMVar (-1)
+                                                                              ; v # SR.takeMVar
+                                                                              ; return v })
                 ])
           , ("Performance",
                 [ Test   1 ("Fib " ++ show n)           (runFib doc n) | n <- [10,      30]
@@ -206,9 +217,9 @@ checkArbitraryChan_Int doc wbr newChan writeChan readChan seed = monadicIO $ do
   let n = (abs seed `mod` 8) + 1
   qPush <- pick $ frequency [(1,return False),(3,return True)]
   qPull <- pick $ frequency [(1,return False),(3,return True)]
-  arr1 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 5
-  arr2 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 5
-  dat  :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 5
+  arr1 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
+  arr2 :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
+  dat  :: [Int] <- fmap (fmap (`Prelude.rem` 100)) $ pick $ vector 10
 
   let prog :: JS B (JSArray JSNumber)
       prog = do
@@ -241,6 +252,43 @@ checkArbitraryChan_Int doc wbr newChan writeChan readChan seed = monadicIO $ do
           return arr
   res :: [Double] <- run $ syncJS (srEngine doc) prog
   assert $ map round res == dat
+
+checkMVars
+        :: TestEngine
+        -> Int
+        -> (JSNumber -> m JSNumber -> JS B ())
+        -> (JS B (m JSNumber))
+        -> Int
+        -> Property
+checkMVars doc sz write start _seed = monadicIO $ do
+
+  res <- run $ syncJS (srEngine doc) $ do
+     st :: JSRef JSNumber <- newJSRef 0
+     -- how many pushes can a var do?
+     var  <- start
+
+     forkJS $ do
+          st # writeJSRef 0
+          var # write 0
+          st # writeJSRef 1
+          var # write 1
+          st # writeJSRef 2
+          var # write 2
+          st # writeJSRef 3
+
+     SR.threadDelay 1000
+     res <- st # readJSRef
+
+     when (teLog doc) $ do
+                 B.console # B.log
+                        (("checkMVars: " <> " expecting " <> cast (js sz :: JSNumber) <> ", found " <> cast res) :: JSString)
+
+     return $ res
+
+  run $ print res
+  assert $ round res == sz
+
+
 
 
 -- | Check if simple arithmetic expressions with one operator produce
