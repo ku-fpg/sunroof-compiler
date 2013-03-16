@@ -11,6 +11,7 @@ module Language.Sunroof.KansasComet
   -- Basic Comet
   ( syncJS
   , asyncJS
+  , rsyncJS
   , SunroofResult(..)
   , SunroofEngine(..)
   , jsonToJS
@@ -61,9 +62,7 @@ import Web.KansasComet
 import qualified Web.KansasComet as KC
 
 import Language.Sunroof.Types
-  ( T(..), JS
-  , nullJS
-  , apply, fun, done, callcc )
+import Language.Sunroof.Selector
 import Language.Sunroof.JavaScript
   ( Expr, Type(Unit)
   , literal, showExpr
@@ -150,8 +149,13 @@ compileRequestJS engine jsm = do
 -- | Executes the Javascript in the browser without waiting for a result.
 asyncJS :: SunroofEngine -> JS t () -> IO ()
 asyncJS engine jsm = do
+  t0 <- getCurrentTime
   src <- compileRequestJS engine jsm
+  addCompileTime engine t0
+
+  t1 <- getCurrentTime
   send (cometDocument engine) src  -- send it, and forget it
+  addSendTime engine t1
   return ()
 
 {-
@@ -182,7 +186,9 @@ syncJS engine jsm | typeOf (Proxy :: Proxy a) == Unit = do
 syncJS engine jsm = do
   up <- newUplink engine
   t0 <- getCurrentTime
-  src <- compileRequestJS engine (jsm >>= putUplink up)
+  src <- compileRequestJS engine $ do
+          v <- jsm
+          up # putUplink v
   addCompileTime engine t0
   t1 <- getCurrentTime
   send (cometDocument engine) src
@@ -194,23 +200,30 @@ syncJS engine jsm = do
   addWaitTime engine t2
   return r
 
--- | wait passes an event to a continuation, once. You need
--- to re-register each time.
+rsyncJS :: forall a t . (Sunroof a) => SunroofEngine -> JS t a -> IO a
+rsyncJS engine jsm = do
+  uq <- docUniq engine   -- uniq for the value
+  let uq_lab = label ("remote_" <> cast (js uq))
+  up :: Uplink JSNumber <- newUplink engine
 
+  t0 <- getCurrentTime
+  src <- compileRequestJS engine $ do
+          v <- jsm
+          -- Store the value inside the window object
+          object "window" # uq_lab := v
+          up # putUplink 0
+  addCompileTime engine t0
 
---up :: Program (JSI t) () -> JS B ()
---up = undefined
+  t1 <- getCurrentTime
+  send (cometDocument engine) src
+  addSendTime engine t1
 
---  ((a -> Program (JSI t) ()) -> Program (JSI t) ())
-{-
-wait :: Scope -> Template event -> JS B JSObject
-wait scope tmpl = callcc $ \ o -> do
-  () <- apply (fun "$.kc.waitFor") ( string scope
-                                   , object (show (map fst (extract tmpl)))
-                                   , o
-                                   )
-  done
--}
+  t2 <- getCurrentTime
+  -- There is *no* race condition in here. If no-one is listening,
+  -- then the numbered event gets queued up.
+  getUplink up
+  addWaitTime engine t2
+  return $ object "window" ! uq_lab
 
 -- -----------------------------------------------------------------------
 -- Default Server Instance
@@ -422,8 +435,8 @@ newUplink eng = do
   u <- docUniq eng
   return $ Uplink eng u
 
-putUplink :: (Sunroof a) => Uplink a -> a -> JS t ()
-putUplink (Uplink _ u) a = kc_reply (js u) a
+putUplink :: (Sunroof a) => a -> Uplink a -> JS t ()
+putUplink a (Uplink _ u) = kc_reply (js u) a
 
 getUplink :: forall a . (SunroofResult a) => Uplink a -> IO (ResultOf a)
 getUplink (Uplink eng u) = do
