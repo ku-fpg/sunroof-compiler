@@ -58,6 +58,40 @@ data CompilerOpts = CompilerOpts
 instance Default CompilerOpts where
   def = CompilerOpts True False False 0
 
+-- | The sunroof compiler compiles an effect that returns a Sunroof/JavaScript
+-- value into a JavaScript program. An example invocation is
+--
+-- @
+-- GHCi> import Language.Sunroof
+-- GHCi> import Language.Sunroof.JS.Browser
+-- GHCi> import Data.Default
+-- GHCi> txt <- sunroofCompileJS def \"main\" $ do alert(js \"Hello\");
+-- GHCi> putStrLn txt
+-- var main = (function() {
+--   alert(\"Hello\");
+-- })();
+-- @
+--
+-- (The extra function and application are intentional and are a common JavaScript
+-- trick to circumvent scoping issues.)
+--
+-- To generate a function, not just an effect you can use the 'function' combinator.
+--
+-- @
+-- GHCi> txt <- sunroofCompileJS def "main" $ do
+--            function $ \\ n -> do
+--                return (n * (n :: JSNumber))
+-- GHCi> putStrLn txt
+-- var main = (function() {
+--   var v1 = function(v0) {
+--     return v0*v0;
+--   };
+--   return v1;
+-- })();
+-- @
+--
+-- Now @main@ in JavaScript is bound to the square function.
+--
 sunroofCompileJS :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
 sunroofCompileJS opts fName f = do
   (stmts,_) <- compileJSI opts 0 $ extractProgramJS (single . JS_Return) f
