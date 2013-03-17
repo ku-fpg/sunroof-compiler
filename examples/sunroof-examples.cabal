@@ -9,7 +9,7 @@ Cabal-version:       >= 1.10
 Executable browser-info
     Build-Depends: 
          base                   >= 4.6,
-         sunroof                == 0.1,
+         sunroof-compiler                == 0.1,
          Boolean                >= 0.2,
          semigroups             >= 0.9,
          data-default           >= 0.5
@@ -23,7 +23,7 @@ Executable browser-info
 Executable clock
     Build-Depends: 
          base                   >= 4.6,
-         sunroof                == 0.1,
+         sunroof-compiler                == 0.1,
          Boolean                >= 0.2,
          data-default           >= 0.5
                   
@@ -35,7 +35,7 @@ Executable clock
 Executable canvas
     Build-Depends: 
          base                   >= 4.6,
-         sunroof                == 0.1,
+         sunroof-compiler                == 0.1,
          Boolean                >= 0.2,
          data-default           >= 0.5
                   
@@ -47,7 +47,7 @@ Executable canvas
 Executable fib
     Build-Depends: 
          base                   >= 4.6,
-         sunroof                == 0.1,
+         sunroof-compiler                == 0.1,
          Boolean                >= 0.2,
          semigroups             >= 0.9,
          data-default           >= 0.5
@@ -59,7 +59,7 @@ Executable fib
 
 Executable unit
     Build-Depends: 
-         sunroof                == 0.1,
+         sunroof-compiler                == 0.1,
          Boolean                >= 0.2,
          data-default           >= 0.5,
          semigroups             >= 0.9,
