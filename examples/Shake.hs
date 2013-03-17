@@ -72,7 +72,7 @@ main2 xs execs = shake (shakeOptions) $ do
 
                 need [nm </> the_main exec]
                 -- This should be read from the external repo properly
-                need ["../sunroof.cabal"]
+                need ["../sunroof-compiler.cabal"]
                 files <- getDirectoryFiles "../Language" ["//*.hs"]
                 need ["../Language" </> file | file <- files ]
                 liftIO $ putStrLn $ "Building: " ++ out
