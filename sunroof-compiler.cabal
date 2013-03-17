@@ -1,4 +1,4 @@
-Name:                sunroof
+Name:                sunroof-compiler
 Version:             0.1
 Synopsis:            Monadic Javascript Compiler
 Homepage:            https://github.com/ku-fpg/sunroof/
@@ -78,4 +78,4 @@ Library
 
 source-repository head
   type:     git
-  location: git://github.com/ku-fpg/sunroof.git
+  location: git://github.com/ku-fpg/sunroof-compiler.git
