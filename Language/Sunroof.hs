@@ -2,16 +2,23 @@
 --{-# LANGUAGE ScopedTypeVariables, OverloadedStrings, KindSignatures, GADTs #-}
 
 module Language.Sunroof
-  -- JavaScript
-  ( Type(..)
-  -- Classes
+  (
+  -- * Sunroof Compiler
+    sunroofCompileJS
+  , CompilerOpts(..)
+  -- * Classes
   , Sunroof(..), SunroofValue(..), SunroofArgument(..)
-  -- Types
+  , JSTuple(..)
+  -- * Types
+  , Type(..)
   , T(..), ThreadProxy(..)
   , SunroofThread(..)
   , JS(..), JSA, JSB
-  , done, liftJS
   , JSFunction
+  , JSContinuation
+  , JSSelector
+    -- * DSL Primitives and Utilties
+  , done, liftJS
   , function, continuation
   , apply, ($$)
   , cast
@@ -21,53 +28,47 @@ module Language.Sunroof
   , evaluate, value
   , switch
   , nullJS
-  , JSTuple(..)
-  -- Utils
-  , fixJSA, fixJSB
-  -- Compiler
-  , sunroofCompileJS
-  , CompilerOpts(..)
-  -- Selector
-  , JSSelector
   , label, index
   , (!)
-  -- Continuation
   , callcc
-  -- Concurrent
-  , loop
+  -- * Concurrency Primitives
   , forkJS
   , threadDelay
   , yield
-  -- Container
-  , JSRef
-  , newJSRef
-  , readJSRef
-  , writeJSRef
-  , modifyJSRef
-  -- Bool
-  , JSBool
-  -- Object
+  -- * Basic JS types
+  -- ** JavaScript Object
   , JSObject, this, object
-  -- Number
+  -- ** Boolean
+  , JSBool
+  -- ** Numbers
   , JSNumber, int
-  -- String
+  -- ** Strings
   , JSString, string
-  -- Array
+  -- ** Array
   , JSArray
   , array, newArray
   , length'
   , shift, unshift
   , pop, push
   , forEach
-  -- Chan
+  -- ** References
+  , JSRef
+  , newJSRef
+  , readJSRef
+  , writeJSRef
+  , modifyJSRef
+  -- ** Channnels
   , JSChan
   , newChan
   , writeChan, readChan
-  -- MVar
+  -- ** Thread-safe Mutable Variables
   , JSMVar
   , newMVar
   , newEmptyMVar
   , takeMVar, putMVar
+    -- * DSL Utilties
+  , loop
+  , fixJSA, fixJSB
   ) where
 
 import Language.Sunroof.JavaScript ( Type(..) )
@@ -81,6 +82,7 @@ import Language.Sunroof.Types
   , JS(..), JSA, JSB
   , done, liftJS
   , JSFunction
+  , JSContinuation
   , function, continuation, callcc
   , apply, ($$)
   , cast
