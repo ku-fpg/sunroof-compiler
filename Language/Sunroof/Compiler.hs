@@ -48,10 +48,10 @@ import Language.Sunroof.Internal ( proxyOf )
 -- -------------------------------------------------------------
 
 data CompilerOpts = CompilerOpts
-  { co_on      :: Bool        -- do we reify to capture Haskell-level lets / CSEs?
-  , co_cse     :: Bool        -- do we also capture non-reified CSE, using Value Numbering?
-  , co_const   :: Bool        -- do we constant fold?
-  , co_verbose :: Int         -- how verbose is the compiler when running? standard 0 - 3 scale
+  { co_on      :: Bool        -- ^ do we reify to capture Haskell-level lets / CSEs?
+  , co_cse     :: Bool        -- ^ do we also capture non-reified CSE, using Value Numbering?
+  , co_const   :: Bool        -- ^ do we constant fold?
+  , co_verbose :: Int         -- ^ how verbose is the compiler when running? standard 0 - 3 scale
   }
   deriving Show
 
@@ -75,10 +75,10 @@ instance Default CompilerOpts where
 -- (The extra function and application are intentional and are a common JavaScript
 -- trick to circumvent scoping issues.)
 --
--- To generate a function, not just an effect you can use the 'function' combinator.
+-- To generate a function, not just an effect, you can use the 'function' combinator.
 --
 -- @
--- GHCi> txt <- sunroofCompileJS def "main" $ do
+-- GHCi> txt <- sunroofCompileJS def \"main\" $ do
 --            function $ \\ n -> do
 --                return (n * (n :: JSNumber))
 -- GHCi> putStrLn txt
