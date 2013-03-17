@@ -23,7 +23,7 @@ module Language.Sunroof
   , nullJS
   , JSTuple(..)
   -- Utils
-  , fixJS
+  , fixJSA, fixJSB
   -- Compiler
   , sunroofCompileJS
   , CompilerOpts(..)
@@ -139,4 +139,4 @@ import Language.Sunroof.JS.MVar
   , takeMVar, putMVar )
 
 import Language.Sunroof.Utils
-  ( fixJS )
+  ( fixJSA, fixJSB )

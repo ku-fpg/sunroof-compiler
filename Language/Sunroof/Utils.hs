@@ -2,7 +2,7 @@
 {-# LANGUAGE GADTs #-}
 
 module Language.Sunroof.Utils
-  ( fixJS
+  ( fixJSA, fixJSB
   ) where
 
 import Language.Sunroof.Classes
@@ -14,14 +14,23 @@ import Language.Sunroof.JS.Ref
 -- -------------------------------------------------------------
 
 --  | @fixJS@ is the fix point combinator for functions that return the JS monad.
-fixJS :: (SunroofArgument a, Sunroof b, t ~ A) => ((a -> JS t b) -> (a -> JS t b)) -> a -> JS t b
-fixJS f a = do
+fixJSA :: (SunroofArgument a, Sunroof b) => (JSFunction a b -> (a -> JS A b)) -> JS t (JSFunction a b)
+fixJSA f = do
         ref <- newJSRef (cast nullJS)
         fn <- function $ \ a' -> do
                         fn' <- readJSRef ref
-                        f (apply fn') a'
+                        f fn' a'
         ref # writeJSRef fn
-        apply fn a
+        return fn
 
+--  | @fixJS@ is the fix point combinator for continuations.
+fixJSB :: (SunroofArgument a) => (JSContinuation a -> (a -> JS B ())) -> JS t (JSContinuation a)
+fixJSB f = do
+        ref <- newJSRef (cast nullJS)
+        fn <- continuation $ \ a' -> do
+                        fn' <- readJSRef ref
+                        f fn' a'
+        ref # writeJSRef fn
+        return fn
 
 

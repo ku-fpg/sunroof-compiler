@@ -50,10 +50,10 @@ prog = do
           switchB _   []         def = def
           switchB tag ((a,b):xs) def = ifB (tag ==* a) b (switchB tag xs def)
 
-      fib <- function $ fixJS $ \ fib (n :: JSNumber) -> do
+      fib <- fixJSA $ \ fib (n :: JSNumber) -> do
           ifB (n <* 2)
               (return (1 :: JSNumber))
-              (liftM2 (+) (fib (n - 1)) (fib (n - 2)))
+              (liftM2 (+) (apply fib (n - 1)) (apply fib (n - 2)))
 
       loop () $ \() -> do
           res <- ch # readChan
