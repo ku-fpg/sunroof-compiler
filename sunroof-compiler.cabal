@@ -57,7 +57,7 @@ Library
                        data-default     == 0.5.*,
                        vector-space     >= 0.8.6, 
                        kansas-comet     == 0.2,
-                       wai-middleware-static,
+                       wai-middleware-static >= 0.3.1 && < 0.4,
                        mtl,
                        operational      >= 0.2.0.3 && < 0.3,
                        scotty           >= 0.4.2 && < 0.5,
