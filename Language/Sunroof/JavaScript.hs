@@ -20,7 +20,7 @@ module Language.Sunroof.JavaScript
   ) where
 
 import Data.List ( intercalate )
-import Data.Reify ( MuRef(..) ) 
+import Data.Reify ( MuRef(..) )
 import Control.Applicative ( Applicative, pure, (<$>), (<*>))
 import Data.Traversable ( Traversable(..) )
 import Data.Foldable ( Foldable(..) )
@@ -71,16 +71,15 @@ instance Functor E where
   fmap f (Apply s xs) = Apply (f s) (map f xs)
   fmap _ (Function nms stmts) = Function nms stmts
 
--- | Show an expression as compiled Javascript. 
+-- | Show an expression as compiled Javascript.
 --   The boolean argument says non-trivial arguments need parenthesis.
 showExpr :: Bool -> Expr -> String
--- These being up here, cause a GHC warning for missing patterns.
--- So they are moved down.
---showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
---showExpr _ (Var v) = v  -- always stand alone
+-- Original comment: These being up here, cause a GHC warning for missing patterns.
+--                   So they are moved down.
+-- Response: They *need* to be here, it makes a different. I've fixed the warning.
+showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
+showExpr _ (Var v) = v  -- always stand alone
 showExpr b e = p $ case e of
-    (Lit a) -> a  -- always stand alone, or pre-parenthesised
-    (Var v) -> v  -- always stand alone
 --    (Apply (ExprE (Var "[]")) [ExprE a,ExprE x])   -> showExpr True a ++ "[" ++ showExpr False x ++ "]"
     (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
     (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
@@ -103,6 +102,7 @@ showExpr b e = p $ case e of
       "(" ++ intercalate "," args ++ ") {\n" ++
          indent 2 (unlines (map showStmt body)) ++
       "}"
+    _ -> error "should never happen"
   where
     p txt = if b then "(" ++ txt ++ ")" else txt
 
@@ -121,14 +121,14 @@ showFun e args = case e of
     (Dot (ExprE a) (ExprE (Lit x)) _)
         | Just n <- isGoodSelectName x -> showExpr True a ++ "." ++ n ++ showArgs args
     (Dot (ExprE a) (ExprE x) _) -> "(" ++ showIdx a x ++ ")" ++ showArgs args
-    _                           -> showExpr True e ++ showArgs args 
+    _                           -> showExpr True e ++ showArgs args
 
 -- | Check if the given 'Id' is a valid Javascript identifier.
 isIdentifier :: Id -> Bool
 isIdentifier x | not (null x) = isAlpha (head x) && all isAlphaNum (drop 1 x)
 isIdentifier _ = False
 
--- | Check if the given 'Id' represents a constructor call without 
+-- | Check if the given 'Id' represents a constructor call without
 --   arguments. That means a string beginning with @"new "@ followed
 --   by a valid identifier ('isIdentifier').
 isNewConstructor :: Id -> Bool
@@ -164,17 +164,17 @@ binOp o e1 e2 = operator o [e1, e2]
 uniOp :: String -> Expr -> E ExprE
 uniOp o e = operator o [e]
 
--- | Combinator to create a expression containing a 
+-- | Combinator to create a expression containing a
 --   literal in form of a string.
 literal :: String -> Expr
 literal = Lit
 
--- | Indent all lines of the given string by the given number 
+-- | Indent all lines of the given string by the given number
 --   of spaces.
 indent :: Int -> String -> String
 indent n = unlines . map (take n (cycle "  ") ++) . lines
 
--- | Create a anonymous function to scope all effects 
+-- | Create a anonymous function to scope all effects
 --   in the given block of statement.
 scopeForEffect :: [Stmt] -> Expr
 scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
