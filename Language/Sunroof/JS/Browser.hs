@@ -66,8 +66,7 @@ import Prelude hiding (isNaN)
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
 import Language.Sunroof.Types
-  ( JSFunction
-  , JSContinuation
+  ( JSContinuation
   , JS
   , JS ( (:=) )
   , fun

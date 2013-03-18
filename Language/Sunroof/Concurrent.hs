@@ -35,7 +35,7 @@ loop start m = do
           _ <- liftJS $ window # setTimeout f 0
           return ()
   v # writeJSRef f
-  goto f () -- and call the function
+  _ <- goto f () -- and call the function
   return ()
 
 forkJS :: (SunroofThread t1) => JS t1 () -> JS t2 ()
