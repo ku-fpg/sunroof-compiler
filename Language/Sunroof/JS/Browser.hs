@@ -12,8 +12,10 @@
 --
 
 module Language.Sunroof.JS.Browser
-  -- Top level API
+  -- * Top level functions
   ( alert
+  , confirm
+  , prompt
   , decodeURI
   , encodeURI
   , decodeURIComponent
@@ -23,15 +25,15 @@ module Language.Sunroof.JS.Browser
   , isNaN
   , parseFloat
   , parseInt
-  -- Window API
+  -- * Window API
   , window
   , setInterval
   , clearInterval
   , setTimeout
   , clearTimeout
-  -- Screen API
+  -- * Screen API
   , screen
-  -- Document API
+  -- * Document API
   , document
   , getElementById
   , getElementsByName
@@ -86,8 +88,24 @@ import Language.Sunroof.JS.Number ( JSNumber )
 -- -----------------------------------------------------------------------
 
 -- | Display the given text in a message box.
+--   
+--   See <http://www.w3schools.com/js/js_popup.asp>.
 alert :: JSString -> JS t ()
 alert msg = fun "alert" `apply` (msg)
+
+-- | Ask the user to confirm the given massege.
+--   
+--   See <http://www.w3schools.com/js/js_popup.asp>.
+confirm :: JSString -> JS t JSBool
+confirm msg = fun "confirm" `apply` (msg)
+
+-- | Ask the user to give some input. May return @null@
+--   or a string. Don't forget to check against 'nullJS'
+--   before casting to string.
+--   
+--   See <http://www.w3schools.com/js/js_popup.asp>.
+prompt :: JSString -> JSString -> JS t JSObject
+prompt msg val = fun "prompt" `apply` (msg, val)
 
 -- | Decode the URI encoded in the given string.
 decodeURI :: JSString -> JS t JSString
