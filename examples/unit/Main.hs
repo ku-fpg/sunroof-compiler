@@ -25,7 +25,7 @@ import qualified Numeric
 import Control.Concurrent as CC
 
 import Language.Sunroof as SR
-import Language.Sunroof.KansasComet
+import Language.Sunroof.Server
 import Language.Sunroof.JS.JQuery (jQuery)
 import qualified Language.Sunroof.JS.JQuery as JQuery
 import qualified Language.Sunroof.JS.Browser as B

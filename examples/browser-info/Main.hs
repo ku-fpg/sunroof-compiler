@@ -11,7 +11,7 @@ import Data.String ( IsString(..) )
 import Control.Monad ( liftM2 )
 
 import Language.Sunroof
-import Language.Sunroof.KansasComet
+import Language.Sunroof.Server
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery

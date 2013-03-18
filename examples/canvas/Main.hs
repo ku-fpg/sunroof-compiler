@@ -7,7 +7,7 @@ import Data.Default
 import Data.Boolean
 
 import Language.Sunroof
-import Language.Sunroof.KansasComet
+import Language.Sunroof.Server
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser
 import Language.Sunroof.JS.JQuery

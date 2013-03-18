@@ -8,7 +8,7 @@ import Control.Monad ( liftM2 )
 import Data.Boolean
 
 import Language.Sunroof
-import Language.Sunroof.KansasComet
+import Language.Sunroof.Server
 import Language.Sunroof.JS.Canvas
 import Language.Sunroof.JS.Browser ( alert )
 import Language.Sunroof.JS.JQuery
