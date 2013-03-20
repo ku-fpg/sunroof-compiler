@@ -136,7 +136,7 @@ instance SunroofValue Integer where
 instance (Integral a) => SunroofValue (Ratio a) where
   type ValueOf (Ratio a) = JSNumber
   js = box . literal . litparen . (show :: Double -> String) . fromRational . toRational
- 
+
 -- -------------------------------------------------------------
 -- JSNumber Combinators
 -- -------------------------------------------------------------

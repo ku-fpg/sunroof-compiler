@@ -2,9 +2,11 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Language.Sunroof.JS.Array
   ( JSArray
+  , LiteralList, litList
   , array, newArray
   , length'
   , push, pop
@@ -47,12 +49,21 @@ type instance BooleanOf (JSArray a) = JSBool
 instance (Sunroof a) => IfB (JSArray a) where
   ifB = jsIfB
 
-{- This conflicts with the string instance.
-instance (SunroofValue a) => SunroofValue [a] where
-  type ValueOf [a] = JSArray (ValueOf a)
+-- | Newtype wrapper for lists. Needed for the 'SunroofValue' instance for arrays.
+newtype LiteralList a = LiteralList [a]
+
+-- | Create a 'LiteralList' from a list.
+litList :: [a] -> LiteralList a
+litList = LiteralList
+
+-- | Creates an array from a list (wrapped in the 'LiteralList' newtype wrapper).
+--   Without the newtype wrapper this would overlap with the 
+--   'String' instance of 'SunroofValue', but overlaps of classes with associated
+--   types are not allowed.
+instance (SunroofValue a, Sunroof (ValueOf a)) => SunroofValue (LiteralList a) where
+  type ValueOf (LiteralList a) = JSArray (ValueOf a)
   -- Uses JSON
-  js l  = JSArray $ literal $ "[" ++ intercalate "," (fmap (showVar . js) l) ++ "]"
--}
+  js (LiteralList l) = array l
 
 instance (Sunroof a) => Monoid (JSArray a) where
   mempty = emptyArray
