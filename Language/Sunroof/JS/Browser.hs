@@ -12,8 +12,8 @@
 --
 
 module Language.Sunroof.JS.Browser
-  -- * Top level functions
-  ( alert
+  ( -- * Top level functions
+    alert
   , confirm
   , prompt
   , decodeURI
