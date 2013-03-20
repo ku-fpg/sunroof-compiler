@@ -43,10 +43,6 @@ instance (Sunroof a) => IfB (JSRef a) where
 instance (Sunroof a) => EqB (JSRef a) where
   (JSRef a) ==* (JSRef b) = a ==* b
 
-instance (Sunroof a) => SunroofValue (JSRef a) where
-  type ValueOf (JSRef a) = JSRef a
-  js = id
-
 -- -------------------------------------------------------------
 -- JSRef Combinators
 -- -------------------------------------------------------------

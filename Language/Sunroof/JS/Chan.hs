@@ -51,10 +51,6 @@ instance (SunroofArgument o) => JSTuple (JSChan o) where
     o # "waiting" := waiting
     return (JSChan o)
 
-instance (SunroofArgument a) => SunroofValue (JSChan a) where
-  type ValueOf (JSChan a) = JSChan a
-  js = id
-
 -- -------------------------------------------------------------
 -- JSChan Combinators
 -- -------------------------------------------------------------

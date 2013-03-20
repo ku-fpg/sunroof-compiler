@@ -51,10 +51,6 @@ instance (SunroofArgument o) => JSTuple (JSMVar o) where
     o # "waiting" := waiting
     return (JSMVar o)
 
-instance (SunroofArgument o) => SunroofValue (JSMVar o) where
-  type ValueOf (JSMVar o) = JSMVar o
-  js = id
-
 -- -------------------------------------------------------------
 -- JSMVar Combinators
 -- -------------------------------------------------------------

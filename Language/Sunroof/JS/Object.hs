@@ -12,7 +12,7 @@ module Language.Sunroof.JS.Object
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
 import Language.Sunroof.JavaScript ( Expr, showExpr, literal, binOp )
-import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
+import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
 -- -------------------------------------------------------------
@@ -37,14 +37,6 @@ instance IfB JSObject where
 -- | Reference equality, not value equality.
 instance EqB JSObject where
   (JSObject a) ==* (JSObject b) = box $ binOp "==" a b
-{-
-instance SunroofValue Expr where
-  type ValueOf Expr = JSObject
-  js = box
--}
-instance SunroofValue JSObject where
-  type ValueOf JSObject = JSObject
-  js = id
 
 -- -------------------------------------------------------------
 -- JSObject Combinators

@@ -35,10 +35,6 @@ instance Sunroof JSNumber where
   box = JSNumber
   unbox (JSNumber e) = e
 
-instance SunroofValue JSNumber where
-  type ValueOf JSNumber = JSNumber
-  js = id
-
 instance Num JSNumber where
   (JSNumber e1) + (JSNumber e2) = box $ binOp "+" e1 e2
   (JSNumber e1) - (JSNumber e2) = box $ binOp "-" e1 e2

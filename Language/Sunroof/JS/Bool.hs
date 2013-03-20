@@ -51,10 +51,6 @@ instance SunroofValue Bool where
   js True = true
   js False = false
 
-instance SunroofValue JSBool where
-  type ValueOf JSBool = JSBool
-  js = id
-
 -- -------------------------------------------------------------
 -- JSBool Combinators
 -- -------------------------------------------------------------

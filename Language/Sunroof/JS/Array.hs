@@ -61,10 +61,6 @@ instance (Sunroof a) => Monoid (JSArray a) where
 instance (Sunroof a) => Semigroup (JSArray a) where
   (<>) = mappend
 
-instance (Sunroof a) => SunroofValue (JSArray a) where
-  type ValueOf (JSArray a) = JSArray a
-  js = id
-
 -- -------------------------------------------------------------
 -- JSArray Combinators
 -- -------------------------------------------------------------

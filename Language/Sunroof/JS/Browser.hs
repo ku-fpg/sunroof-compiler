@@ -293,10 +293,6 @@ instance IfB JSConsole where
 instance EqB JSConsole where
   (JSConsole a) ==* (JSConsole b) = a ==* b
 
-instance SunroofValue JSConsole where
-  type ValueOf JSConsole = JSConsole
-  js = id
-
 -- | The console object.
 console :: JSConsole
 console = JSConsole (object "console")

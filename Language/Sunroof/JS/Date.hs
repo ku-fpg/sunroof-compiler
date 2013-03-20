@@ -59,10 +59,6 @@ instance IfB JSDate where
 instance EqB JSDate where
   (JSDate a) ==* (JSDate b) = a ==* b
 
-instance SunroofValue JSDate where
-  type ValueOf JSDate = JSDate
-  js = id
-
 -- -------------------------------------------------------------
 -- JSDate Methods
 -- -------------------------------------------------------------

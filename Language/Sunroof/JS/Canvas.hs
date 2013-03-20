@@ -82,10 +82,6 @@ instance IfB JSCanvas where
 instance EqB JSCanvas where
   (JSCanvas a) ==* (JSCanvas b) = a ==* b
 
-instance SunroofValue JSCanvas where
-  type ValueOf JSCanvas = JSCanvas
-  js = id
-
 -- -------------------------------------------------------------
 -- JSCanvas Combinators
 -- -------------------------------------------------------------
