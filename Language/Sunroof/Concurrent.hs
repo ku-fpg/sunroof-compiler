@@ -18,7 +18,7 @@ import Language.Sunroof.JS.Browser ( window, setTimeout )
 -- General Concurrent Combinators.
 -- -------------------------------------------------------------
 
--- | @loopJS x f@ executes the function @f@ repeatedly.
+-- | @loop x f@ executes the function @f@ repeatedly.
 --   After each iteration the result value of the function
 --   is feed back as input of the next iteration.
 --   The initial value supplied for the first iteration is @x@.
