@@ -14,7 +14,7 @@ module Language.Sunroof.JS.MVar
 import Data.Boolean ( IfB(..), EqB(..) )
 
 import Language.Sunroof.Classes
-  ( Sunroof(..), SunroofArgument(..), SunroofValue(..) )
+  ( Sunroof(..), SunroofArgument(..) )
 import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )

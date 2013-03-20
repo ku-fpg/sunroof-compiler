@@ -275,7 +275,7 @@ instance Show (JSContinuation a) where
 
 -- | Functions are first-class citizens of Javascript. Therefore they
 --   are 'Sunroof' values.
-instance forall a r . (SunroofArgument a) => Sunroof (JSContinuation a) where
+instance forall a . (SunroofArgument a) => Sunroof (JSContinuation a) where
   box = JSContinuation
   unbox (JSContinuation e) = e
   typeOf _ = Fun (typesOf (Proxy :: Proxy a)) (typeOf (Proxy :: Proxy ()))

@@ -52,7 +52,7 @@ module Language.Sunroof.JS.Canvas
 
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
+import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.Types
 import Language.Sunroof.Selector ( JSSelector, label )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )

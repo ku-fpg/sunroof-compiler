@@ -220,12 +220,12 @@ compileFunction m2 = do
   fStmts <- compile $ extractProgramJS (\ a -> JS $ \ k -> singleton (JS_Return a) >>= k) (m2 arg)
   return $ Function (map varIdE $ jsArgs arg) fStmts
 
-compileContinuation :: forall a b t . (SunroofArgument a, Sunroof b)
+compileContinuation :: forall a b . (SunroofArgument a, Sunroof b)
                 => (a -> JS B b)
                 -> CompM Expr
 compileContinuation m2 = do
   (arg :: a) <- jsValue
-  fStmts <- compile $ extractProgramJS (\ a -> JS $ \ k -> k ()) (m2 arg)
+  fStmts <- compile $ extractProgramJS (\ _ -> JS $ \ k -> k ()) (m2 arg)
   return $ Function (map varIdE $ jsArgs arg) fStmts
 
 

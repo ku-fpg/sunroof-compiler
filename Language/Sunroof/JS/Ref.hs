@@ -14,7 +14,7 @@ module Language.Sunroof.JS.Ref
 
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )
+import Language.Sunroof.Classes ( Sunroof(..) )
 import Language.Sunroof.Types ( T(..), JS(..), evaluate, new, (#) )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )

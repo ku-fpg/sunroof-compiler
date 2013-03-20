@@ -30,7 +30,7 @@ module Language.Sunroof.JS.Date
 
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
-import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..), SunroofValue(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument(..) )
 import Language.Sunroof.Types ( JS, invoke, new, cast )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Number ( JSNumber )

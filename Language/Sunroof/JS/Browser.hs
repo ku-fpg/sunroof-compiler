@@ -75,7 +75,7 @@ import Language.Sunroof.Types
   , apply
   , (#)
   )
-import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument, SunroofValue(..) )
+import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument )
 import Language.Sunroof.Selector ( JSSelector )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
