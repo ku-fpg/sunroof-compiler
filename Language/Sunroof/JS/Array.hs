@@ -12,6 +12,7 @@ module Language.Sunroof.JS.Array
   , push, pop
   , shift, unshift
   , forEach
+  , empty
   ) where
 
 import Prelude hiding ( lookup, length )
@@ -66,7 +67,7 @@ instance (SunroofValue a, Sunroof (ValueOf a)) => SunroofValue (LiteralList a) w
   js (LiteralList l) = array l
 
 instance (Sunroof a) => Monoid (JSArray a) where
-  mempty = emptyArray
+  mempty = empty
   mappend (JSArray e1) (JSArray e2) = box $ binOp "[].concat" e1 e2
 
 instance (Sunroof a) => Semigroup (JSArray a) where
@@ -83,8 +84,8 @@ array l  = box $ literal $ "[" ++ intercalate "," (fmap (showExpr False . unbox 
 newArray :: (SunroofArgument args, Sunroof a) => args -> JS t (JSArray a)
 newArray args = cast `fmap` new "Array" args
 
-emptyArray :: (Sunroof a) => JSArray a
-emptyArray = box $ literal "[]"
+empty :: (Sunroof a) => JSArray a
+empty = box $ literal "[]"
 
 -- | The @length@ property of arrays.
 length' :: JSSelector JSNumber

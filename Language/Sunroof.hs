@@ -51,6 +51,7 @@ module Language.Sunroof
   , shift, unshift
   , pop, push
   , forEach
+  , empty
   -- ** References
   , JSRef
   , newJSRef
@@ -128,7 +129,8 @@ import Language.Sunroof.JS.Array
   , length'
   , forEach
   , shift, unshift
-  , pop, push )
+  , pop, push
+  , empty )
 
 import Language.Sunroof.JS.Chan
   ( JSChan
