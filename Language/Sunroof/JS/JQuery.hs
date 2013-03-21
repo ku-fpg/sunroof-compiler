@@ -10,6 +10,8 @@ module Language.Sunroof.JS.JQuery
   , append
   , html, setHtml
   , text, setText
+  -- * CSS
+  , css, setCss
   -- * Attributes
   , attribute, attr', setAttr
   -- * Event Handling
@@ -79,6 +81,18 @@ text = invoke "text" ()
 -- | See @.text(textString)@ at <http://api.jquery.com/text/>.
 setText :: JSString -> JSObject -> JS t JSObject
 setText s = invoke "text" s
+
+-- -------------------------------------------------------------
+-- CSS
+-- -------------------------------------------------------------
+
+-- | See @.css(propertyName)@ at <http://api.jquery.com/css/>.
+css :: JSString -> JSObject -> JS t JSString
+css prop = invoke "css" prop
+
+-- | See @.css(propertyName, value)@ at <http://api.jquery.com/css/>.
+setCss :: JSString -> JSString -> JSObject -> JS t JSString
+setCss prop v = invoke "css" (prop, v)
 
 -- -------------------------------------------------------------
 -- Attributes
