@@ -10,6 +10,8 @@ module Language.Sunroof.JS.JQuery
   , append
   , html, setHtml
   , text, setText
+  -- * Attributes
+  , attribute, attr', setAttr
   -- * Event Handling
   , on
   -- * Manipulation > Class Attribute
@@ -77,6 +79,26 @@ text = invoke "text" ()
 -- | See @.text(textString)@ at <http://api.jquery.com/text/>.
 setText :: JSString -> JSObject -> JS t JSObject
 setText s = invoke "text" s
+
+-- -------------------------------------------------------------
+-- Attributes
+-- -------------------------------------------------------------
+
+-- | See @.attr(attributeName)@ at <http://api.jquery.com/attr/>.
+--   This binding does not have the original Javascript name,
+--   because of the 'attr' function.
+attribute :: JSString -> JSObject -> JS t JSString
+attribute a = invoke "attr" a
+
+-- | See @.attr(attributeName)@ at <http://api.jquery.com/attr/>.
+--   This binding does not have the original Javascript name,
+--   because of the 'attr' function.
+attr' :: JSString -> JSObject -> JS t JSString
+attr' = attribute
+
+-- | See @.attr(attributeName, value)@ at <http://api.jquery.com/attr/>.
+setAttr :: JSString -> JSString -> JSObject -> JS t JSString
+setAttr a v = invoke "attr" (a, v)
 
 -- -------------------------------------------------------------
 -- Event Handling
