@@ -12,12 +12,11 @@ module Language.Sunroof.JS.JQuery
   , text, setText
   -- * CSS
   , css, setCss
+  , addClass, removeClass
   -- * Attributes
   , attribute, attr', setAttr
   -- * Event Handling
   , on
-  -- * Manipulation > Class Attribute
-  , addClass
   -- * Manipulation > Style Properties
   , innerWidth
   , innerHeight
@@ -97,6 +96,14 @@ css prop = invoke "css" prop
 setCss :: JSString -> JSString -> JSObject -> JS t JSString
 setCss prop v = invoke "css" (prop, v)
 
+-- | See <http://api.jquery.com/addClass/>.
+addClass :: JSString -> JSObject -> JS t ()
+addClass = invoke "addClass"
+
+-- | See <http://api.jquery.com/removeClass/>.
+removeClass :: JSString -> JSObject -> JS t ()
+removeClass = invoke "removeClass"
+
 -- -------------------------------------------------------------
 -- Attributes
 -- -------------------------------------------------------------
@@ -126,14 +133,6 @@ on :: (SunroofArgument a) => JSString -> JSString -> (a -> JS A ()) -> JSObject 
 on nm sel f o = do
      callback <- function f
      o # invoke "on" (nm,sel,callback)
-
--- -------------------------------------------------------------
--- Manipulation > Class Attribute
--- -------------------------------------------------------------
-
--- | See <http://api.jquery.com/addClass/>.
-addClass :: JSString -> JSObject -> JS t ()
-addClass = invoke "addClass"
 
 -- -------------------------------------------------------------
 -- Manipulation > Style Properties
