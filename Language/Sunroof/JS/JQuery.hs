@@ -21,6 +21,8 @@ module Language.Sunroof.JS.JQuery
   -- * Manipulation > Style Properties
   , innerWidth
   , innerHeight
+  , outerWidth, outerWidth'
+  , outerHeight, outerHeight'
   ) where
 
 import Language.Sunroof.Classes
@@ -39,6 +41,7 @@ import Language.Sunroof.Types
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( JSString )
 import Language.Sunroof.JS.Number ( JSNumber )
+import Language.Sunroof.JS.Bool ( JSBool )
 
 -- -----------------------------------------------------------------------
 -- JQuery interface
@@ -143,3 +146,19 @@ innerWidth = invoke "innerWidth" ()
 -- | See <http://api.jquery.com/innerWidth/>.
 innerHeight :: JSObject -> JS t JSNumber
 innerHeight = invoke "innerHeight" ()
+
+-- | See <http://api.jquery.com/outerWidth/>.
+outerWidth :: JSObject -> JS t JSNumber
+outerWidth = invoke "outerWidth" ()
+
+-- | See <http://api.jquery.com/outerWidth/>.
+outerWidth' :: JSBool -> JSObject -> JS t JSNumber
+outerWidth' includeMargin = invoke "outerWidth" includeMargin
+
+-- | See <http://api.jquery.com/outerHeight/>.
+outerHeight :: JSObject -> JS t JSNumber
+outerHeight = invoke "outerHeight" ()
+
+-- | See <http://api.jquery.com/outerHeight/>.
+outerHeight' :: JSBool -> JSObject -> JS t JSNumber
+outerHeight' includeMargin = invoke "outerHeight" includeMargin
