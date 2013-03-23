@@ -60,12 +60,14 @@ data CompilerOpts = CompilerOpts
     -- ^ Do we constant fold?
   , co_verbose :: Int
     -- ^ How verbose is the compiler when running? standard 0 - 3 scale
+  , co_compress :: Bool
+      -- ^ Does the compiler output code without whitespace and layout? default == False
   }
   deriving Show
 
 -- | Default compiler options.
 instance Default CompilerOpts where
-  def = CompilerOpts True False False 0
+  def = CompilerOpts True False False 0 False
 
 -- | The sunroof compiler compiles an effect that returns a Sunroof/JavaScript
 -- value into a JavaScript program. An example invocation is
