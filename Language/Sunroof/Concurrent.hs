@@ -1,6 +1,12 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+
+-- | Provides common combinators for concurrency in Javascript.
+--   
+--   The emulated threading Javascript threading model provided by
+--   Sunroof is based on cooperative multithreading 
+--   (since Javascript is not multithreaded).
 module Language.Sunroof.Concurrent
   ( loop
   , forkJS
@@ -38,6 +44,7 @@ loop start m = do
   _ <- goto f () -- and call the function
   return ()
 
+-- | Fork of the given computation in a different thread.
 forkJS :: (SunroofThread t1) => JS t1 () -> JS t2 ()
 forkJS m = do
   f <- continuation $ \ () -> blockableJS m
