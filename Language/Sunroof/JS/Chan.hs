@@ -5,6 +5,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 
+-- | 'JSChan' provides the same functionality and 
+--   concurrency abstraction in Javascript computations
+--   as 'Control.Concurrent.Chan' in Haskell.
 module Language.Sunroof.JS.Chan
   ( JSChan
   , newChan
@@ -28,18 +31,17 @@ import Language.Sunroof.JS.Array
 -- JSChan Type
 -- -------------------------------------------------------------
 
-{-
-data JSChan a = JSChan
-        (JSArray (JSFunction (JSFunction a ()) ()))     -- callbacks of written data
-        (JSArray (JSFunction a ()))                     -- callbacks of waiting readers
--}
-
+-- | 'JSChan' abstraction. The type parameter gives 
+--   the type of values held in the channel.
 newtype JSChan a = JSChan JSObject deriving Show
 
+-- | They are first-class Javascript values.
 instance (SunroofArgument o) => Sunroof (JSChan o) where
   box = JSChan . box
   unbox (JSChan o) = unbox o
 
+-- | They contain different parts and can be decomposed.
+--   You should not mess with their internals.
 instance (SunroofArgument o) => JSTuple (JSChan o) where
   type Internals (JSChan o) = ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
                               , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
@@ -55,12 +57,14 @@ instance (SunroofArgument o) => JSTuple (JSChan o) where
 -- JSChan Combinators
 -- -------------------------------------------------------------
 
+-- | Create a new empty 'JSChan'.
 newChan :: (SunroofArgument a) => JS t (JSChan a)
 newChan = do
   written <- newArray ()
   waiting <- newArray ()
   tuple (written, waiting)
 
+-- | Put a value into the channel. This will never block.
 writeChan :: forall t a . (SunroofThread t, SunroofArgument a) => a -> JSChan a -> JS t ()
 writeChan a (match -> (written,waiting)) = do
   ifB ((waiting ! length') ==* 0)
@@ -71,6 +75,8 @@ writeChan a (match -> (written,waiting)) = do
           forkJS (goto f a :: JSB ())
       )
 
+-- | Take a value out of the channel. If there is no value
+--   inside, this will block until one is available.
 readChan :: forall a . (Sunroof a, SunroofArgument a) => JSChan a -> JS B a
 readChan (match -> (written,waiting)) = do
   ifB ((written ! length') ==* 0)
