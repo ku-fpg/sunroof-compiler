@@ -31,10 +31,10 @@ import Language.Sunroof.Types
   , JS(..), JSI(..)
   , SunroofThread(..)
   , ThreadProxy(..)
-  , single, apply, unJS )
+  , single, apply, unJS, nullJS )
 import Language.Sunroof.JavaScript
   ( Stmt(..), Id
-  , E(..), ExprE(..), Expr
+  , E(..), ExprE(..), Expr(..)
   , Type(..)
   , showStmt )
 import Language.Sunroof.Classes
@@ -42,6 +42,8 @@ import Language.Sunroof.Classes
   , UniqM(..), Uniq )
 import Language.Sunroof.Selector ( unboxSelector )
 import Language.Sunroof.Internal ( proxyOf )
+
+import Language.Sunroof.JS.Object ( JSObject )
 
 -- -------------------------------------------------------------
 -- Compiler
@@ -161,14 +163,9 @@ compile = eval . view
       e <- compileContinuation f
       compileBind e g
 
-
     eval (JS_Branch b c1 c2 :>>= g) = compileBranch b c1 c2 g
-    {-
-    eval (JS_Foreach arr body :>>= g) = do
-      loop <- compileForeach arr body
-      rest <- compile (g ())
-      return (loop ++ rest)
-    -}
+
+    eval (JS_Fix h1 :>>= g) = compileFix h1 g
 
     eval (JS_Comment msg :>>= g) = do
       rest <- compile (g ())
@@ -215,6 +212,52 @@ compileBranch b c1 c2 k =
     A -> compileBranch_A b c1 c2 k
     B -> compileBranch_B b c1 c2 k
 
+compileFix :: forall a bool t . (SunroofArgument a)
+              => (a -> JS A a) ->  (a -> Program (JSI A) ()) -> CompM [Stmt]
+compileFix h1 k = do
+        -- invent the scoped named variables
+        args <- jsValue
+        -- set up the variables with null
+        let initial =
+                [ VarStmt v (unbox nullJS)
+                | Var v <- jsArgs args
+                ]
+
+        body <- compile (unJS (h1 args) (\ res -> do
+                when (length (jsArgs args) /= length (jsArgs res)) $
+                        error "fatal error in mdo compile"
+                singleton $ JS_Comment
+                          $ "tie the knot"
+                sequence_ [ singleton $ JS_Assign_ v (box $ e :: JSObject)
+                          | (Var v, e) <- jsArgs args `zip` jsArgs res
+                          ]))
+{-
+        knot =  [ VarStmt v (unbox nullJS)
+                | Var v <- jsArgs args
+                ]
+-}
+        rest <- compile (k args)
+
+        return $
+                [ CommentStmt "set up recusive values" ] ++
+                initial ++
+                [ CommentStmt "body of the mdo-style rec" ] ++
+                body ++
+                [ CommentStmt "and proceed with the rest of the program"] ++
+                rest
+
+{-
+unJS :: JS t a -> (a -> Program (JSI t) ()) -> Program (JSI t) ()
+        :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
+extractProgramJS k m = unJS (m >>= k) return
+
+
+
+-}
+
+-- var v =
+
+
 compileFunction :: forall a b . (SunroofArgument a, Sunroof b)
                 => (a -> JS A b)
                 -> CompM Expr
@@ -230,6 +273,7 @@ compileContinuation m2 = do
   (arg :: a) <- jsValue
   fStmts <- compile $ extractProgramJS (\ _ -> JS $ \ k -> k ()) (m2 arg)
   return $ Function (map varIdE $ jsArgs arg) fStmts
+
 
 
 {-

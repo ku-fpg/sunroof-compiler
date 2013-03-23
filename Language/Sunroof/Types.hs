@@ -178,6 +178,7 @@ data JSI :: T -> * -> * where
   JS_Return  :: (Sunroof a) => a -> JSI t ()
   JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
   JS_Comment :: String -> JSI t ()
+  JS_Fix     :: (SunroofArgument a) => (a -> JS A a) -> JSI A a
   -- TODO: generalize Assign[_] to have a RHS
 
 -- -------------------------------------------------------------

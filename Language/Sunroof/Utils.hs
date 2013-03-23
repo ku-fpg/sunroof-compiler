@@ -2,7 +2,7 @@
 {-# LANGUAGE GADTs #-}
 
 module Language.Sunroof.Utils
-  ( comment, fixJSA, fixJSB
+  ( comment, jsfix, fixJSA, fixJSB
   ) where
 
 import Language.Sunroof.Classes
@@ -19,6 +19,12 @@ comment = single . JS_Comment
 -- -------------------------------------------------------------
 -- Fixpoint combinator
 -- -------------------------------------------------------------
+
+-- | @jsfix@ is the @mfix@ for the JS Monad.
+jsfix :: (SunroofArgument a) => (a -> JSA a) -> JSA a
+jsfix = single . JS_Fix
+
+-- TODO: these should be replace by jsfix.
 
 -- | @fixJSA@ is the fix point combinator for functions that return the JS monad.
 fixJSA :: (SunroofArgument a, Sunroof b) => (JSFunction a b -> (a -> JS A b)) -> JS t (JSFunction a b)
