@@ -2,6 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
+-- | Provides bindings to the Javascript API of the 
+--   HTML5 canvas element.
+--   
+--   See <http://www.w3schools.com/tags/ref_canvas.asp>.
 module Language.Sunroof.JS.Canvas
   ( JSCanvas
   , getContext
@@ -64,17 +68,22 @@ import Language.Sunroof.JS.Number ( JSNumber )
 -- JSCanvas Type
 -- -------------------------------------------------------------
 
+-- | The type of the canvas drawing context.
 newtype JSCanvas = JSCanvas JSObject
 
+-- | Show the Javascript.
 instance Show JSCanvas where
   show (JSCanvas o) = show o
 
+-- | First-class values in Javascript.
 instance Sunroof JSCanvas where
   box = JSCanvas . box
   unbox (JSCanvas o) = unbox o
 
+-- | Associated boolean is 'JSBool'.
 type instance BooleanOf JSCanvas = JSBool
 
+-- | Can be returned in branches.
 instance IfB JSCanvas where
   ifB = jsIfB
 
@@ -86,6 +95,8 @@ instance EqB JSCanvas where
 -- JSCanvas Combinators
 -- -------------------------------------------------------------
 
+-- | Returns the canvas drawing context for the canvas element it
+--   is called on.
 getContext :: JSString -> JSObject -> JS t JSCanvas
 getContext nm = invoke "getContext" nm
 
@@ -157,6 +168,7 @@ drawImage :: JSObject             -- ^ The graphical object to draw.
           -> JSCanvas -> JS t ()
 drawImage img (x,y) = invoke "drawImage" (img, x, y)
 
+-- | Draws an image, video or canvas to the canvas.
 drawImage' :: JSObject             -- ^ The graphical object to draw.
            -> (JSNumber, JSNumber) -- ^ The x and y coordinate of the top left corner.
            -> (JSNumber, JSNumber) -- ^ The width and height to scale the image to.
@@ -164,6 +176,7 @@ drawImage' :: JSObject             -- ^ The graphical object to draw.
 drawImage' img (x,y) (w,h) =
   invoke "drawImage" (img, x, y, w, h)
 
+-- | Draws an image, video or canvas to the canvas. Clips the drawn object.
 drawImageClip :: JSObject          -- ^ The graphical object to draw.
               -> (JSNumber, JSNumber) -- ^ The x and y coordinate of the top
                                       --   left corner of the clippng area.
