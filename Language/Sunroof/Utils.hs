@@ -2,12 +2,19 @@
 {-# LANGUAGE GADTs #-}
 
 module Language.Sunroof.Utils
-  ( fixJSA, fixJSB
+  ( comment, fixJSA, fixJSB
   ) where
 
 import Language.Sunroof.Classes
 import Language.Sunroof.Types
 import Language.Sunroof.JS.Ref
+
+-- -------------------------------------------------------------
+-- Comments
+-- -------------------------------------------------------------
+
+comment :: String -> JS t ()
+comment = single . JS_Comment
 
 -- -------------------------------------------------------------
 -- Fixpoint combinator

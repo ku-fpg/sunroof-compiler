@@ -212,7 +212,7 @@ showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n"
 showStmt (WhileStmt b stmts) = "while(" ++ showExpr False b ++ "){\n"
   ++ indent 2 (unlines (map showStmt stmts))
   ++ "}"
-showStmt (CommentStmt msg) = "{- " ++ msg ++ " -}"
+showStmt (CommentStmt msg) = "/* " ++ msg ++ " */"
 
 -- -------------------------------------------------------------
 -- Javascript Types

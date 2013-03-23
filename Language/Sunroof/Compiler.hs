@@ -170,6 +170,9 @@ compile = eval . view
       return (loop ++ rest)
     -}
 
+    eval (JS_Comment msg :>>= g) = do
+      rest <- compile (g ())
+      return $ CommentStmt msg : rest
 
 compileBind :: forall a t . (Sunroof a)
             => Expr

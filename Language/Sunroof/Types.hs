@@ -177,6 +177,7 @@ data JSI :: T -> * -> * where
   JS_Branch :: (SunroofThread t, Sunroof a, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   JS_Return  :: (Sunroof a) => a -> JSI t ()
   JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
+  JS_Comment :: String -> JSI t ()
   -- TODO: generalize Assign[_] to have a RHS
 
 -- -------------------------------------------------------------

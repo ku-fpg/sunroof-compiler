@@ -31,6 +31,7 @@ module Language.Sunroof
   , label, index
   , (!)
   , callcc
+  , comment
   -- * Concurrency Primitives
   , forkJS
   , threadDelay
@@ -143,4 +144,4 @@ import Language.Sunroof.JS.MVar
   , takeMVar, putMVar )
 
 import Language.Sunroof.Utils
-  ( fixJSA, fixJSB )
+  ( comment, fixJSA, fixJSB )
