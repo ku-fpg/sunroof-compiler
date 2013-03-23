@@ -6,7 +6,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 -- | 'JSMVar' provides the same functionality and 
---   concurrency abstraction Javascript computations
+--   concurrency abstraction in Javascript computations
 --   as 'Control.Concurrent.MVar' in Haskell.
 module Language.Sunroof.JS.MVar
   ( JSMVar
