@@ -5,6 +5,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 
+-- | 'JSMVar' provides the same functionality and 
+--   concurrency abstraction Javascript computations
+--   as 'Control.Concurrent.MVar' in Haskell.
 module Language.Sunroof.JS.MVar
   ( JSMVar
   , newMVar, newEmptyMVar
@@ -28,22 +31,22 @@ import Language.Sunroof.JS.Array
 -- JSMVar Type
 -- -------------------------------------------------------------
 
-{-
-data JSMVar a = JSMVar
-        (JSArray (JSFunction (JSFunction a ()) ()))     -- callbacks of written data
-        (JSArray (JSFunction a ()))                     -- callbacks of waiting readers
--}
-
+-- | 'JSMVar' abstraction. The type parameter gives 
+--   the type of values held in a 'JSMVar'.
 newtype JSMVar a = JSMVar JSObject deriving Show
 
+-- | They are first-class Javascript values.
 instance (SunroofArgument o) => Sunroof (JSMVar o) where
   box = JSMVar . box
   unbox (JSMVar o) = unbox o
 
+-- | They contain different parts and can be decomposed.
+--   You should not mess with their internals.
 instance (SunroofArgument o) => JSTuple (JSMVar o) where
-  type Internals (JSMVar o) = ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
-                              , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
-                              )
+  type Internals (JSMVar o) = 
+    ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
+    , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
+    )
   match (JSMVar o) = ( o ! "written", o ! "waiting" )
   tuple (written,waiting) = do
     o <- new "Object" ()
@@ -55,19 +58,25 @@ instance (SunroofArgument o) => JSTuple (JSMVar o) where
 -- JSMVar Combinators
 -- -------------------------------------------------------------
 
+-- | Create a new 'JSMVar' with the given value inside.
+--   See 'newEmptyMVar'.
 newMVar :: (SunroofArgument a) => a -> JS B (JSMVar a)
 newMVar a = do
   o <- newEmptyMVar
   o # putMVar a
   return o
 
+-- | Create a new empty 'JSMVar'.
+--   See 'newMVar'.
 newEmptyMVar :: (SunroofArgument a) => JS t (JSMVar a)
 newEmptyMVar = do
   written <- newArray ()
   waiting <- newArray ()
   tuple (written, waiting)
 
--- Not quite right; pauses until someone bites
+-- TODO: Not quite right; pauses until someone bites
+-- | Put the value into the 'JSMVar'. If there already is a 
+--   value inside, this will block until it is taken out.
 putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
   ifB ((waiting ! length') ==* 0)
@@ -95,6 +104,8 @@ putMVar a (match -> (written,waiting)) = do
           return ()
       )
 
+-- | Take the value out of the 'JSMVar'. If there is no value
+--   inside, this will block until one is available.
 takeMVar :: forall a . (Sunroof a, SunroofArgument a) => JSMVar a -> JS B a
 takeMVar (match -> (written,waiting)) = do
   ifB ((written ! length') ==* 0)
