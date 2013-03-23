@@ -1,6 +1,7 @@
 
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- | 'JSSelector' are used to access fields of Javascript objects.
 module Language.Sunroof.Selector
   ( JSSelector
   , label, index
@@ -17,7 +18,7 @@ import Language.Sunroof.JS.String ( JSString, string )
 import Language.Sunroof.JS.Number ( JSNumber )
 
 -- | A 'JSSelector' selects a field or attribute from a Javascript object.
---   The phantom is the type of the selected value. Note the selected 
+--   The phantom type is the type of the selected value. Note the selected 
 --   field or attributes may also array entries ('index').
 data JSSelector a = JSSelector Expr
 
