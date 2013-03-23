@@ -4,6 +4,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+-- | Provides a more specific type for arrays in Javascript 
+--   (together with basic operations on them).
 module Language.Sunroof.JS.Array
   ( JSArray
   , LiteralList, litList
@@ -36,17 +38,23 @@ import Language.Sunroof.JS.Number ( JSNumber )
 -- JSArray Type
 -- -------------------------------------------------------------
 
+-- | Type if arrays in Javascript. The type parameter
+--   given the entry type.
 data JSArray a = JSArray Expr
 
+-- | Show the Javascript.
 instance Show (JSArray a) where
   show (JSArray v) = showExpr False v
 
+-- | Arrays are first-class Javascript values.
 instance (Sunroof a) => Sunroof (JSArray a) where
   box = JSArray
   unbox (JSArray o) = o
 
+-- | The boolean of arrays are 'JSBool'.
 type instance BooleanOf (JSArray a) = JSBool
 
+-- | You can write branches that return arrays.
 instance (Sunroof a) => IfB (JSArray a) where
   ifB = jsIfB
 
@@ -66,10 +74,12 @@ instance (SunroofValue a, Sunroof (ValueOf a)) => SunroofValue (LiteralList a) w
   -- Uses JSON
   js (LiteralList l) = array l
 
+-- | Arrays are monoids under concatination.
 instance (Sunroof a) => Monoid (JSArray a) where
   mempty = empty
   mappend (JSArray e1) (JSArray e2) = box $ binOp "[].concat" e1 e2
 
+-- | Derives from the 'Data.Monoid.Monoid' instance.
 instance (Sunroof a) => Semigroup (JSArray a) where
   (<>) = mappend
 
@@ -77,13 +87,15 @@ instance (Sunroof a) => Semigroup (JSArray a) where
 -- JSArray Combinators
 -- -------------------------------------------------------------
 
+-- | Create a literal array from a Haskell list.
 array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
 array l  = box $ literal $ "[" ++ intercalate "," (fmap (showExpr False . unbox . js) l) ++ "]"
 
--- Operations on arrays
+-- | Create a new array object containing the given values.
 newArray :: (SunroofArgument args, Sunroof a) => args -> JS t (JSArray a)
 newArray args = cast `fmap` new "Array" args
 
+-- | The empty array.
 empty :: (Sunroof a) => JSArray a
 empty = box $ literal "[]"
 
@@ -91,18 +103,33 @@ empty = box $ literal "[]"
 length' :: JSSelector JSNumber
 length' = attr "length"
 
+-- | Push a element into the array as if it was a stack.
+--   Returns nothing instead of the new length.
+--   See <http://www.w3schools.com/jsref/jsref_push.asp>.
 push :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 push a = invoke "push" a
 
+-- | Adds a new element to the beginning of the array (queue).
+--   Returns nothing instead of the new length.
+--   See <http://www.w3schools.com/jsref/jsref_unshift.asp>.
 unshift :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
 unshift a = invoke "unshift" a
 
+-- | Pop a element from the array as if it was a stack.
+--   See <http://www.w3schools.com/jsref/jsref_pop.asp>.
 pop :: (Sunroof a) => JSArray a -> JS t a
 pop = invoke "pop" ()
 
+-- | Removes and return the first element of an array (dequeue).
+--   See <http://www.w3schools.com/jsref/jsref_shift.asp>.
 shift :: (Sunroof a) => JSArray a -> JS t a
 shift = invoke "shift" ()
 
+-- | Foreach iteration method provided by most browsers.
+--   Execute the given action on each element of the array.
+--   See 
+--   <https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/forEach>,
+--   <http://msdn.microsoft.com/en-us/library/ie/ff679980.aspx>.
 forEach :: (Sunroof a, SunroofArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
 forEach body arr = do
         f <- function body
