@@ -8,6 +8,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
+-- | Provides the Sunroof to Javascript compiler.
 module Language.Sunroof.Compiler
   ( sunroofCompileJS
   , compileJSI
@@ -47,14 +48,20 @@ import Language.Sunroof.Internal ( proxyOf )
 -- Compiler
 -- -------------------------------------------------------------
 
+-- | Options to setup the compiler.
 data CompilerOpts = CompilerOpts
-  { co_on      :: Bool        -- ^ do we reify to capture Haskell-level lets / CSEs?
-  , co_cse     :: Bool        -- ^ do we also capture non-reified CSE, using Value Numbering?
-  , co_const   :: Bool        -- ^ do we constant fold?
-  , co_verbose :: Int         -- ^ how verbose is the compiler when running? standard 0 - 3 scale
+  { co_on      :: Bool
+    -- ^ Do we reify to capture Haskell-level lets / CSEs?
+  , co_cse     :: Bool
+    -- ^ Do we also capture non-reified CSE, using Value Numbering?
+  , co_const   :: Bool
+    -- ^ Do we constant fold?
+  , co_verbose :: Int
+    -- ^ How verbose is the compiler when running? standard 0 - 3 scale
   }
   deriving Show
 
+-- | Default compiler options.
 instance Default CompilerOpts where
   def = CompilerOpts True False False 0
 
@@ -97,10 +104,14 @@ sunroofCompileJS opts fName f = do
   (stmts,_) <- compileJSI opts 0 $ extractProgramJS (single . JS_Return) f
   return $ showStmt $ VarStmt fName $ Apply (ExprE $ Function [] stmts) []
 
+-- | Extracts the 'Control.Monad.Operational.Program' from the given
+--   Javascript computation using the given continuation closer.
 extractProgramJS :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
 extractProgramJS k m = unJS (m >>= k) return
 
--- TODO: generalize with a closer
+-- | Compile a 'Control.Monad.Operational.Program' over 'JSI'
+--   into basic Javascript statements. Also return the next frach
+--   unique
 compileJSI :: CompilerOpts -> Uniq -> Program (JSI t) () -> IO ([Stmt], Uniq)
 compileJSI opts uq jsi_prog = runStateT (runReaderT (compile jsi_prog) opts) uq
 
