@@ -14,7 +14,7 @@ module Language.Sunroof.JS.MVar
   , putMVar, takeMVar
   ) where
 
-import Data.Boolean ( IfB(..), EqB(..) )
+import Data.Boolean ( IfB(..), EqB(..), BooleanOf )
 
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..) )
@@ -22,6 +22,7 @@ import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Array
   ( JSArray
   , newArray, length'
@@ -33,12 +34,27 @@ import Language.Sunroof.JS.Array
 
 -- | 'JSMVar' abstraction. The type parameter gives 
 --   the type of values held in a 'JSMVar'.
-newtype JSMVar a = JSMVar JSObject deriving Show
+newtype JSMVar a = JSMVar JSObject
 
--- | They are first-class Javascript values.
+-- | Show the Javascript.
+instance (SunroofArgument o) => Show (JSMVar o) where
+  show (JSMVar o) = show o
+
+-- | First-class values in Javascript.
 instance (SunroofArgument o) => Sunroof (JSMVar o) where
   box = JSMVar . box
   unbox (JSMVar o) = unbox o
+
+-- | Associated boolean is 'JSBool'.
+type instance BooleanOf (JSMVar o) = JSBool
+
+-- | Can be returned in branches.
+instance (SunroofArgument o) => IfB (JSMVar o) where
+  ifB = jsIfB
+
+-- | Reference equality, not value equality.
+instance (SunroofArgument o) => EqB (JSMVar o) where
+  (JSMVar a) ==* (JSMVar b) = a ==* b
 
 -- | They contain different parts and can be decomposed.
 --   You should not mess with their internals.

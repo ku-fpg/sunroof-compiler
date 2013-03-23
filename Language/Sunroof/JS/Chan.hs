@@ -14,7 +14,7 @@ module Language.Sunroof.JS.Chan
   , writeChan, readChan
   ) where
 
-import Data.Boolean ( IfB(..), EqB(..) )
+import Data.Boolean ( IfB(..), EqB(..), BooleanOf )
 
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..) )
@@ -22,6 +22,7 @@ import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
+import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Array
   ( JSArray
   , newArray, length'
@@ -33,12 +34,27 @@ import Language.Sunroof.JS.Array
 
 -- | 'JSChan' abstraction. The type parameter gives 
 --   the type of values held in the channel.
-newtype JSChan a = JSChan JSObject deriving Show
+newtype JSChan a = JSChan JSObject
 
--- | They are first-class Javascript values.
+-- | Show the Javascript.
+instance (SunroofArgument o) => Show (JSChan o) where
+  show (JSChan o) = show o
+
+-- | First-class values in Javascript.
 instance (SunroofArgument o) => Sunroof (JSChan o) where
   box = JSChan . box
   unbox (JSChan o) = unbox o
+
+-- | Associated boolean is 'JSBool'.
+type instance BooleanOf (JSChan o) = JSBool
+
+-- | Can be returned in branches.
+instance (SunroofArgument o) => IfB (JSChan o) where
+  ifB = jsIfB
+
+-- | Reference equality, not value equality.
+instance (SunroofArgument o) => EqB (JSChan o) where
+  (JSChan a) ==* (JSChan b) = a ==* b
 
 -- | They contain different parts and can be decomposed.
 --   You should not mess with their internals.
