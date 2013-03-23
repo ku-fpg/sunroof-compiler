@@ -1,6 +1,7 @@
 
 {-# LANGUAGE TypeFamilies #-}
 
+-- | Booleans in Javascript.
 module Language.Sunroof.JS.Bool
   ( JSBool
   , jsIfB

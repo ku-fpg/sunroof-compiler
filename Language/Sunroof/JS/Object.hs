@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
+-- | Abstraction over the most general type in Javascript.
 module Language.Sunroof.JS.Object
   ( JSObject
   , object
