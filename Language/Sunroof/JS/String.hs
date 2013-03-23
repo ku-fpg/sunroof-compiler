@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
+-- | Strings in Javascript.
 module Language.Sunroof.JS.String
   ( JSString
   , string
@@ -23,22 +24,28 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 -- JSString Type
 -- -------------------------------------------------------------
 
+-- | Javascript string type.
 data JSString = JSString Expr
 
+-- | Show the Javascript.
 instance Show JSString where
   show (JSString v) = showExpr False v
 
+-- | First-class Javascript value.
 instance Sunroof JSString where
   box = JSString
   unbox (JSString e) = e
 
+-- | Semigroup under concatination.
 instance Semigroup JSString where
   (JSString e1) <> (JSString e2) = box $ binOp "+" e1 e2
 
+-- | Monoid under concatination and empty string.
 instance Monoid JSString where
   mempty = fromString ""
   mappend (JSString e1) (JSString e2) = box $ binOp "+" e1 e2
 
+-- | Create them from Haskell 'String's.
 instance IsString JSString where
   fromString = box . literal . jsLiteralString
 
@@ -47,14 +54,17 @@ type instance BooleanOf JSString = JSBool
 instance IfB JSString where
   ifB = jsIfB
 
+-- | Value equality.
 instance EqB JSString where
   (==*) e1 e2 = box $ binOp "==" (unbox e1) (unbox e2)
   (/=*) e1 e2 = box $ binOp "!=" (unbox e1) (unbox e2)
 
+-- | Create a 'JSString' from a 'String'.
 instance SunroofValue [Char] where
   type ValueOf [Char] = JSString
   js = fromString
 
+-- | Create a single character 'JSString' from a 'Char'.
 instance SunroofValue Char where
   type ValueOf Char = JSString
   js c = fromString [c]

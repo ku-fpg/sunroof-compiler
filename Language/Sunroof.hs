@@ -1,8 +1,49 @@
 
---{-# LANGUAGE ScopedTypeVariables, OverloadedStrings, KindSignatures, GADTs #-}
-
+-- | Sunroof provides a way to express Javascript computations in
+--   Haskell. The computations can be expressed using the 'JS' monad.
+--   
+--   There are ready to use API bindings for frequently used
+--   Javascript:
+--   
+--    * 'Language.Sunroof.JS.Browser' - Bindings of the standard browser APIs.
+--   
+--    * 'Language.Sunroof.JS.Canvas' - Bindings of the HTML5 canvas element API.
+--   
+--    * 'Language.Sunroof.JS.JQuery' - Bindings of some JQuery methods.
+--   
+--    * 'Language.Sunroof.JS.Date' - Bindings of the standard data API.
+--   
+--   It also provides an abstraction over Javascripts (not existing) threading
+--   model. Cooperative multithreading can be emulated using the Sunroof
+--   abstractions ('forkJS', 'yield', 'loop'). Equivalents of well-known
+--   Haskell concurrency abstractions like 'Control.Concurrent.MVar'
+--   or 'Control.Concurrent.Chan' are also provided on Javascript level
+--   through 'JSMVar' and 'JSChan'.
+--   
+--   Due to the threading abstraction there are two kinds of computations.
+--   They are indicated by the first type parameter of 'JS' (a 'T' value).
+--   Normal Javascript computations that can be assumed to terminate and 
+--   that may deliver a result value are written in the 'JSA' monad. While
+--   possibly blocking computations (those that involve threading operations)
+--   are written in the 'JSB' monad.
+--   
+--   As the computations are expressed in Haskell, they have a functional 
+--   nature. It is possible to change the attribute values of objects using
+--   ':=' and 'Language.Sunroof.Types.#':
+--   
+-- > o # att := val
+--   
+--   If a top-level mutable variable is needed, use the 'JSRef' abstraction.
+--   It is comparable to 'Data.IORef.IORef'.
 module Language.Sunroof
   (
+  -- * Notes
+  -- | It is advised to use Sunroof with the following language extensions:
+  --   
+  --   * @OverloadedStrings@ - Enables using literal strings for attribute 
+  --     names and Javascript strings.
+  -- 
+  
   -- * Sunroof Compiler
     sunroofCompileJS
   , CompilerOpts(..)
@@ -68,7 +109,7 @@ module Language.Sunroof
   , newMVar
   , newEmptyMVar
   , takeMVar, putMVar
-    -- * DSL Utilties
+  -- * DSL Utilties
   , loop
   , fixJSA, fixJSB
   , jsfix

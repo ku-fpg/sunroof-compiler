@@ -1,4 +1,5 @@
 
+-- | Internal helper functions.
 module Language.Sunroof.Internal
   ( proxyOf
   , litparen

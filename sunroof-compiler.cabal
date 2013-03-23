@@ -13,7 +13,7 @@ Stability:           experimental
 Build-type:          Simple
 Cabal-version:       >= 1.10
 Description:
-  Monadic Javascript Compiler
+  Monadic Javascript Compiler.
 
 Extra-source-files:
     README

@@ -10,6 +10,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+-- | Basic low-level types and their combinators. 
+--   These are used as output of the compiler. 
+--   Everything here is untypes and not supposed for public use!
 module Language.Sunroof.JavaScript
   ( Expr, ExprE(..), E(..)
   , Id, Stmt(..), Type(..)
@@ -34,8 +37,10 @@ import Data.Char ( isAlpha, isAlphaNum )
 -- | Javascript identifier.
 type Id = String
 
+-- | Short name for instantiated expressions.
 type Expr = E ExprE
 
+-- | Instantiated expressions.
 data ExprE = ExprE Expr deriving Show
 
 -- | Plain expressions in Javascript.

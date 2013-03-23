@@ -3,14 +3,13 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Active
+-- Module      :  Language.Sunroof.JS.Browser
 -- Copyright   :  (c) 2011 The University of Kansas
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  ???
 --
--- A reflection of the standard browser JavaScript API.
+-- A reflection of the standard browser Javascript API.
 --
-
 module Language.Sunroof.JS.Browser
   ( -- * Top level functions
     alert
@@ -156,16 +155,27 @@ window = object "window"
 -- | Calls a function at specified intervals in milliseconds.
 --   It will continue calling the function until 'clearInterval' is called,
 --   or the window is closed. The returned number is needed for 'clearInterval'.
+--   This is supposed to be called on the 'window' object.
+--   See: <http://www.w3schools.com/jsref/met_win_setinterval.asp>
 setInterval :: JSContinuation () -> JSNumber -> JSObject -> JS t JSNumber
 setInterval f interval = invoke "setInterval" (f, interval)
 
 -- | Clears a timer set with the 'setInterval' method.
+--   This is supposed to be called on the 'window' object.
+--   See: <http://www.w3schools.com/jsref/met_win_clearinterval.asp>
 clearInterval :: JSNumber -> JSObject -> JS t ()
 clearInterval ident = invoke "clearInterval" (ident)
 
+-- | Execute the given continutation after the given amount of
+--   milliseconds. Returns a handler for the set timer.
+--   This is supposed to be called on the 'window' object.
+--   See: <http://www.w3schools.com/jsref/met_win_settimeout.asp>
 setTimeout :: JSContinuation () -> JSNumber -> JSObject -> JS t JSNumber
 setTimeout f interval = invoke "setTimeout" (f, interval)
 
+-- | Removes the timer associated with the given handler.
+--   This is supposed to be called on the 'window' object.
+--   See: <http://www.w3schools.com/jsref/met_win_cleartimeout.asp>
 clearTimeout :: JSNumber -> JSObject -> JS t ()
 clearTimeout ident = invoke "clearTimeout" (ident)
 
@@ -275,17 +285,26 @@ url = attr "URL"
 -- Console API
 -- -----------------------------------------------------------------------
 
+-- | The type of the debugging console object.
+--   See:
+--   <https://developers.google.com/chrome-developer-tools/docs/console-api>,
+--   <https://developer.mozilla.org/en-US/docs/DOM/console>,
+--   <http://msdn.microsoft.com/en-us/library/windows/apps/hh696634.aspx>;
 data JSConsole = JSConsole JSObject
 
+-- | Show the Javascript.
 instance Show JSConsole where
   show (JSConsole o) = show o
 
+-- | First-class values in Javascript.
 instance Sunroof JSConsole where
         box = JSConsole . box
         unbox (JSConsole e) = unbox e
 
+-- | Associated boolean is 'JSBool'.
 type instance BooleanOf JSConsole = JSBool
 
+-- | Can be returned in branches.
 instance IfB JSConsole where
   ifB = jsIfB
 
@@ -297,18 +316,23 @@ instance EqB JSConsole where
 console :: JSConsole
 console = JSConsole (object "console")
 
+-- | Log the given message.
 log :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 log a (JSConsole o) = o # invoke "log" a
 
+-- | Send a debug level message to the console.
 debug :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 debug a (JSConsole o) = o # invoke "debug" a
 
+-- | Send a info message to the console.
 info :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 info a (JSConsole o) = o # invoke "info" a
 
+-- | Send a warning message to the console.
 warn :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 warn a (JSConsole o) = o # invoke "warn" a
 
+-- | Send an error message to the console.
 error :: (SunroofArgument a) => a -> JSConsole -> JS t ()
 error a (JSConsole o) = o # invoke "error" a
 

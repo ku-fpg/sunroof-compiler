@@ -1,6 +1,7 @@
 
 {-# LANGUAGE TypeFamilies #-}
 
+-- | Numbers in Javascript.
 module Language.Sunroof.JS.Number
   ( JSNumber
   , int
@@ -26,11 +27,14 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 -- JSNumber Type
 -- -------------------------------------------------------------
 
+-- | Type of numbers in Javascript.
 data JSNumber = JSNumber Expr
 
+-- | Show the Javascript
 instance Show JSNumber where
   show (JSNumber v) = showExpr False v
 
+-- | First-class values in Javascript.
 instance Sunroof JSNumber where
   box = JSNumber
   unbox (JSNumber e) = e

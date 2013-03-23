@@ -11,6 +11,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverlappingInstances #-}
 
+-- | The basic types and combinators of Sunroof.
 module Language.Sunroof.Types
   ( T(..)
   , ThreadProxy(..)
@@ -72,7 +73,7 @@ class SunroofThread (t :: T) where
   -- | Determine the used threading model captured the given 'ThreadProxy'
   --   object.
   evalStyle    :: ThreadProxy t -> T
-
+  -- | Create a possibly blocking computation from the given one.
   blockableJS :: (Sunroof a) => JS t a -> JS B a
 
 instance SunroofThread A where
@@ -301,19 +302,17 @@ instance (SunroofArgument a) => SunroofValue (a -> JS B ()) where
 -- | We can compile 'B'lockable functions that return @()@.
 --   Note that, with the 'B'-style threads, we return from a
 --   call when we first block, not at completion of the call.
--- Consider returning Bool, for done/not done.
-
 continuation :: (SunroofArgument a) => (a -> JS B ()) -> JS t (JSContinuation a)
 continuation = single . JS_Continuation
 
--- @kast@ is cast to continuation. @k@ is the letter often used to signify a continuation.
+-- | @kast@ is cast to continuation. @k@ is the letter often used to signify a continuation.
 kast :: (SunroofArgument a) => JSFunction a () -> JSContinuation a
 kast = cast
 
 -- Implementation of goto and callCC from
 --   http://stackoverflow.com/questions/9050725/call-cc-implementation
 --
--- | reify the current contination as a JavaScript continuation
+-- | Reify the current contination as a Javascript continuation
 callcc :: SunroofArgument a => (JSContinuation a -> JS B a) -> JS B a
 callcc f = JS $ \ cc -> unJS (do o <- continuation (goto' cc)
                                  f o
@@ -326,7 +325,8 @@ callcc f = JS $ \ cc -> unJS (do o <- continuation (goto' cc)
 done :: JS t a
 done = JS $ \ _ -> return ()
 
--- @goto@ calls the given continuation with the given argument, and never returns.
+-- | @goto@ calls the given continuation with the given argument, 
+--   and never returns.
 goto :: forall args a t . (SunroofArgument args) => JSContinuation args -> args -> JS t a
 goto k args = JS $ \ _ -> singleton $ JS_Invoke (jsArgs args) (cast k  :: JSFunction args ())
 
@@ -430,8 +430,9 @@ nullJS = box $ literal "null"
 -- JSTuple Type Class
 -- -------------------------------------------------------------
 
--- | If something is a 'JSTuple', then it can be passed (amoung other things)
---   as an argument by a Javascript function.
+-- | If something is a 'JSTuple', it can easily be decomposed and 
+--   recomposed from different components. This is meant as a convenient
+--   access to attributes of an object. 
 class Sunroof o => JSTuple o where
         type Internals o
         match :: (Sunroof o) => o -> Internals o
