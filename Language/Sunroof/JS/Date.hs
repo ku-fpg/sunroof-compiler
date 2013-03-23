@@ -41,17 +41,22 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 -- JSDate Type
 -- -------------------------------------------------------------
 
+-- | The type of a date object.
 newtype JSDate = JSDate JSObject
 
+-- | Show the Javascript.
 instance Show JSDate where
   show (JSDate o) = show o
 
+-- | First-class values in Javascript.
 instance Sunroof JSDate where
   box = JSDate . box
   unbox (JSDate o) = unbox o
 
+-- | Associated boolean is 'JSBool'.
 type instance BooleanOf JSDate = JSBool
 
+-- | Can be returned in branches.
 instance IfB JSDate where
   ifB = jsIfB
 
