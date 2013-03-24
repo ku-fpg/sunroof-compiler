@@ -35,7 +35,7 @@ import Language.Sunroof.Types
   , single, apply, unJS, nullJS )
 import Language.Sunroof.JavaScript
   ( Stmt(..), Id
-  , E(..), ExprE(..), Expr(..)
+  , E(..), ExprE(..), Expr
   , Type(..)
   , showStmt )
 import Language.Sunroof.Classes
@@ -225,7 +225,7 @@ compileBranch b c1 c2 k =
     A -> compileBranch_A b c1 c2 k
     B -> compileBranch_B b c1 c2 k
 
-compileFix :: forall a bool t . (SunroofArgument a)
+compileFix :: forall a . (SunroofArgument a)
               => (a -> JS A a) ->  (a -> Program (JSI A) ()) -> CompM [Stmt]
 compileFix h1 k = do
         -- invent the scoped named variables
