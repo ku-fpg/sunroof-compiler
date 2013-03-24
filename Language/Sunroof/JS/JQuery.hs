@@ -6,7 +6,7 @@ module Language.Sunroof.JS.JQuery
   -- * General JQuery API
     dollar
   , jQuery, jq
-  -- * Manipulation > DOM
+  -- * DOM
   , append
   , html, setHtml
   , text, setText
@@ -17,11 +17,12 @@ module Language.Sunroof.JS.JQuery
   , attribute, attr', setAttr
   -- * Event Handling
   , on
-  -- * Manipulation > Style Properties
+  -- * Manipulation
   , innerWidth
   , innerHeight
   , outerWidth, outerWidth'
   , outerHeight, outerHeight'
+  , clone, clone'
   ) where
 
 import Language.Sunroof.Classes
@@ -161,3 +162,14 @@ outerHeight = invoke "outerHeight" ()
 -- | See <http://api.jquery.com/outerHeight/>.
 outerHeight' :: JSBool -> JSObject -> JS t JSNumber
 outerHeight' includeMargin = invoke "outerHeight" includeMargin
+
+-- | See @.clone()@ at <http://api.jquery.com/clone/>. 
+clone :: JSObject -> JS t JSObject
+clone = invoke "clone" ()
+
+-- | See @.clone(withDataAndEvents, deepWithDataAndEvents)@ at <http://api.jquery.com/clone/>.
+clone' :: JSBool -> JSBool -> JSObject -> JS t JSObject
+clone' withDataAndEvents deepWithDataAndEvents = 
+  invoke "clone" (withDataAndEvents, deepWithDataAndEvents)
+
+
