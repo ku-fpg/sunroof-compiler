@@ -14,7 +14,9 @@ module Language.Sunroof.JS.JQuery
   , css, setCss
   , addClass, removeClass
   -- * Attributes
-  , attribute, attr', setAttr
+  , attribute, attr'
+  , setAttr
+  , removeAttr
   -- * Event Handling
   , on
   -- * Manipulation
@@ -124,6 +126,10 @@ attr' = attribute
 -- | See @.attr(attributeName, value)@ at <http://api.jquery.com/attr/>.
 setAttr :: JSString -> JSString -> JSObject -> JS t JSString
 setAttr a v = invoke "attr" (a, v)
+
+-- | See: <http://api.jquery.com/removeAttr/>
+removeAttr :: JSString -> JSObject -> JS t JSObject
+removeAttr attrName = invoke "removeAttr" attrName
 
 -- -------------------------------------------------------------
 -- Event Handling
