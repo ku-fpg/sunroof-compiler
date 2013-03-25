@@ -61,7 +61,7 @@ module Language.Sunroof
     -- * DSL Primitives and Utilties
   , done, liftJS
   , function, continuation
-  , apply, ($$)
+  , apply, ($$), goto
   , cast
   , (#)
   , attr
@@ -127,8 +127,9 @@ import Language.Sunroof.Types
   , done, liftJS
   , JSFunction
   , JSContinuation
-  , function, continuation, callcc
-  , apply, ($$)
+  , function, continuation
+  , callcc
+  , apply, ($$), goto
   , cast
   , (#)
   , attr
