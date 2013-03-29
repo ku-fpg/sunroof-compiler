@@ -154,7 +154,7 @@ instance Monoid (JS t ()) where
 --     [@JS_Function f@] creates a Javascript function
 --       from the Haskell function @f@.
 --
---     [@JS_Function f@] creates a Javascript continuation (function that never returns a value)
+--     [@JS_Continuation f@] creates a Javascript continuation (function that never returns a value)
 --       from the Haskell function @f@.
 --
 --     [@JS_Branch b t f@] creates a @if-then-else@ statement in Javascript.
@@ -165,6 +165,8 @@ instance Monoid (JS t ()) where
 --       returns the value @v@ in Javascript.
 --
 --     [@JS_Assign_ v x@] assigns the value @x@ to the variable with name @v@.
+--
+--     [@JS_Fix v x@] models a fixpoint computation in 'JS'. See 'jsfix'.
 --
 data JSI :: T -> * -> * where
   JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject -> JSI t ()
