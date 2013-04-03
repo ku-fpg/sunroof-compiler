@@ -397,13 +397,13 @@ new cons args = fun ("new " ++ cons) `apply` args
 -- > alert x
 -- > alert x
 --
---   This would result in @var v0 = "A"+"B"; alert(v0); alert(v0);@. But:
+--   This would result in: @var v0 = \"A\"+\"B\"; alert(v0); alert(v0);@. But:
 --
 -- > x <- return $ "A" <> "B"
 -- > alert x
 -- > alert x
 --
---   This will result in @alert("A"+"B"); alert("A"+"B");@.
+--   This will result in: @alert(\"A\"+\"B\"); alert(\"A\"+\"B\");@.
 evaluate :: (Sunroof a) => a -> JS t a
 evaluate a  = single (JS_Eval a)
 

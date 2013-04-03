@@ -13,6 +13,7 @@ import Language.Sunroof.Types
 -- Comments
 -- -------------------------------------------------------------
 
+-- | Write a JavaScript comment into the generated source.
 comment :: String -> JS t ()
 comment = single . JS_Comment
 
