@@ -111,7 +111,7 @@ module Language.Sunroof
   , takeMVar, putMVar
   -- * DSL Utilties
   , loop
-  , jsfix
+  , fixJS
   ) where
 
 import Language.Sunroof.JavaScript ( Type(..) )
@@ -186,4 +186,4 @@ import Language.Sunroof.JS.MVar
   , takeMVar, putMVar )
 
 import Language.Sunroof.Utils
-  ( comment, jsfix )
+  ( comment, fixJS )

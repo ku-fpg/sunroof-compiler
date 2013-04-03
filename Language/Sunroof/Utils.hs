@@ -3,7 +3,7 @@
 
 -- | Common utilities for Sunroof.
 module Language.Sunroof.Utils
-  ( comment, jsfix
+  ( comment, fixJS
   ) where
 
 import Language.Sunroof.Classes
@@ -21,5 +21,5 @@ comment = single . JS_Comment
 -- -------------------------------------------------------------
 
 -- | @jsfix@ is the @mfix@ for the JS Monad.
-jsfix :: (SunroofArgument a) => (a -> JSA a) -> JSA a
-jsfix = single . JS_Fix
+fixJS :: (SunroofArgument a) => (a -> JSA a) -> JSA a
+fixJS = single . JS_Fix
