@@ -46,8 +46,7 @@ import Language.Sunroof.JavaScript
   ( Expr, Type(Fun), Id
   , showExpr, literal )
 import Language.Sunroof.Classes
-  ( Sunroof(..), SunroofValue(..), SunroofArgument(..)
-  , jsArgs )
+  ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
 import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
@@ -154,7 +153,7 @@ instance Monoid (JS t ()) where
 --     [@JS_Function f@] creates a Javascript function
 --       from the Haskell function @f@.
 --
---     [@JS_Function f@] creates a Javascript continuation (function that never returns a value)
+--     [@JS_Continuation f@] creates a Javascript continuation (function that never returns a value)
 --       from the Haskell function @f@.
 --
 --     [@JS_Branch b t f@] creates a @if-then-else@ statement in Javascript.
@@ -166,11 +165,13 @@ instance Monoid (JS t ()) where
 --
 --     [@JS_Assign_ v x@] assigns the value @x@ to the variable with name @v@.
 --
+--     [@JS_Fix v x@] models a fixpoint computation in 'JS'. See 'jsfix'.
+--
 data JSI :: T -> * -> * where
   JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject -> JSI t ()
   JS_Select  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t a
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
-  JS_Invoke :: (SunroofArgument a, Sunroof r) => [Expr] -> JSFunction a r -> JSI t r
+  JS_Invoke :: (SunroofArgument a, Sunroof r) => a -> JSFunction a r -> JSI t r
   JS_Eval   :: (Sunroof a) => a -> JSI t a
   JS_Function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JSI t (JSFunction a b)
   JS_Continuation :: (SunroofArgument a) => (a -> JS B ()) -> JSI t (JSContinuation a)
@@ -255,7 +256,7 @@ apply :: (SunroofArgument args, Sunroof ret) => JSFunction args ret -> args -> J
 apply f args = f # with args
   where
     with :: (SunroofArgument a, Sunroof r) => a -> JSFunction a r -> JS t r
-    with a fn = single $ JS_Invoke (jsArgs a) fn
+    with a fn = single $ JS_Invoke a fn
 
 -- | @f $$ a@ applies the function 'f' to the given arguments @a@.
 --   See 'apply'.
@@ -328,7 +329,7 @@ done = JS $ \ _ -> return ()
 -- | @goto@ calls the given continuation with the given argument, 
 --   and never returns.
 goto :: forall args a t . (SunroofArgument args) => JSContinuation args -> args -> JS t a
-goto k args = JS $ \ _ -> singleton $ JS_Invoke (jsArgs args) (cast k  :: JSFunction args ())
+goto k args = JS $ \ _ -> singleton $ JS_Invoke args (cast k  :: JSFunction args ())
 
 -- -------------------------------------------------------------
 -- Basic Combinators

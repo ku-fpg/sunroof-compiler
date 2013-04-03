@@ -166,7 +166,7 @@ compile = eval . view
       return ( stmts0 ++ [AssignStmt_ (Var v) val] ++ stmts1)
 
     eval (JS_Invoke args fn :>>= g) = do
-      compileBind (Apply (ExprE $ unbox fn) (map ExprE args)) g
+      compileBind (Apply (ExprE $ unbox fn) (map ExprE (jsArgs args))) g
 
     eval (JS_Function f :>>= g) = do
       e <- compileFunction f
