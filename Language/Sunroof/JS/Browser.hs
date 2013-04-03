@@ -52,7 +52,6 @@ module Language.Sunroof.JS.Browser
   , url
   -- * Image DOM
   , src
-  , onload
   -- * The JavaScript Console
   , JSConsole
   , console
@@ -287,10 +286,6 @@ url = attr "URL"
 -- | Returns the src of a DOM image object.
 src :: JSSelector JSString
 src = attr "src"
-
--- | The onload callback for a DOM image object.
-onload :: JSContinuation () -> JSObject -> JS t ()
-onload k = invoke "onload" (k)
 
 -- -----------------------------------------------------------------------
 -- Console API
