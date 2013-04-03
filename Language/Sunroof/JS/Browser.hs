@@ -50,6 +50,9 @@ module Language.Sunroof.JS.Browser
   , setTitle
   , title
   , url
+  -- * Image DOM
+  , src
+  , onload
   -- * The JavaScript Console
   , JSConsole
   , console
@@ -86,13 +89,13 @@ import Language.Sunroof.JS.Number ( JSNumber )
 -- -----------------------------------------------------------------------
 
 -- | Display the given text in a message box.
---   
+--
 --   See <http://www.w3schools.com/js/js_popup.asp>.
 alert :: JSString -> JS t ()
 alert msg = fun "alert" `apply` (msg)
 
 -- | Ask the user to confirm the given massege.
---   
+--
 --   See <http://www.w3schools.com/js/js_popup.asp>.
 confirm :: JSString -> JS t JSBool
 confirm msg = fun "confirm" `apply` (msg)
@@ -100,7 +103,7 @@ confirm msg = fun "confirm" `apply` (msg)
 -- | Ask the user to give some input. May return @null@
 --   or a string. Don't forget to check against 'nullJS'
 --   before casting to string.
---   
+--
 --   See <http://www.w3schools.com/js/js_popup.asp>.
 prompt :: JSString -> JSString -> JS t JSObject
 prompt msg val = fun "prompt" `apply` (msg, val)
@@ -280,6 +283,14 @@ title = attr "title"
 --   For use with 'document'.
 url :: JSSelector JSString
 url = attr "URL"
+
+-- | Returns the src of a DOM image object.
+src :: JSSelector JSString
+src = attr "src"
+
+-- | The onload callback for a DOM image object.
+onload :: JSContinuation () -> JSObject -> JS t ()
+onload k = invoke "onload" (k)
 
 -- -----------------------------------------------------------------------
 -- Console API
