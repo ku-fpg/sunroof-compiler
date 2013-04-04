@@ -326,7 +326,7 @@ callcc f = JS $ \ cc -> unJS (do o <- continuation (goto' cc)
 done :: JS t a
 done = JS $ \ _ -> return ()
 
--- | @goto@ calls the given continuation with the given argument, 
+-- | @goto@ calls the given continuation with the given argument,
 --   and never returns.
 goto :: forall args a t . (SunroofArgument args) => JSContinuation args -> args -> JS t a
 goto k args = JS $ \ _ -> singleton $ JS_Invoke args (cast k  :: JSFunction args ())
@@ -431,9 +431,9 @@ nullJS = box $ literal "null"
 -- JSTuple Type Class
 -- -------------------------------------------------------------
 
--- | If something is a 'JSTuple', it can easily be decomposed and 
+-- | If something is a 'JSTuple', it can easily be decomposed and
 --   recomposed from different components. This is meant as a convenient
---   access to attributes of an object. 
+--   access to attributes of an object.
 class Sunroof o => JSTuple o where
         type Internals o
         match :: (Sunroof o) => o -> Internals o
