@@ -21,5 +21,5 @@ comment = single . JS_Comment
 -- -------------------------------------------------------------
 
 -- | @jsfix@ is the @mfix@ for the JS Monad.
-fixJS :: (SunroofArgument a) => (a -> JSA a) -> JSA a
+fixJS :: (SunroofArgument a) => (a -> JSA a) -> JS t a
 fixJS = single . JS_Fix

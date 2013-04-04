@@ -225,8 +225,8 @@ compileBranch b c1 c2 k =
     A -> compileBranch_A b c1 c2 k
     B -> compileBranch_B b c1 c2 k
 
-compileFix :: forall a . (SunroofArgument a)
-              => (a -> JS A a) ->  (a -> Program (JSI A) ()) -> CompM [Stmt]
+compileFix :: forall a t . (SunroofArgument a)
+              => (a -> JS A a) ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileFix h1 k = do
         -- invent the scoped named variables
         args <- jsValue
