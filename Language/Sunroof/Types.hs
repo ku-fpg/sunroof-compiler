@@ -393,16 +393,17 @@ new cons args = fun ("new " ++ cons) `apply` args
 --   of the given expression to a value and enables binding it to a
 --   variable. Example:
 --
--- > x <- evaluate true
+-- > x <- evaluate $ "A" <> "B"
 -- > alert x
 -- > alert x
 --
---   This would result in @x = true; alert(x); alert(x);@. But:
+--   This would result in: @var v0 = \"A\"+\"B\"; alert(v0); alert(v0);@. But:
 --
--- > alert true
--- > alert true
+-- > x <- return $ "A" <> "B"
+-- > alert x
+-- > alert x
 --
---   This will result in @alert(true); alert(true);@.
+--   This will result in: @alert(\"A\"+\"B\"); alert(\"A\"+\"B\");@.
 evaluate :: (Sunroof a) => a -> JS t a
 evaluate a  = single (JS_Eval a)
 

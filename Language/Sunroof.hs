@@ -43,6 +43,9 @@ module Language.Sunroof
   --   * @OverloadedStrings@ - Enables using literal strings for attribute
   --     names and Javascript strings.
   --
+  --   * @DataKinds@ - Enables using @JS A@ or @JS B@ instead of @JSA@ and @JSB@.
+  --     This extension is not essential.
+  --
 
   -- * Sunroof Compiler
     sunroofCompileJS
