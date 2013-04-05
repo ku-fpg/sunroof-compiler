@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 
--- | 'JSMVar' provides the same functionality and 
+-- | 'JSMVar' provides the same functionality and
 --   concurrency abstraction in Javascript computations
 --   as 'Control.Concurrent.MVar' in Haskell.
 module Language.Sunroof.JS.MVar
@@ -32,7 +32,7 @@ import Language.Sunroof.JS.Array
 -- JSMVar Type
 -- -------------------------------------------------------------
 
--- | 'JSMVar' abstraction. The type parameter gives 
+-- | 'JSMVar' abstraction. The type parameter gives
 --   the type of values held in a 'JSMVar'.
 newtype JSMVar a = JSMVar JSObject
 
@@ -59,7 +59,7 @@ instance (SunroofArgument o) => EqB (JSMVar o) where
 -- | They contain different parts and can be decomposed.
 --   You should not mess with their internals.
 instance (SunroofArgument o) => JSTuple (JSMVar o) where
-  type Internals (JSMVar o) = 
+  type Internals (JSMVar o) =
     ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
     , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
     )
@@ -76,11 +76,14 @@ instance (SunroofArgument o) => JSTuple (JSMVar o) where
 
 -- | Create a new 'JSMVar' with the given value inside.
 --   See 'newEmptyMVar'.
-newMVar :: (SunroofArgument a) => a -> JS B (JSMVar a)
+newMVar :: forall a t . (SunroofArgument a) => a -> JS t (JSMVar a)
 newMVar a = do
-  o <- newEmptyMVar
-  o # putMVar a
-  return o
+  written <- newArray ()
+  waiting <- newArray ()
+  -- mvar must be empty, with no one waiting, so just push and continue
+  f <- continuation $ \ (k :: JSContinuation a) -> goto k a :: JSB ()
+  written # push (f :: JSContinuation (JSContinuation a))
+  tuple (written, waiting)
 
 -- | Create a new empty 'JSMVar'.
 --   See 'newMVar'.
@@ -91,7 +94,7 @@ newEmptyMVar = do
   tuple (written, waiting)
 
 -- TODO: Not quite right; pauses until someone bites
--- | Put the value into the 'JSMVar'. If there already is a 
+-- | Put the value into the 'JSMVar'. If there already is a
 --   value inside, this will block until it is taken out.
 putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
 putMVar a (match -> (written,waiting)) = do
