@@ -4,8 +4,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-missing-methods #-}
 
--- | 'JSChan' provides the same functionality and 
+-- | 'JSChan' provides the same functionality and
 --   concurrency abstraction in Javascript computations
 --   as 'Control.Concurrent.Chan' in Haskell.
 module Language.Sunroof.JS.Chan
@@ -21,6 +23,7 @@ import Language.Sunroof.Classes
 import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
+import Language.Sunroof.TH
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Array
@@ -32,42 +35,21 @@ import Language.Sunroof.JS.Array
 -- JSChan Type
 -- -------------------------------------------------------------
 
--- | 'JSChan' abstraction. The type parameter gives 
+-- | 'JSChan' abstraction. The type parameter gives
 --   the type of values held in the channel.
 newtype JSChan a = JSChan JSObject
 
--- | Show the Javascript.
-instance (SunroofArgument o) => Show (JSChan o) where
-  show (JSChan o) = show o
-
--- | First-class values in Javascript.
-instance (SunroofArgument o) => Sunroof (JSChan o) where
-  box = JSChan . box
-  unbox (JSChan o) = unbox o
-
--- | Associated boolean is 'JSBool'.
-type instance BooleanOf (JSChan o) = JSBool
-
--- | Can be returned in branches.
-instance (SunroofArgument o) => IfB (JSChan o) where
-  ifB = jsIfB
+deriveJSTuple
+  [d| instance (SunroofArgument o) => JSTuple (JSChan o) where
+          type Internals (JSChan o) =
+                  ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
+                  , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
+                  )
+  |]
 
 -- | Reference equality, not value equality.
 instance (SunroofArgument o) => EqB (JSChan o) where
   (JSChan a) ==* (JSChan b) = a ==* b
-
--- | They contain different parts and can be decomposed.
---   You should not mess with their internals.
-instance (SunroofArgument o) => JSTuple (JSChan o) where
-  type Internals (JSChan o) = ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
-                              , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
-                              )
-  match (JSChan o) = ( o ! "written", o ! "waiting" )
-  tuple (written,waiting) = do
-    o <- new "Object" ()
-    o # "written" := written
-    o # "waiting" := waiting
-    return (JSChan o)
 
 -- -------------------------------------------------------------
 -- JSChan Combinators

@@ -4,6 +4,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-missing-methods #-}
 
 -- | 'JSMVar' provides the same functionality and
 --   concurrency abstraction in Javascript computations
@@ -21,6 +23,7 @@ import Language.Sunroof.Classes
 import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
+import Language.Sunroof.TH
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Array
@@ -36,39 +39,17 @@ import Language.Sunroof.JS.Array
 --   the type of values held in a 'JSMVar'.
 newtype JSMVar a = JSMVar JSObject
 
--- | Show the Javascript.
-instance (SunroofArgument o) => Show (JSMVar o) where
-  show (JSMVar o) = show o
-
--- | First-class values in Javascript.
-instance (SunroofArgument o) => Sunroof (JSMVar o) where
-  box = JSMVar . box
-  unbox (JSMVar o) = unbox o
-
--- | Associated boolean is 'JSBool'.
-type instance BooleanOf (JSMVar o) = JSBool
-
--- | Can be returned in branches.
-instance (SunroofArgument o) => IfB (JSMVar o) where
-  ifB = jsIfB
+deriveJSTuple
+  [d| instance (SunroofArgument o) => JSTuple (JSMVar o) where
+          type Internals (JSMVar o) =
+                  ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
+                  , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
+                  )
+  |]
 
 -- | Reference equality, not value equality.
 instance (SunroofArgument o) => EqB (JSMVar o) where
   (JSMVar a) ==* (JSMVar b) = a ==* b
-
--- | They contain different parts and can be decomposed.
---   You should not mess with their internals.
-instance (SunroofArgument o) => JSTuple (JSMVar o) where
-  type Internals (JSMVar o) =
-    ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
-    , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
-    )
-  match (JSMVar o) = ( o ! "written", o ! "waiting" )
-  tuple (written,waiting) = do
-    o <- new "Object" ()
-    o # "written" := written
-    o # "waiting" := waiting
-    return (JSMVar o)
 
 -- -------------------------------------------------------------
 -- JSMVar Combinators
