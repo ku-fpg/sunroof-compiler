@@ -63,14 +63,13 @@ deriveJSTuple decsQ = do
                 let internalTy = case decls of
                         [TySynInstD tyFun [arg] internalTy] | tyFun == ''Internals -> internalTy
                         _  -> error $ "can not find usable type instance inside JSTuple"
-                runIO $ print internalTy
                 let findInternalStructure (TupleT n) ts = do
                         vs <- sequence [ newName "v" | _ <- ts ]
                         return (TupE,TupP [ VarP v | v <- vs], vs `zip` [ "f" ++ show i | (i::Int) <- [1..]])
                     findInternalStructure (AppT t1 t2) ts = findInternalStructure t1 (t2 : ts)
                     findInternalStructure (ConT v) ts = do
                             info <- reify v
-                            runIO $ print info
+
                             case info of
                               TyConI (DataD [] _ [] [NormalC internalCons args] []) -> do
                                 vs <- sequence [ newName "v" | _ <- args ]
@@ -95,8 +94,6 @@ deriveJSTuple decsQ = do
                     findInternalStructure o ts = error $ "can not find internal structure of type " ++ show (o,ts)
 
                 (builder :: [Exp] -> Exp,unbuilder :: Pat, vars :: [(Name,String)]) <- findInternalStructure internalTy []
-
-                runIO $ print (unbuilder,vars)
 
                 -- Now work with the tConTy, to get the tCons
                 info <- reify tConTy
