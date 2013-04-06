@@ -10,7 +10,8 @@
 
 -- | Provides the Sunroof to Javascript compiler.
 module Language.Sunroof.Compiler
-  ( sunroofCompileJS
+  ( sunroofCompileJSA
+  , sunroofCompileJSB
   , compileJSI
   , extractProgramJS
   , CompilerOpts(..)
@@ -32,7 +33,8 @@ import Language.Sunroof.Types
   , JS(..), JSI(..)
   , SunroofThread(..)
   , ThreadProxy(..)
-  , single, apply, unJS, nullJS )
+  , single, apply, unJS, nullJS
+  , continuation, goto )
 import Language.Sunroof.JavaScript
   ( Stmt(..), Id
   , E(..), ExprE(..), Expr
@@ -76,7 +78,7 @@ instance Default CompilerOpts where
 -- GHCi> import Language.Sunroof
 -- GHCi> import Language.Sunroof.JS.Browser
 -- GHCi> import Data.Default
--- GHCi> txt <- sunroofCompileJS def \"main\" $ do alert(js \"Hello\");
+-- GHCi> txt <- sunroofCompileJSA def \"main\" $ do alert(js \"Hello\");
 -- GHCi> putStrLn txt
 -- var main = (function() {
 --   alert(\"Hello\");
@@ -89,7 +91,7 @@ instance Default CompilerOpts where
 -- To generate a function, not just an effect, you can use the 'function' combinator.
 --
 -- @
--- GHCi> txt <- sunroofCompileJS def \"main\" $ do
+-- GHCi> txt <- sunroofCompileJSA def \"main\" $ do
 --            function $ \\ n -> do
 --                return (n * (n :: JSNumber))
 -- GHCi> putStrLn txt
@@ -103,10 +105,15 @@ instance Default CompilerOpts where
 --
 -- Now @main@ in JavaScript is bound to the square function.
 --
-sunroofCompileJS :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
-sunroofCompileJS opts fName f = do
+sunroofCompileJSA :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
+sunroofCompileJSA opts fName f = do
   (stmts,_) <- compileJSI opts 0 $ extractProgramJS (single . JS_Return) f
   return $ showStmt $ VarStmt fName $ Apply (ExprE $ Function [] stmts) []
+
+sunroofCompileJSB :: CompilerOpts -> String -> JS B () -> IO String
+sunroofCompileJSB opts fName f = sunroofCompileJSA opts fName $ do
+  k <- continuation (\ () -> f)
+  goto k () :: JS A ()
 
 -- | Extracts the 'Control.Monad.Operational.Program' from the given
 --   Javascript computation using the given continuation closer.

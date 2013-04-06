@@ -48,7 +48,8 @@ module Language.Sunroof
   --
 
   -- * Sunroof Compiler
-    sunroofCompileJS
+    sunroofCompileJSA
+  , sunroofCompileJSB
   , CompilerOpts(..)
   -- * Classes
   , Sunroof(..), SunroofValue(..), SunroofArgument(..)
@@ -143,7 +144,8 @@ import Language.Sunroof.Types
   )
 
 import Language.Sunroof.Compiler
-  ( sunroofCompileJS
+  ( sunroofCompileJSA
+  , sunroofCompileJSB
   , CompilerOpts(..) )
 
 import Language.Sunroof.Selector
