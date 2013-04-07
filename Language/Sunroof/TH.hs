@@ -36,6 +36,7 @@ import Data.Boolean
 -- >
 -- > instance (SunroofArgument o) => IfB (JSX o) where
 -- >    ifB = jsIfB
+-- >
 -- > type instance BooleanOf (JSX o) = JSBool
 -- >
 -- > instance (SunroofArgument o) => JSTuple (JSX o) where
