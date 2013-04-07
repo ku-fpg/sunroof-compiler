@@ -3,9 +3,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 -- | Provides common combinators for concurrency in Javascript.
---   
+--
 --   The emulated threading Javascript threading model provided by
---   Sunroof is based on cooperative multithreading 
+--   Sunroof is based on cooperative multithreading
 --   (since Javascript is not multithreaded).
 module Language.Sunroof.Concurrent
   ( loop
@@ -48,14 +48,14 @@ loop start m = do
 forkJS :: (SunroofThread t1) => JS t1 () -> JS t2 ()
 forkJS m = do
   f <- continuation $ \ () -> blockableJS m
-  _ <- liftJS $ window # setTimeout f 0
+  _ <- window # setTimeout f 0
   return ()
 
 -- | Delay the execution of all instructions after this one by
 --   the given amount of milliseconds.
 threadDelay :: JSNumber -> JSB ()
 threadDelay n = callcc $ \ o -> do
-  _ <- liftJS $ window # setTimeout o n
+  _ <- window # setTimeout o n
   done
 
 -- | Give another thread time to execute.
