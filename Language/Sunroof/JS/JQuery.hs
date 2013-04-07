@@ -31,15 +31,7 @@ import Language.Sunroof.Classes
   ( SunroofArgument(..)
   )
 import Language.Sunroof.Types
-  ( JSFunction
-  , JS
-  , fun
-  , invoke
-  , apply
-  , (#)
-  , function
-  , T(..)
-  )
+
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.String ( JSString )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -136,9 +128,9 @@ removeAttr attrName = invoke "removeAttr" attrName
 -- -------------------------------------------------------------
 
 -- | See <http://api.jquery.com/on/>.
-on :: (SunroofArgument a) => JSString -> JSString -> (a -> JS A ()) -> JSObject -> JS t ()
+on :: (SunroofArgument a) => JSString -> JSString -> (a -> JS B ()) -> JSObject -> JS t ()
 on nm sel f o = do
-     callback <- function f
+     callback <- continuation f
      o # invoke "on" (nm,sel,callback)
 
 -- -------------------------------------------------------------
@@ -169,13 +161,13 @@ outerHeight = invoke "outerHeight" ()
 outerHeight' :: JSBool -> JSObject -> JS t JSNumber
 outerHeight' includeMargin = invoke "outerHeight" includeMargin
 
--- | See @.clone()@ at <http://api.jquery.com/clone/>. 
+-- | See @.clone()@ at <http://api.jquery.com/clone/>.
 clone :: JSObject -> JS t JSObject
 clone = invoke "clone" ()
 
 -- | See @.clone(withDataAndEvents, deepWithDataAndEvents)@ at <http://api.jquery.com/clone/>.
 clone' :: JSBool -> JSBool -> JSObject -> JS t JSObject
-clone' withDataAndEvents deepWithDataAndEvents = 
+clone' withDataAndEvents deepWithDataAndEvents =
   invoke "clone" (withDataAndEvents, deepWithDataAndEvents)
 
 
