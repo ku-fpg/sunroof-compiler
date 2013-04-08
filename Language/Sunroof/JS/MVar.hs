@@ -16,7 +16,7 @@ module Language.Sunroof.JS.MVar
   , putMVar, takeMVar
   ) where
 
-import Data.Boolean ( IfB(..), EqB(..), BooleanOf )
+import Data.Boolean ( IfB(..), EqB(..) )
 
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..) )
@@ -25,7 +25,6 @@ import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.TH
 import Language.Sunroof.JS.Object ( JSObject )
-import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Array
   ( JSArray
   , newArray, length'
