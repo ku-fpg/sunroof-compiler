@@ -38,7 +38,7 @@ loop start m = do
           a' <- m a
           s # writeJSRef a'
           f <- readJSRef v
-          _ <- liftJS $ window # setTimeout f 0
+          _ <- liftJS $ window # setTimeout (\a -> goto f a) 0
           return ()
   v # writeJSRef f
   _ <- goto f () -- and call the function
@@ -47,15 +47,14 @@ loop start m = do
 -- | Fork of the given computation in a different thread.
 forkJS :: (SunroofThread t1) => JS t1 () -> JS t2 ()
 forkJS m = do
-  f <- continuation $ \ () -> blockableJS m
-  _ <- window # setTimeout f 0
+  _ <- window # setTimeout (\() -> blockableJS m) 0
   return ()
 
 -- | Delay the execution of all instructions after this one by
 --   the given amount of milliseconds.
 threadDelay :: JSNumber -> JSB ()
 threadDelay n = callcc $ \ o -> do
-  _ <- window # setTimeout o n
+  _ <- window # setTimeout (\a -> goto o a) n
   done
 
 -- | Give another thread time to execute.

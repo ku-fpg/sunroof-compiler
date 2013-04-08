@@ -74,6 +74,7 @@ import Language.Sunroof.Types
   , attr
   , apply
   , (#)
+  , continuation
   )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofArgument )
 import Language.Sunroof.Selector ( JSSelector )
@@ -159,7 +160,9 @@ window = object "window"
 --   This is supposed to be called on the 'window' object.
 --   See: <http://www.w3schools.com/jsref/met_win_setinterval.asp>
 setInterval :: (() -> JSB ()) -> JSNumber -> JSObject -> JS t JSNumber
-setInterval f interval = invoke "setInterval" (f, interval)
+setInterval f interval o = do
+  callback <- continuation f
+  o # invoke "setInterval" (callback, interval)
 
 -- | Clears a timer set with the 'setInterval' method.
 --   This is supposed to be called on the 'window' object.
@@ -172,7 +175,9 @@ clearInterval ident = invoke "clearInterval" (ident)
 --   This is supposed to be called on the 'window' object.
 --   See: <http://www.w3schools.com/jsref/met_win_settimeout.asp>
 setTimeout :: (() -> JSB ()) -> JSNumber -> JSObject -> JS t JSNumber
-setTimeout f interval = invoke "setTimeout" (f, interval)
+setTimeout f interval o = do
+  callback <- continuation f
+  o # invoke "setTimeout" (callback, interval)
 
 -- | Removes the timer associated with the given handler.
 --   This is supposed to be called on the 'window' object.
