@@ -1,10 +1,13 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TypeFamilies, TemplateHaskell #-}
+
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
+-- | Provides template Haskell code to generate instances for JavaScript
+--   object wrappers (<https://github.com/ku-fpg/sunroof-compiler/wiki/JSObject-Wrapper-Types>).
 module Language.Sunroof.TH
-  (  deriveJSTuple
+  ( deriveJSTuple
   ) where
-
 
 import Language.Haskell.TH
 import Language.Sunroof.Types as SRT
@@ -48,7 +51,6 @@ import Data.Boolean
 -- >        o # attr "f1" := v1
 -- >        o # attr "f2" := v2
 -- >        return (JSX o)
-
 deriveJSTuple :: Q [Dec] -> Q [Dec]
 deriveJSTuple decsQ = do
         decs <- decsQ

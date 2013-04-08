@@ -110,6 +110,8 @@ sunroofCompileJSA opts fName f = do
   (stmts,_) <- compileJSI opts 0 $ extractProgramJS (single . JS_Return) f
   return $ showStmt $ VarStmt fName $ Apply (ExprE $ Function [] stmts) []
 
+-- | Compiles code using the blocking threading model.
+--   Usage is the same as for 'sunroofCompileJSA'.
 sunroofCompileJSB :: CompilerOpts -> String -> JS B () -> IO String
 sunroofCompileJSB opts fName f = sunroofCompileJSA opts fName $ do
   k <- continuation (\ () -> f)
