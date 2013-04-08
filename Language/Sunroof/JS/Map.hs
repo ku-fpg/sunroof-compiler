@@ -13,8 +13,8 @@
 module Language.Sunroof.JS.Map
   ( JSMap
   , newMap
-  , insertMap
-  , lookupMap
+  , insert
+  , lookup
   ) where
 
 import Data.Boolean ( IfB(..), EqB(..), BooleanOf )
@@ -60,10 +60,10 @@ newMap = do
   o <- new "Object" ()
   return $ JSMap o
 
-insertMap :: (SunroofKey k, Sunroof a) => k -> a -> JSMap k a -> JS t ()
-insertMap k a (JSMap o) = do
+insert :: (SunroofKey k, Sunroof a) => k -> a -> JSMap k a -> JS t ()
+insert k a (JSMap o) = do
         o # jsKey k := a
 
-lookupMap :: (SunroofKey k, Sunroof a) => k -> JSMap k a -> JS t a
-lookupMap k (JSMap o) = do
+lookup :: (SunroofKey k, Sunroof a) => k -> JSMap k a -> JS t a
+lookup k (JSMap o) = do
         evaluate $ o ! jsKey k
