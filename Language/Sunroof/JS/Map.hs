@@ -1,15 +1,9 @@
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -fno-warn-missing-methods #-}
 
--- | 'JSMVar' provides the same functionality and
---   concurrency abstraction in Javascript computations
---   as 'Control.Concurrent.MVar' in Haskell.
+-- | 'JSMap' provides an abstract and more type-safe access to maps
+--   in JavaScript. It is a wrapper around the dictionary each object 
+--   in JavaScript is.
 module Language.Sunroof.JS.Map
   ( JSMap
   , newMap
@@ -30,8 +24,9 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 -- JSMap Type
 -- -------------------------------------------------------------
 
--- | 'JSMap' abstraction. The type parameter gives
---   the type of values held in a 'JSMVar'.
+-- | 'JSMap' abstraction. The first type parameter gives
+--   the type of keys used by the name and the second gives
+--   the type of values.
 newtype JSMap k a = JSMap JSObject
 
 instance (SunroofKey k, Sunroof a) => Show (JSMap k a) where
@@ -47,20 +42,22 @@ instance (SunroofKey k, Sunroof a) => IfB (JSMap k a) where
   ifB = jsIfB
 
 -- -------------------------------------------------------------
--- JSMVar Combinators
+-- JSMap Combinators
 -- -------------------------------------------------------------
 
--- | Create a new 'JSMVar' with the given value inside.
---   See 'newEmptyMVar'.
+-- | Create a new empty 'JSMap'.
 newMap :: JS t (JSMap k a)
 newMap = do
   o <- new "Object" ()
   return $ JSMap o
 
+-- | @insert k x@ inserts an element @x@ associated with the given 
+--   key @k@ into a map.
 insert :: (SunroofKey k, Sunroof a) => k -> a -> JSMap k a -> JS t ()
 insert k a (JSMap o) = do
         o # jsKey k := a
 
+-- | @lookup k@ selects the value associated with the key @k@.
 lookup' :: (SunroofKey k, Sunroof a) => k -> JSMap k a -> JS t a
 lookup' k (JSMap o) = do
         evaluate $ o ! jsKey k
