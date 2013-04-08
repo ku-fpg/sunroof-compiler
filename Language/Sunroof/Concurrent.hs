@@ -1,6 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleContexts #-}
 
 -- | Provides common combinators for concurrency in Javascript.
 --
@@ -29,7 +27,7 @@ import Language.Sunroof.JS.Browser ( window, setTimeout )
 --   is feed back as input of the next iteration.
 --   The initial value supplied for the first iteration is @x@.
 --   This loop will never terminate.
-loop :: forall a . (Sunroof a) => a -> (a -> JSB a) -> JSB ()
+loop :: (Sunroof a) => a -> (a -> JSB a) -> JSB ()
 loop start m = do
   v :: JSRef (JSContinuation ()) <- newJSRef (cast nullJS)
   s <- newJSRef start
