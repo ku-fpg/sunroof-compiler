@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TypeFamilies, TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Language.Sunroof.TH
   (  deriveJSTuple
@@ -54,17 +55,17 @@ deriveJSTuple decsQ = do
         fmap concat $ mapM complete decs
   where
         complete :: Dec -> Q [Dec]
-        complete (InstanceD cxt hd@(AppT (ConT typeClass) ty) decls) = do
-                let k decls' = InstanceD cxt hd (decls ++ decls')
+        complete (InstanceD cxt' (AppT (ConT typeClass) ty) decls) = do
+                -- Unused: let k decls' = InstanceD cxt' hd (decls ++ decls')
                 let findClass (ConT t) = t
                     findClass (AppT t1 _) = findClass t1
                     findClass _ =  error $ "strange instance head found in derive " ++ show ty
                 let tConTy = findClass ty
                 -- Next, find the type instance
                 let internalTy = case decls of
-                        [TySynInstD tyFun [arg] internalTy] | tyFun == ''Internals -> internalTy
+                        [TySynInstD tyFun [_arg] internalTy] | tyFun == ''Internals -> internalTy
                         _  -> error $ "can not find usable type instance inside JSTuple"
-                let findInternalStructure (TupleT n) ts = do
+                let findInternalStructure (TupleT _n) ts = do
                         vs <- sequence [ newName "v" | _ <- ts ]
                         return (TupE,TupP [ VarP v | v <- vs], vs `zip` [ "f" ++ show i | (i::Int) <- [1..]])
                     findInternalStructure (AppT t1 t2) ts = findInternalStructure t1 (t2 : ts)
@@ -91,7 +92,7 @@ deriveJSTuple decsQ = do
                                        , vs `zip` [ nameBase x | (x,_,_) <- args ]
                                        )
 
-                              o -> error $ "can not find internal structure of cons " ++ show (v,ts,info)
+                              _o -> error $ "can not find internal structure of cons " ++ show (v,ts,info)
                     findInternalStructure o ts = error $ "can not find internal structure of type " ++ show (o,ts)
 
                 (builder :: [Exp] -> Exp,unbuilder :: Pat, vars :: [(Name,String)]) <- findInternalStructure internalTy []
@@ -108,11 +109,11 @@ deriveJSTuple decsQ = do
                 o <- newName "o"
                 n <- newName "n"
 
-                return [ InstanceD cxt (AppT (ConT ''Show) ty)
+                return [ InstanceD cxt' (AppT (ConT ''Show) ty)
                            [ FunD 'show
                               [ Clause [ConP tCons [VarP o]]
                                          (NormalB (AppE (VarE 'show) (VarE o))) []]]
-                       , InstanceD cxt (AppT (ConT ''Sunroof) ty)
+                       , InstanceD cxt' (AppT (ConT ''Sunroof) ty)
                            [ FunD 'box
                               [ Clause [VarP n] (NormalB (AppE (ConE tCons)
                                                                (AppE (VarE 'box) (VarE n)))) []]
@@ -120,10 +121,10 @@ deriveJSTuple decsQ = do
                               [ Clause [ConP tCons [VarP o]]
                                                 (NormalB (AppE (VarE 'unbox) (VarE o))) []]
                            ]
-                       , InstanceD cxt (AppT (ConT ''IfB) ty)
+                       , InstanceD cxt' (AppT (ConT ''IfB) ty)
                               [ ValD (VarP 'ifB) (NormalB (VarE 'jsIfB)) [] ]
                        , TySynInstD ''BooleanOf [ty] (ConT ''JSBool)
-                       , InstanceD cxt (AppT (ConT ''JSTuple) ty) $ decls ++
+                       , InstanceD cxt' (AppT (ConT ''JSTuple) ty) $ decls ++
                            [ FunD 'SRT.match
                               [Clause [VarP o] (NormalB (builder
                                   [ AppE (AppE (VarE $ mkName "!") (VarE o))
@@ -148,3 +149,4 @@ deriveJSTuple decsQ = do
                               ]
                            ]
                        ]
+        complete _ = error "need instance declaration for derivation of JSTuple."
