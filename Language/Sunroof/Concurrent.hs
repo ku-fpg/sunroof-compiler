@@ -38,7 +38,7 @@ loop start m = do
           a' <- m a
           s # writeJSRef a'
           f <- readJSRef v
-          _ <- liftJS $ window # setTimeout (\a -> goto f a) 0
+          _ <- liftJS $ window # setTimeout (\x -> goto f x) 0
           return ()
   v # writeJSRef f
   _ <- goto f () -- and call the function
@@ -54,7 +54,7 @@ forkJS m = do
 --   the given amount of milliseconds.
 threadDelay :: JSNumber -> JSB ()
 threadDelay n = callcc $ \ o -> do
-  _ <- window # setTimeout (\a -> goto o a) n
+  _ <- window # setTimeout (\x -> goto o x) n
   done
 
 -- | Give another thread time to execute.
