@@ -17,7 +17,7 @@ import Data.Boolean
 --
 -- you write the newtype explictly, and @derive@ does the rest.
 --
--- > newtype JSX = JSX JSObject
+-- > newtype JSX o = JSX JSObject
 --
 -- and then the start of the JSTuple instance, and the rest gets filled in
 --
