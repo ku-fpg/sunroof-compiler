@@ -39,7 +39,7 @@ module Language.Sunroof.Types
 import Control.Monad.Operational
 
 import Data.Monoid ( Monoid(..) )
-import Data.Semigroup ( Semigroup(..) )
+--import Data.Semigroup ( Semigroup(..) )
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 import Data.Proxy ( Proxy(Proxy) )
 import Data.Semigroup ( Semigroup(..) )

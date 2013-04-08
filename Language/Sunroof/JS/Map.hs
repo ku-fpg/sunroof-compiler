@@ -17,17 +17,14 @@ module Language.Sunroof.JS.Map
   , lookup
   ) where
 
-import Data.Boolean ( IfB(..), EqB(..), BooleanOf )
+import Data.Boolean ( IfB(..), BooleanOf )
 
 import Language.Sunroof.Classes
-  ( Sunroof(..), SunroofArgument(..) )
+  ( Sunroof(..) )
 import Language.Sunroof.Types
-import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
-import Language.Sunroof.TH
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
-import Language.Sunroof.JS.Array
 
 -- -------------------------------------------------------------
 -- JSMap Type

@@ -414,13 +414,14 @@ optExpr _opts e = do
           ], findExpr jsVars dbF start)
 --        return ([],e)
 
+{- Unused:
 compilerLog :: Int -> String -> CompM ()
 compilerLog level msg = do
   opts <- ask
   when (co_verbose opts >= level) $ liftIO $ do
     putStr "Compiler: "
     putStrLn msg
-
+-}
 
 -----------------------------------------------------------------------------------
 
