@@ -67,8 +67,7 @@ import Prelude hiding (isNaN)
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
 import Language.Sunroof.Types
-  ( JSContinuation
-  , JS
+  ( JS, JSB
   , JS ( (:=) )
   , fun
   , invoke
@@ -159,7 +158,7 @@ window = object "window"
 --   or the window is closed. The returned number is needed for 'clearInterval'.
 --   This is supposed to be called on the 'window' object.
 --   See: <http://www.w3schools.com/jsref/met_win_setinterval.asp>
-setInterval :: JSContinuation () -> JSNumber -> JSObject -> JS t JSNumber
+setInterval :: (() -> JSB ()) -> JSNumber -> JSObject -> JS t JSNumber
 setInterval f interval = invoke "setInterval" (f, interval)
 
 -- | Clears a timer set with the 'setInterval' method.
@@ -172,7 +171,7 @@ clearInterval ident = invoke "clearInterval" (ident)
 --   milliseconds. Returns a handler for the set timer.
 --   This is supposed to be called on the 'window' object.
 --   See: <http://www.w3schools.com/jsref/met_win_settimeout.asp>
-setTimeout :: JSContinuation () -> JSNumber -> JSObject -> JS t JSNumber
+setTimeout :: (() -> JSB ()) -> JSNumber -> JSObject -> JS t JSNumber
 setTimeout f interval = invoke "setTimeout" (f, interval)
 
 -- | Removes the timer associated with the given handler.
