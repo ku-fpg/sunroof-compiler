@@ -32,7 +32,8 @@ module Language.Sunroof.Types
   , evaluate, value
   , switch
   , nullJS
-  , JSTuple(..)
+  , JSTuple(..)  -- TODO: Call this SunroofTuple?
+  , SunroofKey(..)
   ) where
 
 import Control.Monad.Operational
@@ -41,6 +42,7 @@ import Data.Monoid ( Monoid(..) )
 import Data.Semigroup ( Semigroup(..) )
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 import Data.Proxy ( Proxy(Proxy) )
+import Data.Semigroup ( Semigroup(..) )
 
 import Language.Sunroof.JavaScript
   ( Expr, Type(Fun), Id
@@ -50,7 +52,8 @@ import Language.Sunroof.Classes
 import Language.Sunroof.Selector ( JSSelector, label, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
-import Language.Sunroof.JS.String ( string )
+import Language.Sunroof.JS.Number ( JSNumber )
+import Language.Sunroof.JS.String ( string, JSString )
 
 -- -------------------------------------------------------------
 -- Thread Model
@@ -435,6 +438,7 @@ nullJS = box $ literal "null"
 -- | If something is a 'JSTuple', it can easily be decomposed and
 --   recomposed from different components. This is meant as a convenient
 --   access to attributes of an object.
+-- TODO: revisit this
 class Sunroof o => JSTuple o where
         type Internals o
         match :: (Sunroof o) => o -> Internals o
@@ -445,6 +449,24 @@ instance JSTuple JSObject where
   match _ = ()
   tuple () = new "Object" ()
 
+
+-- -------------------------------------------------------------
+-- SunroofKey Type Class
+-- -------------------------------------------------------------
+
+-- | Everything that can be used as an key in a dictionary lookup.
+class SunroofKey key where
+   jsKey :: key -> JSSelector a
+
+-- To break the module loop
+instance SunroofKey JSString where
+   jsKey = label
+
+instance SunroofKey JSNumber where
+   jsKey k = label ("" <> cast k)
+
+instance SunroofKey JSBool where
+   jsKey k = label ("" <> cast k)
 
 
 
