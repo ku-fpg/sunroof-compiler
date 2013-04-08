@@ -15,7 +15,7 @@ module Language.Sunroof.JS.Ref
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 
 import Language.Sunroof.Classes ( Sunroof(..) )
-import Language.Sunroof.Types ( T(..), JS(..), evaluate, new, (#) )
+import Language.Sunroof.Types ( T(..), JS(..), evaluate, new, (#), liftJS )
 import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
@@ -63,7 +63,7 @@ writeJSRef :: (Sunroof a) => a -> JSRef a ->  JS t ()
 writeJSRef a (JSRef obj) = obj # "val" := a
 
 -- | Non-blocking modification of a 'JSRef'.
-modifyJSRef :: (Sunroof a) => (a -> JS A a) -> JSRef a -> JS A ()
+modifyJSRef :: (Sunroof a) => (a -> JS A a) -> JSRef a -> JS t ()
 modifyJSRef f ref = do
   val <- readJSRef ref
-  f val >>= \ v -> ref # writeJSRef v
+  liftJS (f val) >>= \ v -> ref # writeJSRef v
