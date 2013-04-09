@@ -78,6 +78,7 @@ module Language.Sunroof
   , (!)
   , callcc
   , comment
+  , delete
   -- * Concurrency Primitives
   , forkJS
   , threadDelay
@@ -141,6 +142,7 @@ import Language.Sunroof.Types
   , evaluate, value
   , switch
   , nullJS
+  , delete
   , JSTuple(..)
   , SunroofKey(..)
   )

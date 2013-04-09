@@ -43,7 +43,7 @@ import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..)
   , UniqM(..), Uniq )
-import Language.Sunroof.Selector ( unboxSelector )
+import Language.Sunroof.Selector ( unboxSelector, (!) )
 import Language.Sunroof.Internal ( proxyOf )
 
 import Language.Sunroof.JS.Object ( JSObject )
@@ -151,9 +151,13 @@ compile = eval . view
       stmts1 <- compile (g ())
       return ( stmts0 ++ [AssignStmt (Dot (ExprE $ unbox obj) (ExprE $ unboxSelector sel) ty) val] ++ stmts1)
 
-      -- TODO: this is wrong : use Dot
     eval (JS_Select sel obj :>>= g) = do
       compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unboxSelector sel]) g
+
+    eval (JS_Delete sel obj :>>= g) = do
+      let ty = typeOf (proxyOf (obj ! sel))
+      stmts1 <- compile (g ())
+      return (DeleteStmt (Dot (ExprE $ unbox obj) (ExprE $ unboxSelector sel) ty) : stmts1)
 
     -- Return returns Haskell type JS A (), because there is nothing after a return.
     -- We ignore everything after a return.

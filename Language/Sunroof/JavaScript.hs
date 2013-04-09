@@ -190,8 +190,8 @@ scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
 
 -- | Plain Javascript statements.
 data Stmt = VarStmt Id Expr           -- ^ Variable assignment: @var Id = Expr; // Id is fresh@
-          | AssignStmt Expr Expr     -- ^ Restricted assignment: @Expr = Expr; // restrictions on lhs@
---          | DeleteStmt Expr Expr     -- ^ Delete reference @delete Expr; // restrictions on rhs@
+          | AssignStmt Expr Expr      -- ^ Restricted assignment: @Expr = Expr; // restrictions on lhs@
+          | DeleteStmt Expr           -- ^ Delete reference @delete Expr; // restrictions on expr, as above@
           | ExprStmt Expr             -- ^ Expression statement, for the sake of its side effects: @Expr;@
           | ReturnStmt Expr           -- ^ Return statement: @return Expr;@
           | IfStmt Expr [Stmt] [Stmt] -- ^ If-Then-Else statement: @if (Expr) { Stmts } else { Stmts }@
@@ -206,6 +206,7 @@ showStmt :: Stmt -> String
 showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
 showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
 showStmt (AssignStmt e1 e2) = showExpr False e1 ++ " = " ++ showExpr False e2 ++ ";"
+showStmt (DeleteStmt e) = "delete " ++ showExpr False e ++ ";"
 showStmt (ExprStmt e) = showExpr False e ++ ";"
 showStmt (ReturnStmt e) = "return " ++ showExpr False e ++ ";"
 showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n"
