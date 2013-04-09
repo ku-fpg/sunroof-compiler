@@ -9,7 +9,7 @@ module Language.Sunroof.JS.Map
   , newMap
   , insert
   , lookup'
-  , sizeMap
+  , size
   ) where
 
 import Data.Boolean ( IfB(..), BooleanOf )
@@ -21,7 +21,6 @@ import Language.Sunroof.Selector ( (!) )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Number
-import Language.Sunroof.JS.Array
 
 -- -------------------------------------------------------------
 -- JSMap Type
@@ -65,8 +64,8 @@ lookup' :: (SunroofKey k, Sunroof a) => k -> JSMap k a -> JS t a
 lookup' k (JSMap o) = do
         evaluate $ o ! jsKey k
 
-sizeMap :: JSMap k a -> JS t JSNumber
-sizeMap (JSMap o) = fun "Object.size" $$ o
+size :: JSMap k a -> JS t JSNumber
+size (JSMap o) = fun "Object.size" $$ o
 
 --deleteMap :: (SunroofKey k, Sunroof a) => k -> JSMap k a -> JS t ()
 --deleteMap k (JSMap o) = fun "delete" $$ (o ! jsKey k)
