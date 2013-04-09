@@ -149,7 +149,7 @@ compile = eval . view
       (stmts0,val) <- compileExpr (unbox a)
       let ty = typeOf (proxyOf a)
       stmts1 <- compile (g ())
-      return ( stmts0 ++ [AssignStmt_ (Dot (ExprE $ unbox obj) (ExprE $ unboxSelector sel) ty) val] ++ stmts1)
+      return ( stmts0 ++ [AssignStmt (Dot (ExprE $ unbox obj) (ExprE $ unboxSelector sel) ty) val] ++ stmts1)
 
       -- TODO: this is wrong : use Dot
     eval (JS_Select sel obj :>>= g) = do
@@ -173,7 +173,7 @@ compile = eval . view
     eval (JS_Assign_ v a :>>= g) = do
       (stmts0,val) <- compileExpr (unbox a)
       stmts1 <- compile (g ())
-      return ( stmts0 ++ [AssignStmt_ (Var v) val] ++ stmts1)
+      return ( stmts0 ++ [AssignStmt (Var v) val] ++ stmts1)
 
     eval (JS_Invoke args fn :>>= g) = do
       compileBind (Apply (ExprE $ unbox fn) (map ExprE (jsArgs args))) g

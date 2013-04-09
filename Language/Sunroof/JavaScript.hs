@@ -190,8 +190,7 @@ scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
 
 -- | Plain Javascript statements.
 data Stmt = VarStmt Id Expr           -- ^ Variable assignment: @var Id = Expr; // Id is fresh@
---          | AssignStmt Expr Expr Expr -- ^ Field/attribute assignment: @Expr[Expr] = Expr;@
-          | AssignStmt_ Expr Expr     -- ^ Restricted assignment: @Expr = Expr; // restrictions on lhs@
+          | AssignStmt Expr Expr     -- ^ Restricted assignment: @Expr = Expr; // restrictions on lhs@
 --          | DeleteStmt Expr Expr     -- ^ Delete reference @delete Expr; // restrictions on rhs@
           | ExprStmt Expr             -- ^ Expression statement, for the sake of its side effects: @Expr;@
           | ReturnStmt Expr           -- ^ Return statement: @return Expr;@
@@ -206,8 +205,7 @@ instance Show Stmt where
 showStmt :: Stmt -> String
 showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
 showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
---showStmt (AssignStmt e1 e2 e3) = showExpr True e1 ++ "[" ++ showExpr False e2 ++ "] = " ++ showExpr False e3 ++ ";"
-showStmt (AssignStmt_ e1 e2) = showExpr False e1 ++ " = " ++ showExpr False e2 ++ ";"
+showStmt (AssignStmt e1 e2) = showExpr False e1 ++ " = " ++ showExpr False e2 ++ ";"
 showStmt (ExprStmt e) = showExpr False e ++ ";"
 showStmt (ReturnStmt e) = "return " ++ showExpr False e ++ ";"
 showStmt (IfStmt i t e) = "if(" ++ showExpr False i ++ "){\n"
