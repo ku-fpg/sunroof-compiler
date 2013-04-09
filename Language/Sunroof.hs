@@ -54,6 +54,7 @@ module Language.Sunroof
   -- * Classes
   , Sunroof(..), SunroofValue(..), SunroofArgument(..)
   , JSTuple(..)
+  , SunroofKey(..)
   -- * Types
   , Type(..)
   , T(..), ThreadProxy(..)
@@ -141,6 +142,7 @@ import Language.Sunroof.Types
   , switch
   , nullJS
   , JSTuple(..)
+  , SunroofKey(..)
   )
 
 import Language.Sunroof.Compiler
