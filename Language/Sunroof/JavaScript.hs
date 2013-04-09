@@ -10,8 +10,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
--- | Basic low-level types and their combinators. 
---   These are used as output of the compiler. 
+-- | Basic low-level types and their combinators.
+--   These are used as output of the compiler.
 --   Everything here is untypes and not supposed for public use!
 module Language.Sunroof.JavaScript
   ( Expr, ExprE(..), E(..)
@@ -190,8 +190,9 @@ scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
 
 -- | Plain Javascript statements.
 data Stmt = VarStmt Id Expr           -- ^ Variable assignment: @var Id = Expr; // Id is fresh@
-          | AssignStmt Expr Expr Expr -- ^ Field/attribute assignment: @Expr[Expr] = Expr;@
+--          | AssignStmt Expr Expr Expr -- ^ Field/attribute assignment: @Expr[Expr] = Expr;@
           | AssignStmt_ Expr Expr     -- ^ Restricted assignment: @Expr = Expr; // restrictions on lhs@
+--          | DeleteStmt Expr Expr     -- ^ Delete reference @delete Expr; // restrictions on rhs@
           | ExprStmt Expr             -- ^ Expression statement, for the sake of its side effects: @Expr;@
           | ReturnStmt Expr           -- ^ Return statement: @return Expr;@
           | IfStmt Expr [Stmt] [Stmt] -- ^ If-Then-Else statement: @if (Expr) { Stmts } else { Stmts }@
@@ -205,7 +206,7 @@ instance Show Stmt where
 showStmt :: Stmt -> String
 showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
 showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
-showStmt (AssignStmt e1 e2 e3) = showExpr True e1 ++ "[" ++ showExpr False e2 ++ "] = " ++ showExpr False e3 ++ ";"
+--showStmt (AssignStmt e1 e2 e3) = showExpr True e1 ++ "[" ++ showExpr False e2 ++ "] = " ++ showExpr False e3 ++ ";"
 showStmt (AssignStmt_ e1 e2) = showExpr False e1 ++ " = " ++ showExpr False e2 ++ ";"
 showStmt (ExprStmt e) = showExpr False e ++ ";"
 showStmt (ReturnStmt e) = "return " ++ showExpr False e ++ ";"
