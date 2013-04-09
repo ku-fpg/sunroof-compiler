@@ -75,19 +75,19 @@ deriveJSTuple decsQ = do
                             info <- reify v
 
                             case info of
-                              TyConI (DataD [] _ [] [NormalC internalCons args] []) -> do
+                              TyConI (DataD [] _ _ [NormalC internalCons args] []) -> do
                                 vs <- sequence [ newName "v" | _ <- args ]
                                 return ( foldl AppE (ConE internalCons)
                                        , ConP internalCons [ VarP v | v <- vs]
                                        , vs `zip` [ "f" ++ show i | (i::Int) <- [1..]]
                                        )
-                              TyConI (NewtypeD [] _ [] (NormalC internalCons args) []) -> do
+                              TyConI (NewtypeD [] _ _ (NormalC internalCons args) []) -> do
                                 vs <- sequence [ newName "v" | _ <- args ]
                                 return ( foldl AppE (ConE internalCons)
                                        , ConP internalCons [ VarP v | v <- vs]
                                        , vs `zip` [ "f" ++ show i | (i::Int) <- [1..]]
                                        )
-                              TyConI (DataD [] _ [] [RecC internalCons args] []) -> do
+                              TyConI (DataD [] _ _ [RecC internalCons args] []) -> do
                                 vs <- sequence [ newName "v" | _ <- args ]
                                 return ( foldl AppE (ConE internalCons)
                                        , ConP internalCons [ VarP v | v <- vs]
