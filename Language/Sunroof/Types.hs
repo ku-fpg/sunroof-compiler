@@ -455,7 +455,7 @@ instance JSTuple JSObject where
 -- -------------------------------------------------------------
 
 -- | Everything that can be used as an key in a dictionary lookup.
-class SunroofKey key where
+class Sunroof key => SunroofKey key where
    jsKey :: key -> JSSelector a
 
 -- To break the module loop
