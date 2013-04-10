@@ -32,6 +32,7 @@ module Language.Sunroof.Types
   , evaluate, value
   , switch
   , nullJS
+  , delete
   , JSTuple(..)  -- TODO: Call this SunroofTuple?
   , SunroofKey(..)
   ) where
@@ -148,6 +149,8 @@ instance Monoid (JS t ()) where
 --     [@JS_Select s o@] returns the value of the selected field @s@
 --       in the object @o@.
 --
+--     [@JS_Delete s o@] delete the selected field @s@ in the object @o@.
+--
 --     [@JS_Invoke a f@] calls the function @f@ with the arguments @a@.
 --
 --     [@JS_Eval v@] evaluates the value @v@. Subsequent instructions
@@ -173,6 +176,7 @@ instance Monoid (JS t ()) where
 data JSI :: T -> * -> * where
   JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject -> JSI t ()
   JS_Select  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t a
+  JS_Delete  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t ()
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
   JS_Invoke :: (SunroofArgument a, Sunroof r) => a -> JSFunction a r -> JSI t r
   JS_Eval   :: (Sunroof a) => a -> JSI t a
@@ -432,6 +436,14 @@ nullJS :: JSObject
 nullJS = box $ literal "null"
 
 -- -------------------------------------------------------------
+-- delete
+-- -------------------------------------------------------------
+
+-- | @o # delete lab@ removes the label @lab@ from the object @o@.
+delete :: (Sunroof a) => JSSelector a -> JSObject -> JS t ()
+delete sel o = single (JS_Delete sel o)
+
+-- -------------------------------------------------------------
 -- JSTuple Type Class
 -- -------------------------------------------------------------
 
@@ -455,7 +467,7 @@ instance JSTuple JSObject where
 -- -------------------------------------------------------------
 
 -- | Everything that can be used as an key in a dictionary lookup.
-class SunroofKey key where
+class Sunroof key => SunroofKey key where
    jsKey :: key -> JSSelector a
 
 -- To break the module loop
