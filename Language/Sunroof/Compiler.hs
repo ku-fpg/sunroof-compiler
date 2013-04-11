@@ -12,8 +12,7 @@
 module Language.Sunroof.Compiler
   ( sunroofCompileJSA
   , sunroofCompileJSB
-  , compileJSI
-  , extractProgramJS
+  , compileJS
   , CompilerOpts(..)
   ) where
 
@@ -103,7 +102,7 @@ instance Default CompilerOpts where
 --
 sunroofCompileJSA :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
 sunroofCompileJSA opts fName f = do
-  (stmts,_) <- compileJSI opts 0 $ extractProgramJS (single . JS_Return) f
+  (stmts,_) <- compileJS opts 0 (single . JS_Return) f
   return $ showStmt $ VarStmt fName $ Apply (ExprE $ Function [] stmts) []
 
 -- | Compiles code using the blocking threading model.
@@ -118,11 +117,11 @@ sunroofCompileJSB opts fName f = sunroofCompileJSA opts fName $ do
 extractProgramJS :: (a -> JS t ()) -> JS t a -> Program (JSI t) ()
 extractProgramJS k m = unJS (m >>= k) return
 
--- | Compile a 'Control.Monad.Operational.Program' over 'JSI'
---   into basic Javascript statements. Also return the next frach
---   unique
-compileJSI :: CompilerOpts -> Uniq -> Program (JSI t) () -> IO ([Stmt], Uniq)
-compileJSI opts uq jsi_prog = runStateT (runReaderT (compile jsi_prog) opts) uq
+-- | Compile a Javascript computation (using the given continuation closer)
+--   into basic Javascript statements. Also return the next fresh
+--   unique. This function should only be used if you know what your doing!
+compileJS :: CompilerOpts -> Uniq -> (a -> JS t ()) -> JS t a -> IO ([Stmt], Uniq)
+compileJS opts uq k m = runStateT (runReaderT (compile $ extractProgramJS k m) opts) uq
 
 compile :: Program (JSI t) () -> CompM [Stmt]
 compile = eval . view
