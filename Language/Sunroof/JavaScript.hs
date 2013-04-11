@@ -114,7 +114,9 @@ showExpr b e = p $ case e of
 
 -- | @showIdx o a@ accesses the field/attribute @a@ of the object @o@.
 showIdx :: Expr -> Expr -> String
-showIdx a x = showExpr True a ++ "[" ++ showExpr False x ++ "]"
+showIdx a (Lit x) | Just n <- isGoodSelectName x
+                  = showExpr True a ++ "." ++ n
+showIdx a ix = showExpr True a ++ "[" ++ showExpr False ix ++ "]"
 
 -- | @showArgs a@ creates a string representing the given expressions
 --   in an argument list that can be used for functions or constructors.
