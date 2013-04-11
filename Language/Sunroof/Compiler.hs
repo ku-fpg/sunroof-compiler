@@ -201,9 +201,16 @@ compileBind e m2 = do
   a <- newVar
   (stmts0,val) <- compileExpr e
   stmts1       <- compile (m2 (var a))
-  if (typeOf (Proxy::Proxy a) == Unit)
-    then return (stmts0 ++ [ExprStmt val] ++ stmts1 )
-    else return (stmts0 ++ [mkVarStmt a val] ++ stmts1 )
+  let isUnit   = typeOf (Proxy::Proxy a) == Unit
+      valIsTriv = case val of
+                    Var {} -> True
+                    Lit {} -> True
+                    _      -> False
+  case () of
+   _ | isUnit && null stmts0 && valIsTriv
+                 -> return stmts1
+     | isUnit    -> return (stmts0 ++ [ExprStmt val] ++ stmts1 )
+     | otherwise -> return (stmts0 ++ [mkVarStmt a val] ++ stmts1 )
 
 compileBranch_A :: forall a bool t . (Sunroof a, Sunroof bool)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
