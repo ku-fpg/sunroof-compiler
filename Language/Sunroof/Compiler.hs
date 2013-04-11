@@ -103,7 +103,7 @@ instance Default CompilerOpts where
 sunroofCompileJSA :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
 sunroofCompileJSA opts fName f = do
   (stmts,_) <- compileJS opts 0 (single . JS_Return) f
-  return $ showStmt $ mkVarStmt fName $ Apply (ExprE $ Function [] stmts) []
+  return $ showStmt $ mkVarStmt fName $ scopeForEffect stmts
 
 -- | Compiles code using the blocking threading model.
 --   Usage is the same as for 'sunroofCompileJSA'.
@@ -214,7 +214,7 @@ compileBranch_A b c1 c2 k = do
   src1 <- compile $ extractProgramJS (single . JS_Assign_ res) c1
   src2 <- compile $ extractProgramJS (single . JS_Assign_ res) c2
   rest <- compile (k (var res))
-  return ( [mkVarStmt res (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
+  return (src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
 compileBranch_B :: forall a bool t . (Sunroof bool, SunroofArgument a, SunroofThread t)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
@@ -253,11 +253,7 @@ compileFix h1 k = do
                 sequence_ [ singleton $ JS_Assign_ v (box $ e :: JSObject)
                           | (Var v, e) <- jsArgs args `zip` jsArgs res
                           ]))
-{-
-        knot =  [ mkVarStmt v (unbox nullJS)
-                | Var v <- jsArgs args
-                ]
--}
+
         rest <- compile (k args)
 
         return $
@@ -296,31 +292,6 @@ compileContinuation m2 = do
   fStmts <- compile $ extractProgramJS (\ _ -> JS $ \ k -> k ()) (m2 arg)
   return $ Function (map varIdE $ jsArgs arg) fStmts
 
-
-
-{-
-compileForeach :: forall a b t . (SunroofThread t, Sunroof a, Sunroof b)
-               => JSArray a -> (a -> JS t b) -> CompM [Stmt]
-compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
-  counter <- newVar
-  -- Introduce a new name for the array, so a possible literal array
-  -- is not reprinted for each access.
-  arrVar <- newVar
-
-  let condRet = unbox $ (var counter :: JSNumber) <* (var arrVar ! attr "length")
-  bodyStmts <- compile $ extractProgramJS (const $ return ()) $ do
-    e <- evaluate $ var arrVar ! label (cast (var counter :: JSNumber))
-    _ <- body e
-    return ()
-  let incCounterStmts = [ mkVarStmt counter (unbox (var counter + 1 :: JSNumber)) ]
-      loopStmts =
-        [ mkVarStmt counter (unbox (0 :: JSNumber))
-        , mkVarStmt arrVar  (unbox arr)
-        -- Recalculate the condition, in case the loop changed it.
-        , WhileStmt (condRet) (bodyStmts ++ incCounterStmts) ]
-  return loopStmts
-compileForeach _arr _body = error "compileForeach: Threading model wrong."
--}
 
 compileExpr :: Expr -> CompM ([Stmt], Expr)
 compileExpr e = do
@@ -404,8 +375,6 @@ optExpr _opts e = do
                     _ -> Nothing
   -- Next, do a forward push of value numbering
   let dbF = db1
-
-  _ <- return undefined -- ???
   return ([ mkVarStmt c $ case e' of
                           Inst expr -> fmap (ExprE . findExpr jsVars dbF) expr
                           Copy n'   -> -- Apply (ExprE (Var "COPY")) [ ExprE $ findExpr jsVars dbF n' ]
@@ -414,16 +383,7 @@ optExpr _opts e = do
           , Just c    <- return $ Map.lookup n jsVars
           , Just e' <- return $ Map.lookup n dbF
           ], findExpr jsVars dbF start)
---        return ([],e)
 
-{- Unused:
-compilerLog :: Int -> String -> CompM ()
-compilerLog level msg = do
-  opts <- ask
-  when (co_verbose opts >= level) $ liftIO $ do
-    putStr "Compiler: "
-    putStrLn msg
--}
 
 -----------------------------------------------------------------------------------
 
