@@ -36,10 +36,6 @@ import Language.Sunroof.Types
   , single, apply, unJS, nullJS
   , continuation, goto )
 import Language.Sunroof.JavaScript
-  ( Stmt(..), Id
-  , E(..), ExprE(..), Expr
-  , Type(..)
-  , showStmt )
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..)
   , UniqM(..), Uniq )
@@ -149,7 +145,7 @@ compile = eval . view
       (stmts0,val) <- compileExpr (unbox a)
       let ty = typeOf (proxyOf a)
       stmts1 <- compile (g ())
-      return ( stmts0 ++ [AssignStmt (Dot (ExprE $ unbox obj) (ExprE $ unboxSelector sel) ty) val] ++ stmts1)
+      return ( stmts0 ++ [AssignStmt (DotRhs (unbox obj) (unboxSelector sel)) val] ++ stmts1)
 
     eval (JS_Select sel obj :>>= g) = do
       compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unboxSelector sel]) g
@@ -177,7 +173,7 @@ compile = eval . view
     eval (JS_Assign_ v a :>>= g) = do
       (stmts0,val) <- compileExpr (unbox a)
       stmts1 <- compile (g ())
-      return ( stmts0 ++ [AssignStmt (Var v) val] ++ stmts1)
+      return ( stmts0 ++ [AssignStmt (VarRhs v) val] ++ stmts1)
 
     eval (JS_Invoke args fn :>>= g) = do
       compileBind (Apply (ExprE $ unbox fn) (map ExprE (jsArgs args))) g

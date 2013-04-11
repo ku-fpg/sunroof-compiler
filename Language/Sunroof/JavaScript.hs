@@ -16,6 +16,7 @@
 module Language.Sunroof.JavaScript
   ( Expr, ExprE(..), E(..)
   , Id, Stmt(..), Type(..)
+  , Rhs(..)
   , showExpr, showStmt
   , operator, binOp, uniOp
   , literal
@@ -185,13 +186,29 @@ scopeForEffect :: [Stmt] -> Expr
 scopeForEffect stmts = Apply (ExprE $ Function [] stmts) []
 
 -- -------------------------------------------------------------
+-- Javascript References
+-- -------------------------------------------------------------
+
+-- | A Right hand side of an assignment.
+
+data Rhs = VarRhs Id                  -- ^ A variable
+         | DotRhs Expr Expr           -- ^ a named field
+
+showRhs :: Rhs -> String
+showRhs (VarRhs var)   = "var " ++ var
+showRhs (DotRhs e1 e2) = showIdx e1 e2
+
+-- -------------------------------------------------------------
 -- Javascript Statements
 -- -------------------------------------------------------------
 
+-- TODO: remove VarStmt, replace with AssignStmt and ExprStmt.
+-- TODO: add type to return stmt; should not return "null"
+
 -- | Plain Javascript statements.
 data Stmt = VarStmt Id Expr           -- ^ Variable assignment: @var Id = Expr; // Id is fresh@
-          | AssignStmt Expr Expr      -- ^ Restricted assignment: @Expr = Expr; // restrictions on lhs@
-          | DeleteStmt Expr           -- ^ Delete reference @delete Expr; // restrictions on expr, as above@
+          | AssignStmt Rhs Expr       -- ^ Restricted assignment: @Rhs = Expr;@ type of Expr is never ().
+          | DeleteStmt Expr           -- ^ Delete reference @delete Rhs;@
           | ExprStmt Expr             -- ^ Expression statement, for the sake of its side effects: @Expr;@
           | ReturnStmt Expr           -- ^ Return statement: @return Expr;@
           | IfStmt Expr [Stmt] [Stmt] -- ^ If-Then-Else statement: @if (Expr) { Stmts } else { Stmts }@
@@ -205,7 +222,7 @@ instance Show Stmt where
 showStmt :: Stmt -> String
 showStmt (VarStmt v e) | null v = showExpr False e ++ ";"
 showStmt (VarStmt v e) = "var " ++ v ++ " = " ++ showExpr False e ++ ";"
-showStmt (AssignStmt e1 e2) = showExpr False e1 ++ " = " ++ showExpr False e2 ++ ";"
+showStmt (AssignStmt e1 e2) = showRhs e1 ++ " = " ++ showExpr False e2 ++ ";"
 showStmt (DeleteStmt e) = "delete " ++ showExpr False e ++ ";"
 showStmt (ExprStmt e) = showExpr False e ++ ";"
 showStmt (ReturnStmt e) = "return " ++ showExpr False e ++ ";"
