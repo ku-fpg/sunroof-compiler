@@ -4,11 +4,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Provides a more specific type for arrays in Javascript 
+-- | Provides a more specific type for arrays in Javascript
 --   (together with basic operations on them).
 module Language.Sunroof.JS.Array
   ( JSArray
-  , LiteralList, litList
   , array, newArray
   , length'
   , push, pop
@@ -25,10 +24,7 @@ import Data.Semigroup ( Semigroup(..) )
 import Data.Boolean ( BooleanOf, IfB(..) )
 
 import Language.Sunroof.JavaScript ( Expr, showExpr, literal, binOp )
-import Language.Sunroof.Types 
-  ( JS, T(A)
-  , cast, invoke, function, attr, new
-  , (#) )
+import Language.Sunroof.Types
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
 import Language.Sunroof.Selector ( JSSelector )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
@@ -58,46 +54,21 @@ type instance BooleanOf (JSArray a) = JSBool
 instance (Sunroof a) => IfB (JSArray a) where
   ifB = jsIfB
 
--- | Newtype wrapper for lists. Needed for the 'SunroofValue' instance for arrays.
-newtype LiteralList a = LiteralList [a]
-
--- | Create a 'LiteralList' from a list.
-litList :: [a] -> LiteralList a
-litList = LiteralList
-
--- | Creates an array from a list (wrapped in the 'LiteralList' newtype wrapper).
---   Without the newtype wrapper this would overlap with the 
---   'String' instance of 'SunroofValue', but overlaps of classes with associated
---   types are not allowed.
-instance (SunroofValue a, Sunroof (ValueOf a)) => SunroofValue (LiteralList a) where
-  type ValueOf (LiteralList a) = JSArray (ValueOf a)
-  -- Uses JSON
-  js (LiteralList l) = array l
-
--- | Arrays are monoids under concatination.
-instance (Sunroof a) => Monoid (JSArray a) where
-  mempty = empty
-  mappend (JSArray e1) (JSArray e2) = box $ binOp "[].concat" e1 e2
-
--- | Derives from the 'Data.Monoid.Monoid' instance.
-instance (Sunroof a) => Semigroup (JSArray a) where
-  (<>) = mappend
-
 -- -------------------------------------------------------------
 -- JSArray Combinators
 -- -------------------------------------------------------------
 
 -- | Create a literal array from a Haskell list.
-array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JSArray (ValueOf a)
-array l  = box $ literal $ "[" ++ intercalate "," (fmap (showExpr False . unbox . js) l) ++ "]"
+array :: (SunroofValue a, Sunroof (ValueOf a)) => [a] -> JS t (JSArray (ValueOf a))
+array l  = evaluate $ box $ literal $ "[" ++ intercalate "," (fmap (showExpr False . unbox . js) l) ++ "]"
 
 -- | Create a new array object containing the given values.
 newArray :: (SunroofArgument args, Sunroof a) => args -> JS t (JSArray a)
 newArray args = cast `fmap` new "Array" args
 
 -- | The empty array.
-empty :: (Sunroof a) => JSArray a
-empty = box $ literal "[]"
+empty :: (Sunroof a) => JS t (JSArray a)
+empty = evaluate $ box $ literal "[]"
 
 -- | The @length@ property of arrays.
 length' :: JSSelector JSNumber
@@ -127,7 +98,7 @@ shift = invoke "shift" ()
 
 -- | Foreach iteration method provided by most browsers.
 --   Execute the given action on each element of the array.
---   See 
+--   See
 --   <https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/forEach>,
 --   <http://msdn.microsoft.com/en-us/library/ie/ff679980.aspx>.
 forEach :: (Sunroof a, SunroofArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
