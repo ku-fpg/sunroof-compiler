@@ -103,7 +103,7 @@ instance Default CompilerOpts where
 sunroofCompileJSA :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
 sunroofCompileJSA opts fName f = do
   (stmts,_) <- compileJS opts 0 (single . JS_Return) f
-  return $ showStmt $ VarStmt fName $ Apply (ExprE $ Function [] stmts) []
+  return $ showStmt $ mkVarStmt fName $ Apply (ExprE $ Function [] stmts) []
 
 -- | Compiles code using the blocking threading model.
 --   Usage is the same as for 'sunroofCompileJSA'.
@@ -203,7 +203,7 @@ compileBind e m2 = do
   stmts1       <- compile (m2 (var a))
   if (typeOf (Proxy::Proxy a) == Unit)
     then return (stmts0 ++ [ExprStmt val] ++ stmts1 )
-    else return (stmts0 ++ [VarStmt a val] ++ stmts1 )
+    else return (stmts0 ++ [mkVarStmt a val] ++ stmts1 )
 
 compileBranch_A :: forall a bool t . (Sunroof a, Sunroof bool)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
@@ -214,7 +214,7 @@ compileBranch_A b c1 c2 k = do
   src1 <- compile $ extractProgramJS (single . JS_Assign_ res) c1
   src2 <- compile $ extractProgramJS (single . JS_Assign_ res) c2
   rest <- compile (k (var res))
-  return ( [VarStmt res (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
+  return ( [mkVarStmt res (Var "undefined")] ++  src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
 compileBranch_B :: forall a bool t . (Sunroof bool, SunroofArgument a, SunroofThread t)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
@@ -225,7 +225,7 @@ compileBranch_B b c1 c2 k = do
   (src0, res0) <- compileExpr (unbox b)
   src1 <- compile $ extractProgramJS (apply (var fn)) c1
   src2 <- compile $ extractProgramJS (apply (var fn)) c2
-  return ( [VarStmt fn fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
+  return ( [mkVarStmt fn fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
 
 compileBranch :: forall a bool t . (SunroofThread t, Sunroof bool, Sunroof a, SunroofArgument a)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
@@ -241,7 +241,7 @@ compileFix h1 k = do
         args <- jsValue
         -- set up the variables with null
         let initial =
-                [ VarStmt v (unbox nullJS)
+                [ mkVarStmt v (unbox nullJS)
                 | Var v <- jsArgs args
                 ]
 
@@ -254,7 +254,7 @@ compileFix h1 k = do
                           | (Var v, e) <- jsArgs args `zip` jsArgs res
                           ]))
 {-
-        knot =  [ VarStmt v (unbox nullJS)
+        knot =  [ mkVarStmt v (unbox nullJS)
                 | Var v <- jsArgs args
                 ]
 -}
@@ -312,10 +312,10 @@ compileForeach arr body | evalStyle (ThreadProxy :: ThreadProxy t) == A = do
     e <- evaluate $ var arrVar ! label (cast (var counter :: JSNumber))
     _ <- body e
     return ()
-  let incCounterStmts = [ VarStmt counter (unbox (var counter + 1 :: JSNumber)) ]
+  let incCounterStmts = [ mkVarStmt counter (unbox (var counter + 1 :: JSNumber)) ]
       loopStmts =
-        [ VarStmt counter (unbox (0 :: JSNumber))
-        , VarStmt arrVar  (unbox arr)
+        [ mkVarStmt counter (unbox (0 :: JSNumber))
+        , mkVarStmt arrVar  (unbox arr)
         -- Recalculate the condition, in case the loop changed it.
         , WhileStmt (condRet) (bodyStmts ++ incCounterStmts) ]
   return loopStmts
@@ -406,7 +406,7 @@ optExpr _opts e = do
   let dbF = db1
 
   _ <- return undefined -- ???
-  return ([ VarStmt c $ case e' of
+  return ([ mkVarStmt c $ case e' of
                           Inst expr -> fmap (ExprE . findExpr jsVars dbF) expr
                           Copy n'   -> -- Apply (ExprE (Var "COPY")) [ ExprE $ findExpr jsVars dbF n' ]
                                        findExpr jsVars dbF n'
@@ -451,3 +451,5 @@ varIdE e = case e of
 
 ----------------------------------------------------------------------------------
 
+mkVarStmt :: Id -> Expr -> Stmt
+mkVarStmt v e = AssignStmt (VarRhs v) e
