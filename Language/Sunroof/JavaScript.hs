@@ -10,6 +10,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+-- TODO: Remove as soon as the pretty printing stuff is actually used.
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
+
 -- | Basic low-level types and their combinators.
 --   These are used as output of the compiler.
 --   Everything here is untypes and not supposed for public use!

@@ -19,11 +19,9 @@ module Language.Sunroof.JS.Array
 import Prelude hiding ( lookup, length )
 
 import Data.List ( intercalate )
-import Data.Monoid ( Monoid(..) )
-import Data.Semigroup ( Semigroup(..) )
 import Data.Boolean ( BooleanOf, IfB(..) )
 
-import Language.Sunroof.JavaScript ( Expr, showExpr, literal, binOp )
+import Language.Sunroof.JavaScript ( Expr, showExpr, literal )
 import Language.Sunroof.Types
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
 import Language.Sunroof.Selector ( JSSelector )

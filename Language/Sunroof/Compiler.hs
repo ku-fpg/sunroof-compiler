@@ -142,7 +142,7 @@ compile = eval . view
       -- note, this is where we need to optimize/CSE  the a value.
       -- TODO: this constructor should return unit, not the updated value
       (stmts0,val) <- compileExpr (unbox a)
-      let ty = typeOf (proxyOf a)
+      --let ty = typeOf (proxyOf a)
       stmts1 <- compile (g ())
       return ( stmts0 ++ [AssignStmt (DotRhs (unbox obj) (unboxSelector sel)) val] ++ stmts1)
 
