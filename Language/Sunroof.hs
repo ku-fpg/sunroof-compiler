@@ -96,6 +96,8 @@ module Language.Sunroof
   , JSArray
   , array, newArray
   , length'
+  , lookup'
+  , insert'
   , shift, unshift
   , pop, push
   , forEach
@@ -179,6 +181,8 @@ import Language.Sunroof.JS.Array
   ( JSArray
   , array, newArray
   , length'
+  , lookup'
+  , insert'
   , forEach
   , shift, unshift
   , pop, push

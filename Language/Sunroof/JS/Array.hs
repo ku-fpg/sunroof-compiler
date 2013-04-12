@@ -10,6 +10,8 @@ module Language.Sunroof.JS.Array
   ( JSArray
   , array, newArray
   , length'
+  , lookup'
+  , insert'
   , push, pop
   , shift, unshift
   , forEach
@@ -24,7 +26,7 @@ import Data.Boolean ( BooleanOf, IfB(..) )
 import Language.Sunroof.JavaScript ( Expr, showExpr, literal )
 import Language.Sunroof.Types
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
-import Language.Sunroof.Selector ( JSSelector )
+import Language.Sunroof.Selector ( JSSelector, index, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Number ( JSNumber )
 
@@ -71,6 +73,14 @@ empty = evaluate $ box $ literal "[]"
 -- | The @length@ property of arrays.
 length' :: JSSelector JSNumber
 length' = attr "length"
+
+-- | A type-safe version of array lookup.
+lookup' :: (Sunroof a) => JSNumber -> JSArray a -> a
+lookup' n e = e ! index n
+
+-- | A type-safe version of array insert.
+insert' :: (Sunroof a) => JSNumber -> a -> JSArray a -> JS t ()
+insert' n a e = e # index n := a
 
 -- | Push a element into the array as if it was a stack.
 --   Returns nothing instead of the new length.
