@@ -8,7 +8,7 @@ License-file:        LICENSE
 Author:              Andrew Gill <andygill@ku.edu>, Jan Bracker <jbra@informatik.uni-kiel.de>
 Maintainer:          Jan Bracker <jbra@informatik.uni-kiel.de>
 Copyright:           (c) 2012 The University of Kansas
-Category:            Web, Language, Embedded
+Category:            Web, Language, Embedded, Compiler, Javascript
 Stability:           experimental
 Build-type:          Simple
 Cabal-version:       >= 1.10
