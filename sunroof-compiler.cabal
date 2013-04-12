@@ -16,7 +16,7 @@ Description:
   Monadic Javascript Compiler.
 
 Extra-source-files:
-    README
+    README.md
 
 Library
   Exposed-modules:     Language.Sunroof
