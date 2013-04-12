@@ -5,7 +5,7 @@ Homepage:            https://github.com/ku-fpg/sunroof-compiler
 Bug-reports:         https://github.com/ku-fpg/sunroof-compiler
 License:             BSD3
 License-file:        LICENSE
-Author:              Andrew Gill <andygill@ku.edu>
+Author:              Andrew Gill <andygill@ku.edu>, Jan Bracker <jbra@informatik.uni-kiel.de>
 Maintainer:          Jan Bracker <jbra@informatik.uni-kiel.de>
 Copyright:           (c) 2012 The University of Kansas
 Category:            Web
