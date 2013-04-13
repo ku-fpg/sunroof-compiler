@@ -45,20 +45,22 @@ jsVar = uniqM >>= return . mkVar
 -- -------------------------------------------------------------
 
 -- | Central type class of Sunroof. Every type that can be translated
---   into Javascript with Sunroof has to implement this type class.
-class {-Show a =>-} Sunroof a where
+--   into Javascript with @Sunroof@ has to implement this type class.
+--   Everything that is a @Sunroof@ is also a @SunroofArgument@,
+--   but not necessarily the other way round.
+class SunroofArgument a => Sunroof a where
   -- | Create a Sunroof value from a plain Javascript expression.
   box :: Expr -> a
   -- | Reveal the plain Javascript expression that represents this Sunroof value.
   unbox :: a -> Expr
-  
+
   --   Create a string representation of this Sunroof value.
   --   The created representation has to be executable Javascript.
-  --   The default implentation uses 'show'. This 
+  --   The default implentation uses 'show'. This
   --   function is needed, because unit is a Sunroof value.
   --showVar :: a -> String
   --showVar = show
-  
+
   -- | Returns the type of Javascript expression this Sunroof value
   --   represents. The default implementation returns 'Base' as type.
   typeOf :: Proxy a -> Type
