@@ -50,7 +50,7 @@ import Language.Sunroof.JavaScript
   , showExpr, literal )
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
-import Language.Sunroof.Selector ( JSSelector, label, (!) )
+import Language.Sunroof.Selector ( JSSelector, label, index, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -472,14 +472,13 @@ class Sunroof key => SunroofKey key where
 
 -- To break the module loop
 instance SunroofKey JSString where
-   jsKey = label
+   jsKey k = label ("$" <> cast k)
 
 instance SunroofKey JSNumber where
-   jsKey k = label ("" <> cast k)
+   jsKey k = index k
 
 instance SunroofKey JSBool where
-   jsKey k = label ("" <> cast k)
-
+   jsKey k = label (cast k)
 
 
 
