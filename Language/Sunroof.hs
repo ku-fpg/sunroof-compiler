@@ -55,6 +55,7 @@ module Language.Sunroof
   , Sunroof(..), SunroofValue(..), SunroofArgument(..)
   , JSTuple(..)
   , SunroofKey(..)
+  , SunroofFunctor(..)
   -- * Types
   , Type(..)
   , T(..), ThreadProxy(..)
@@ -100,7 +101,6 @@ module Language.Sunroof
   , insert'
   , shift, unshift
   , pop, push
-  , forEach
   , empty
   -- ** References
   , JSRef
@@ -147,6 +147,7 @@ import Language.Sunroof.Types
   , delete
   , JSTuple(..)
   , SunroofKey(..)
+  , SunroofFunctor(..)
   )
 
 import Language.Sunroof.Compiler
@@ -183,7 +184,6 @@ import Language.Sunroof.JS.Array
   , length'
   , lookup'
   , insert'
-  , forEach
   , shift, unshift
   , pop, push
   , empty )

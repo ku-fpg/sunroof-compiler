@@ -35,6 +35,7 @@ module Language.Sunroof.Types
   , delete
   , JSTuple(..)  -- TODO: Call this SunroofTuple?
   , SunroofKey(..)
+  , SunroofFunctor(..)
   ) where
 
 import Control.Monad.Operational
@@ -480,6 +481,13 @@ instance SunroofKey JSNumber where
 instance SunroofKey JSBool where
    jsKey k = label (cast k)
 
+-- -------------------------------------------------------------
+-- SunroofFunctor Type Class
+-- -------------------------------------------------------------
 
+class SunroofFunctor m where
+  forEach :: (Sunroof a) => (a -> JS A ()) -> m a -> JS t ()
+  -- | map provided in all modern versions of JavaScript.
+  jsMap :: (Sunroof a, Sunroof b) => (a -> JS A b) -> m a -> JS t (m b)
 
 
