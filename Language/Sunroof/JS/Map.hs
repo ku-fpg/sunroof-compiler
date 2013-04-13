@@ -98,15 +98,15 @@ instance SunroofKey k => SunroofFunctor (JSMap k) where
         arr <- mp # elems
         arr # forEach body
         return ()
-{-
-  -- TODO
-  jsMap body mp@(JSMap o) = do
-        mp1@(JSMap o1) <- newMap
-        arr <- mp # elems
-        arr # forEach (\ k -> do
-                v <- evaluate $ o ! k
-                v1 <- body v
-                v
 
-        return
--}
+  jsMap body mp = do
+        mp1 <- newMap
+        arr <- mp # selectors
+        arr # forEach (\ k -> do
+                v <- evaluate $ mp ! k
+                v1 <- body v
+                -- We cheat slightly, and cast the Selector
+                -- therefore re-using the same structure
+                -- in the cloned Map.
+                mp1 # cast k := v1)
+        return mp1
