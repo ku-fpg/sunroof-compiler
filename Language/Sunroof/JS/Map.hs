@@ -23,11 +23,10 @@ import Language.Sunroof.Classes
   ( Sunroof(..) )
 import Language.Sunroof.Types hiding ( delete )
 import qualified Language.Sunroof.Types as T
-import Language.Sunroof.Selector ( JSSelector, (!), label )
+import Language.Sunroof.Selector ( JSSelector, (!) )
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Number
-import Language.Sunroof.JS.String
 import qualified Language.Sunroof.JS.Array as A
 
 -- -------------------------------------------------------------
@@ -77,8 +76,10 @@ lookup :: (SunroofKey k, Sunroof a) => k -> JSMap k a -> JS t a
 lookup k (JSMap o) = do
         evaluate $ o ! jsKey k
 
-size :: JSMap k a -> JS t JSNumber
-size (JSMap o) = fun "Object.size" $$ o
+size :: (SunroofKey k, Sunroof a) => JSMap k a -> JS t JSNumber
+size mp = do
+        arr <- mp # elems
+        evaluate $ arr ! A.length'
 
 delete :: (SunroofKey k, Sunroof a) => k -> JSMap k a -> JS t ()
 delete k (JSMap o) = o # T.delete (jsKey k :: JSSelector ())
