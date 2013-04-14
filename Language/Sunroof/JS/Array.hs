@@ -83,15 +83,15 @@ insert' :: (Sunroof a) => JSNumber -> a -> JSArray a -> JS t ()
 insert' n a e = e # index n := a
 
 -- | Push a element into the array as if it was a stack.
---   Returns nothing instead of the new length.
+--   Returns the new length.
 --   See <http://www.w3schools.com/jsref/jsref_push.asp>.
-push :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+push :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t JSNumber
 push a = invoke "push" a
 
 -- | Adds a new element to the beginning of the array (queue).
---   Returns nothing instead of the new length.
+--   Returns the new length.
 --   See <http://www.w3schools.com/jsref/jsref_unshift.asp>.
-unshift :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+unshift :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t JSNumber
 unshift a = invoke "unshift" a
 
 -- | Pop a element from the array as if it was a stack.

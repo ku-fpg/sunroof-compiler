@@ -67,6 +67,7 @@ writeChan a (match -> (written,waiting)) = do
   ifB ((waiting ! length') ==* 0)
       (do f <- continuation $ \ (k :: JSContinuation a) -> goto k a :: JSB ()
           written # push (f :: JSContinuation (JSContinuation a))
+          return ()
       )
       (do f <- shift waiting
           forkJS (goto f a :: JSB ())
