@@ -120,6 +120,8 @@ module Language.Sunroof
   -- * DSL Utilties
   , loop
   , fixJS
+  -- * String Utilities
+  , substr, substr2
   ) where
 
 import Language.Sunroof.JavaScript ( Type(..) )
@@ -199,4 +201,4 @@ import Language.Sunroof.JS.MVar
   , takeMVar, putMVar )
 
 import Language.Sunroof.Utils
-  ( comment, fixJS )
+  ( comment, fixJS, substr, substr2 )
