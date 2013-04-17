@@ -128,7 +128,7 @@ instance Functor (JS t) where
 
 type instance BooleanOf (JS t a) = JSBool
 
-instance (SunroofThread t, Sunroof a, SunroofArgument a) => IfB (JS t a) where
+instance (SunroofThread t, SunroofArgument a) => IfB (JS t a) where
     ifB i h e = single $ JS_Branch i h e
 
 -- | We define the Semigroup instance for JS, where
@@ -184,7 +184,7 @@ data JSI :: T -> * -> * where
   JS_Function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JSI t (JSFunction a b)
   JS_Continuation :: (SunroofArgument a) => (a -> JS B ()) -> JSI t (JSContinuation a)
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-  JS_Branch :: (SunroofThread t, Sunroof a, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
+  JS_Branch :: (SunroofThread t, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   JS_Return  :: (Sunroof a) => a -> JSI t ()
   JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
   JS_Comment :: String -> JSI t ()

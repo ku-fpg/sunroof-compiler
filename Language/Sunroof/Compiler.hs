@@ -212,15 +212,21 @@ compileBind e m2 = do
      | isUnit    -> return (stmts0 ++ [ExprStmt val] ++ stmts1 )
      | otherwise -> return (stmts0 ++ [mkVarStmt a val] ++ stmts1 )
 
-compileBranch_A :: forall a bool t . (Sunroof a, Sunroof bool)
+compileBranch_A :: forall a bool t . (Sunroof bool, SunroofArgument a)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_A b c1 c2 k = do
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
-  res          <- newVar
   (src0, res0) <- compileExpr (unbox b)
-  src1 <- compile $ extractProgramJS (single . JS_Assign_ res) c1
-  src2 <- compile $ extractProgramJS (single . JS_Assign_ res) c2
-  rest <- compile (k (var res))
+  res :: a <- jsValue
+--  res          <- newVar
+  let bindResults :: a -> JS t ()
+      bindResults res' =
+        sequence_ [ single $ JS_Assign_ v (box $ e :: JSObject)
+                  | (Var v, e) <- jsArgs res `zip` jsArgs res'
+                  ]
+  src1 <- compile $ extractProgramJS bindResults c1
+  src2 <- compile $ extractProgramJS bindResults c2
+  rest <- compile (k res)
   return (src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
 compileBranch_B :: forall a bool t . (Sunroof bool, SunroofArgument a, SunroofThread t)
@@ -234,7 +240,7 @@ compileBranch_B b c1 c2 k = do
   src2 <- compile $ extractProgramJS (apply (var fn)) c2
   return ( [mkVarStmt fn fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
 
-compileBranch :: forall a bool t . (SunroofThread t, Sunroof bool, Sunroof a, SunroofArgument a)
+compileBranch :: forall a bool t . (Sunroof bool, SunroofArgument a, SunroofThread t)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch b c1 c2 k =
   case evalStyle (ThreadProxy :: ThreadProxy t) of
@@ -245,7 +251,7 @@ compileFix :: forall a t . (SunroofArgument a)
               => (a -> JS A a) ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileFix h1 k = do
         -- invent the scoped named variables
-        args <- jsValue
+        args :: a <- jsValue
         -- set up the variables with null
         let initial =
                 [ mkVarStmt v (unbox nullJS)
