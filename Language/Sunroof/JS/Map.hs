@@ -13,6 +13,7 @@ module Language.Sunroof.JS.Map
   , lookup'     -- TO remove in next major version change
   , delete
   , size
+  , selectors
   , elems
   ) where
 
