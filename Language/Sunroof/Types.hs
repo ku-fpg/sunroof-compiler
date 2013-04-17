@@ -180,7 +180,7 @@ data JSI :: T -> * -> * where
   JS_Delete  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t ()
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
   JS_Invoke :: (SunroofArgument a, Sunroof r) => a -> JSFunction a r -> JSI t r
-  JS_Eval   :: (Sunroof a) => a -> JSI t a
+  JS_Eval   :: (SunroofArgument a) => a -> JSI t a
   JS_Function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JSI t (JSFunction a b)
   JS_Continuation :: (SunroofArgument a) => (a -> JS B ()) -> JSI t (JSContinuation a)
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
@@ -412,11 +412,11 @@ new cons args = fun ("new " ++ cons) `apply` args
 -- > alert x
 --
 --   This will result in: @alert(\"A\"+\"B\"); alert(\"A\"+\"B\");@.
-evaluate :: (Sunroof a) => a -> JS t a
+evaluate :: (SunroofArgument a) => a -> JS t a
 evaluate a  = single (JS_Eval a)
 
 -- | Synonym for 'evaluate'.
-value :: (Sunroof a) => a -> JS t a
+value :: (SunroofArgument a) => a -> JS t a
 value = evaluate
 
 -- | Combinator for @switch@-like statements in Javascript.
