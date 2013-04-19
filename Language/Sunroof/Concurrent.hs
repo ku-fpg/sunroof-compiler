@@ -13,10 +13,11 @@ module Language.Sunroof.Concurrent
   ) where
 
 import Language.Sunroof.Types
-import Language.Sunroof.Classes ( Sunroof(..) )
+import Language.Sunroof.Classes
 import Language.Sunroof.JS.Ref ( newJSRef, readJSRef, writeJSRef, JSRef )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Browser ( window, setTimeout )
+import Language.Sunroof.Utils
 
 -- -------------------------------------------------------------
 -- General Concurrent Combinators.
@@ -29,18 +30,11 @@ import Language.Sunroof.JS.Browser ( window, setTimeout )
 --   This loop will never terminate.
 loop :: (Sunroof a) => a -> (a -> JSB a) -> JSB ()
 loop start m = do
-  v :: JSRef (JSContinuation ()) <- newJSRef (cast nullJS)
-  s <- newJSRef start
-  f <- continuation $ \ () -> do
-          a <- readJSRef s
+  f <- fixJS $ \ f -> continuation $ \ a -> do
           a' <- m a
-          s # writeJSRef a'
-          f <- readJSRef v
-          _ <- liftJS $ window # setTimeout (\x -> goto f x) 0
-          return ()
-  v # writeJSRef f
-  _ <- goto f () -- and call the function
-  return ()
+          yield -- stop after every loop for pause
+          goto f a'
+  goto f start -- and call the looping function
 
 -- | Fork of the given computation in a different thread.
 forkJS :: (SunroofThread t1) => JS t1 () -> JS t2 ()
