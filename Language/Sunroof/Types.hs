@@ -147,9 +147,6 @@ instance Monoid (JS t ()) where
 --     [@JS_Assign s v o@] assigns a value @v@ to the selected field @s@
 --       in the object @o@.
 --
---     [@JS_Select s o@] returns the value of the selected field @s@
---       in the object @o@.
---
 --     [@JS_Delete s o@] delete the selected field @s@ in the object @o@.
 --
 --     [@JS_Invoke a f@] calls the function @f@ with the arguments @a@.
@@ -176,7 +173,6 @@ instance Monoid (JS t ()) where
 --
 data JSI :: T -> * -> * where
   JS_Assign  :: (Sunroof a) => JSSelector a -> a -> JSObject -> JSI t ()
-  JS_Select  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t a
   JS_Delete  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t ()
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
   JS_Invoke :: (SunroofArgument a, Sunroof r) => a -> JSFunction a r -> JSI t r

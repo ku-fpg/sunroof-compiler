@@ -146,9 +146,6 @@ compile = eval . view
       stmts1 <- compile (g ())
       return ( stmts0 ++ [AssignStmt (DotRhs (unbox obj) (unboxSelector sel)) val] ++ stmts1)
 
-    eval (JS_Select sel obj :>>= g) = do
-      compileBind (Apply (ExprE (Var "[]")) [ExprE $ unbox obj, ExprE $ unboxSelector sel]) g
-
     eval (JS_Delete sel obj :>>= g) = do
       let ty = typeOf (proxyOf (obj ! sel))
       stmts1 <- compile (g ())
