@@ -35,6 +35,7 @@ module Language.Sunroof.Types
   , delete
   , JSTuple(..)  -- TODO: Call this SunroofTuple?
   , SunroofKey(..)
+  , SunroofFunctor(..)
   ) where
 
 import Control.Monad.Operational
@@ -50,7 +51,7 @@ import Language.Sunroof.JavaScript
   , showExpr, literal )
 import Language.Sunroof.Classes
   ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
-import Language.Sunroof.Selector ( JSSelector, label, (!) )
+import Language.Sunroof.Selector ( JSSelector, label, index, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
 import Language.Sunroof.JS.Number ( JSNumber )
@@ -127,7 +128,7 @@ instance Functor (JS t) where
 
 type instance BooleanOf (JS t a) = JSBool
 
-instance (SunroofThread t, Sunroof a, SunroofArgument a) => IfB (JS t a) where
+instance (SunroofThread t, SunroofArgument a) => IfB (JS t a) where
     ifB i h e = single $ JS_Branch i h e
 
 -- | We define the Semigroup instance for JS, where
@@ -179,11 +180,11 @@ data JSI :: T -> * -> * where
   JS_Delete  :: (Sunroof a) => JSSelector a -> JSObject -> JSI t ()
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
   JS_Invoke :: (SunroofArgument a, Sunroof r) => a -> JSFunction a r -> JSI t r
-  JS_Eval   :: (Sunroof a) => a -> JSI t a
+  JS_Eval   :: (SunroofArgument a) => a -> JSI t a
   JS_Function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JSI t (JSFunction a b)
   JS_Continuation :: (SunroofArgument a) => (a -> JS B ()) -> JSI t (JSContinuation a)
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
-  JS_Branch :: (SunroofThread t, Sunroof a, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
+  JS_Branch :: (SunroofThread t, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   JS_Return  :: (Sunroof a) => a -> JSI t ()
   JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
   JS_Comment :: String -> JSI t ()
@@ -411,11 +412,11 @@ new cons args = fun ("new " ++ cons) `apply` args
 -- > alert x
 --
 --   This will result in: @alert(\"A\"+\"B\"); alert(\"A\"+\"B\");@.
-evaluate :: (Sunroof a) => a -> JS t a
+evaluate :: (SunroofArgument a) => a -> JS t a
 evaluate a  = single (JS_Eval a)
 
 -- | Synonym for 'evaluate'.
-value :: (Sunroof a) => a -> JS t a
+value :: (SunroofArgument a) => a -> JS t a
 value = evaluate
 
 -- | Combinator for @switch@-like statements in Javascript.
@@ -472,15 +473,21 @@ class Sunroof key => SunroofKey key where
 
 -- To break the module loop
 instance SunroofKey JSString where
-   jsKey = label
+   jsKey k = label ("$" <> cast k)
 
 instance SunroofKey JSNumber where
-   jsKey k = label ("" <> cast k)
+   jsKey k = index k
 
 instance SunroofKey JSBool where
-   jsKey k = label ("" <> cast k)
+   jsKey k = label (cast k)
 
+-- -------------------------------------------------------------
+-- SunroofFunctor Type Class
+-- -------------------------------------------------------------
 
-
+class SunroofFunctor m where
+  forEach :: (Sunroof a) => (a -> JS A ()) -> m a -> JS t ()
+  -- | map provided in all modern versions of JavaScript.
+  jsMap :: (Sunroof a, Sunroof b) => (a -> JS A b) -> m a -> JS t (m b)
 
 

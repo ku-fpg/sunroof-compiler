@@ -83,7 +83,8 @@ putMVar a (match -> (written,waiting)) = do
        ifB ((written ! length') ==* 0)
           (-- mvar empty, so just push and continue
            do f <- continuation $ \ (k :: JSContinuation a) -> goto k a :: JSB ()
-              written # push (f :: JSContinuation (JSContinuation a))
+              _ <- written # push (f :: JSContinuation (JSContinuation a))
+              return ()
           )
           (-- mvar full, so block
            callcc $ \ (k :: JSContinuation ()) -> do
@@ -93,7 +94,7 @@ putMVar a (match -> (written,waiting)) = do
                 forkJS $ (goto k () :: JSB ())
                 -- and send the boxed value
                 goto kr a :: JSB ()
-            written # push (f :: JSContinuation (JSContinuation a))
+            _ <- written # push (f :: JSContinuation (JSContinuation a))
             done
          )
       )

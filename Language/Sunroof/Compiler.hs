@@ -136,7 +136,7 @@ compile = eval . view
     -- These are in the same order as the constructors.
 
     eval (JS_Eval e :>>= g) = do
-      compileBind (unbox e) g
+      compileBinds e g
 
     eval (JS_Assign sel a obj :>>= g) = do
       -- note, this is where we need to optimize/CSE  the a value.
@@ -212,15 +212,46 @@ compileBind e m2 = do
      | isUnit    -> return (stmts0 ++ [ExprStmt val] ++ stmts1 )
      | otherwise -> return (stmts0 ++ [mkVarStmt a val] ++ stmts1 )
 
-compileBranch_A :: forall a bool t . (Sunroof a, Sunroof bool)
+
+compileBinds :: forall a t . (SunroofArgument a)
+            => a
+            -> (a -> Program (JSI t) ())
+            -> CompM [Stmt]
+compileBinds a m2 = do
+  res :: a <- jsValue
+  es <- sequence
+        [ compileExpr e
+        | e <- jsArgs a
+        ]
+  let (stmtss0,es') = unzip es
+  stmts1 <- compile (m2 res)
+  return $ concat stmtss0
+        ++ [ mkVarStmt v e'
+           | (Var v,e') <- jsArgs res `zip` es'
+           ]
+        ++ stmts1
+
+assignments :: (SunroofArgument args) => args -> args -> [Stmt]
+assignments res res' =
+        [ mkVarStmt v e
+        | (Var v, e) <- jsArgs res `zip` jsArgs res'
+        ]
+
+compileBranch_A :: forall a bool t . (Sunroof bool, SunroofArgument a)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_A b c1 c2 k = do
   -- TODO: newVar should take a Id, or return an ID. varId is a hack.
-  res          <- newVar
   (src0, res0) <- compileExpr (unbox b)
-  src1 <- compile $ extractProgramJS (single . JS_Assign_ res) c1
-  src2 <- compile $ extractProgramJS (single . JS_Assign_ res) c2
-  rest <- compile (k (var res))
+  res :: a <- jsValue
+--  res          <- newVar
+  let bindResults :: a -> JS t ()
+      bindResults res' =
+        sequence_ [ single $ JS_Assign_ v (box $ e :: JSObject)
+                  | (Var v, e) <- jsArgs res `zip` jsArgs res'
+                  ]
+  src1 <- compile $ extractProgramJS bindResults c1
+  src2 <- compile $ extractProgramJS bindResults c2
+  rest <- compile (k res)
   return (src0 ++ [ IfStmt res0 src1 src2 ] ++ rest)
 
 compileBranch_B :: forall a bool t . (Sunroof bool, SunroofArgument a, SunroofThread t)
@@ -232,9 +263,9 @@ compileBranch_B b c1 c2 k = do
   (src0, res0) <- compileExpr (unbox b)
   src1 <- compile $ extractProgramJS (apply (var fn)) c1
   src2 <- compile $ extractProgramJS (apply (var fn)) c2
-  return ( [mkVarStmt fn fn_e] ++  src0 ++ [ IfStmt res0 src1 src2 ])
+  return ( [mkVarStmt fn fn_e] ++ src0 ++ [ IfStmt res0 src1 src2 ])
 
-compileBranch :: forall a bool t . (SunroofThread t, Sunroof bool, Sunroof a, SunroofArgument a)
+compileBranch :: forall a bool t . (Sunroof bool, SunroofArgument a, SunroofThread t)
               => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch b c1 c2 k =
   case evalStyle (ThreadProxy :: ThreadProxy t) of
@@ -245,7 +276,7 @@ compileFix :: forall a t . (SunroofArgument a)
               => (a -> JS A a) ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileFix h1 k = do
         -- invent the scoped named variables
-        args <- jsValue
+        args :: a <- jsValue
         -- set up the variables with null
         let initial =
                 [ mkVarStmt v (unbox nullJS)

@@ -14,7 +14,7 @@ module Language.Sunroof.JS.Array
   , insert'
   , push, pop
   , shift, unshift
-  , forEach
+  , forEach             -- TODO: remove export in next release (included in SunroofFunctor)
   , empty
   ) where
 
@@ -83,15 +83,15 @@ insert' :: (Sunroof a) => JSNumber -> a -> JSArray a -> JS t ()
 insert' n a e = e # index n := a
 
 -- | Push a element into the array as if it was a stack.
---   Returns nothing instead of the new length.
+--   Returns the new length.
 --   See <http://www.w3schools.com/jsref/jsref_push.asp>.
-push :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+push :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t JSNumber
 push a = invoke "push" a
 
 -- | Adds a new element to the beginning of the array (queue).
---   Returns nothing instead of the new length.
+--   Returns the new length.
 --   See <http://www.w3schools.com/jsref/jsref_unshift.asp>.
-unshift :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t ()
+unshift :: (SunroofArgument a, Sunroof a) => a -> JSArray a -> JS t JSNumber
 unshift a = invoke "unshift" a
 
 -- | Pop a element from the array as if it was a stack.
@@ -104,13 +104,19 @@ pop = invoke "pop" ()
 shift :: (Sunroof a) => JSArray a -> JS t a
 shift = invoke "shift" ()
 
--- | Foreach iteration method provided by most browsers.
---   Execute the given action on each element of the array.
---   See
---   <https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/forEach>,
---   <http://msdn.microsoft.com/en-us/library/ie/ff679980.aspx>.
-forEach :: (Sunroof a, SunroofArgument a) => (a -> JS A ()) -> JSArray a -> JS t ()
-forEach body arr = do
+
+instance SunroofFunctor JSArray where
+  -- | Foreach iteration method provided by most browsers.
+  --   Execute the given action on each element of the array.
+  --   See
+  --   <https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/forEach>,
+  --   <http://msdn.microsoft.com/en-us/library/ie/ff679980.aspx>.
+  forEach body arr = do
         f <- function body
         arr # invoke "forEach" f :: JS t ()
         return ()
+
+  -- | map provided in all modern versions of JavaScript.
+  jsMap body arr = do
+        f  <- function body
+        arr # invoke "map" f
