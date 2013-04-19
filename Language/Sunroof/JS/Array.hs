@@ -64,11 +64,11 @@ array l  = evaluate $ box $ literal $ "[" ++ intercalate "," (fmap (showExpr Fal
 
 -- | Create a new array object containing the given values.
 newArray :: (SunroofArgument args, Sunroof a) => args -> JS t (JSArray a)
-newArray args = cast `fmap` new "Array" args
+newArray args = fun "[]" $$ args
 
 -- | The empty array.
 empty :: (Sunroof a) => JS t (JSArray a)
-empty = evaluate $ box $ literal "[]"
+empty = newArray ()
 
 -- | The @length@ property of arrays.
 length' :: JSSelector JSNumber
