@@ -294,7 +294,7 @@ instance forall a . (SunroofArgument a) => Sunroof (JSContinuation a) where
 type instance BooleanOf (JSContinuation a) = JSBool
 
 -- | Functions may be the result of a branch.
-instance (SunroofArgument a, Sunroof r) => IfB (JSContinuation a) where
+instance (SunroofArgument a) => IfB (JSContinuation a) where
   ifB = jsIfB
 
 -- | 'JSFunction's may be created from Haskell functions if they have
