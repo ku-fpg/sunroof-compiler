@@ -14,7 +14,6 @@ module Language.Sunroof.Concurrent
 
 import Language.Sunroof.Types
 import Language.Sunroof.Classes
-import Language.Sunroof.JS.Ref ( newJSRef, readJSRef, writeJSRef, JSRef )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.Browser ( window, setTimeout )
 import Language.Sunroof.Utils

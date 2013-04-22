@@ -7,18 +7,11 @@ module Language.Sunroof.JS.Args
   , toJSArgs
   ) where
 
-import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
-import Data.Monoid ( Monoid(..) )
-import Data.Semigroup ( Semigroup(..) )
-import Data.Char ( isAscii, isControl, ord )
-import Data.String ( IsString(..) )
+import Data.Boolean
 
-import Numeric ( showHex )
-
-import Language.Sunroof.JavaScript ( Expr, showExpr, binOp, literal )
+import Language.Sunroof.JavaScript
 import Language.Sunroof.Classes
 import Language.Sunroof.Types
-import Language.Sunroof.JS.Object
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 
 newtype JSArgs a = JSArgs Expr

@@ -90,7 +90,7 @@ showExpr _ (Lit a) = a  -- always stand alone, or pre-parenthesised
 showExpr _ (Var v) = v  -- always stand alone
 showExpr b e = p $ case e of
     (Apply (ExprE (Lit "[]")) xs)   ->
-                "[" ++ intercalate "," (fmap (\ (ExprE e) -> showExpr False e) xs) ++ "]"
+                "[" ++ intercalate "," (fmap (\ (ExprE e') -> showExpr False e') xs) ++ "]"
     (Apply (ExprE (Var "?:")) [ExprE a,ExprE x,ExprE y]) -> showExpr True a ++ "?" ++ showExpr True x ++ ":" ++ showExpr True y
     (Apply (ExprE (Var op)) [ExprE x,ExprE y]) | not (any isAlpha op) -> showExpr True x ++ op ++ showExpr True y
     (Apply (ExprE (Var "!")) [ExprE ex]) -> "!" ++ showExpr True ex

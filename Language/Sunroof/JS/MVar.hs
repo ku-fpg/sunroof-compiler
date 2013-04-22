@@ -19,7 +19,6 @@ module Language.Sunroof.JS.MVar
 import Data.Boolean ( IfB(..), EqB(..) )
 
 import Language.Sunroof.Classes
-  ( Sunroof(..), SunroofArgument(..) )
 import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
@@ -62,7 +61,7 @@ newMVar a = do
   waiting <- newArray ()
   -- mvar must be empty, with no one waiting, so just push and continue
   f <- continuation $ \ (k :: JSContinuation a) -> goto k a :: JSB ()
-  written # push (f :: JSContinuation (JSContinuation a))
+  _ <- written # push (f :: JSContinuation (JSContinuation a))
   tuple (written, waiting)
 
 -- | Create a new empty 'JSMVar'.
@@ -110,7 +109,7 @@ takeMVar :: forall a . (SunroofArgument a) => JSMVar a -> JS B a
 takeMVar (match -> (written,waiting)) = do
   ifB ((written ! length') ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
-          callcc $ \ k -> do waiting # push (k :: JSContinuation a)
+          callcc $ \ k -> do _ <- waiting # push (k :: JSContinuation a)
                              done
       )
       (do f <- shift written
