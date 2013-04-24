@@ -50,7 +50,7 @@ import Language.Sunroof.JavaScript
   ( Expr, Type(Fun), Id
   , showExpr, literal )
 import Language.Sunroof.Classes
-  ( Sunroof(..), SunroofValue(..), SunroofArgument(..) )
+  ( Sunroof(..), SunroofArgument(..) )
 import Language.Sunroof.Selector ( JSSelector, label, index, (!) )
 import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
@@ -224,12 +224,6 @@ type instance BooleanOf (JSFunction a r) = JSBool
 instance (SunroofArgument a, Sunroof r) => IfB (JSFunction a r) where
   ifB = jsIfB
 
--- | 'JSFunction's may be created from Haskell functions if they have
---   the right form.
-instance (SunroofArgument a, Sunroof b) => SunroofValue (a -> JS A b) where
-  type ValueOf (a -> JS A b) = JS A (JSFunction a b)    -- TO revisit
-  js = function
-
 -- -------------------------------------------------------------
 -- JSFunction Combinators
 -- -------------------------------------------------------------
@@ -293,12 +287,6 @@ type instance BooleanOf (JSContinuation a) = JSBool
 -- | Functions may be the result of a branch.
 instance (SunroofArgument a) => IfB (JSContinuation a) where
   ifB = jsIfB
-
--- | 'JSFunction's may be created from Haskell functions if they have
---   the right form.
-instance (SunroofArgument a) => SunroofValue (a -> JS B ()) where
-  type ValueOf (a -> JS B ()) = JS B (JSContinuation a)    -- TO revisit
-  js = continuation
 
 -- -------------------------------------------------------------
 -- JSFunction Combinators
