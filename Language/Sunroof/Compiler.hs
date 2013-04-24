@@ -39,7 +39,6 @@ import Language.Sunroof.Classes
   ( Sunroof(..), SunroofArgument(..)
   , UniqM(..), Uniq )
 import Language.Sunroof.Selector ( unboxSelector, (!) )
-import Language.Sunroof.Internal ( proxyOf )
 
 import Language.Sunroof.JS.Object ( JSObject )
 
@@ -142,19 +141,19 @@ compile = eval . view
       -- note, this is where we need to optimize/CSE  the a value.
       -- TODO: this constructor should return unit, not the updated value
       (stmts0,val) <- compileExpr (unbox a)
-      --let ty = typeOf (proxyOf a)
+      --let ty = typeOf (return a)
       stmts1 <- compile (g ())
       return ( stmts0 ++ [AssignStmt (DotRhs (unbox obj) (unboxSelector sel)) val] ++ stmts1)
 
     eval (JS_Delete sel obj :>>= g) = do
-      let ty = typeOf (proxyOf (obj ! sel))
+      let ty = typeOf (return (obj ! sel))
       stmts1 <- compile (g ())
       return (DeleteStmt (Dot (ExprE $ unbox obj) (ExprE $ unboxSelector sel) ty) : stmts1)
 
     -- Return returns Haskell type JS A (), because there is nothing after a return.
     -- We ignore everything after a return.
     eval (JS_Return e :>>= _) = do
-      let ty = typeOf (proxyOf e)
+      let ty = typeOf (return e)
       case ty of
         Unit -> return []                -- nothing to return
         _    -> do
@@ -162,7 +161,7 @@ compile = eval . view
           return ( stmts0 ++ [ ReturnStmt val])
 
     -- All assignments to () are not done.
-    eval (JS_Assign_ _ a :>>= g) | typeOf (proxyOf a) == Unit = do
+    eval (JS_Assign_ _ a :>>= g) | typeOf (return a) == Unit = do
       stmts1 <- compile (g ())
       return stmts1
 
