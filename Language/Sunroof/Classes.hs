@@ -71,7 +71,8 @@ instance Sunroof () where
 -- SunroofValue Type Class
 -- -------------------------------------------------------------
 
--- | All Haskell values that have a Sunroof representation
+-- | All Haskell values that can be converted into a 'Sunroof'
+--   value in a pure way (no observable allocation) 
 --   implement this class.
 class SunroofValue a where
   -- | The Sunroot type that is equivalent to the implementing Haskell type.
