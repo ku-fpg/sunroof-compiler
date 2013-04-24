@@ -4,6 +4,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- | Provides the central type classes used by Sunroof.
 module Language.Sunroof.Classes
@@ -76,7 +77,7 @@ class SunroofValue a where
   -- | The Sunroot type that is equivalent to the implementing Haskell type.
   type ValueOf a :: *
   -- | Convert the Haskell value to its Sunroof equivalent.
-  js :: a -> ValueOf a
+  js :: (Sunroof (ValueOf a)) => a -> ValueOf a
 
 -- | Unit is unit.
 instance SunroofValue () where
