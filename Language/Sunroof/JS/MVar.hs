@@ -22,7 +22,6 @@ import Language.Sunroof.Classes
 import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
-import Language.Sunroof.TH
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Array
   ( JSArray
@@ -37,13 +36,29 @@ import Language.Sunroof.JS.Array
 --   the type of values held in a 'JSMVar'.
 newtype JSMVar a = JSMVar JSObject
 
-deriveJSTuple
-  [d| instance (SunroofArgument o) => JSTuple (JSMVar o) where
-          type Internals (JSMVar o) =
-                  ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
-                  , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
-                  )
-  |]
+instance (SunroofArgument o) => Show (JSMVar o) where
+  show (JSMVar o) = show o
+
+instance (SunroofArgument o) => Sunroof (JSMVar o) where
+  unbox (JSMVar o) = unbox o
+  box o = JSMVar (box o)
+
+instance (SunroofArgument o) => IfB (JSMVar o) where
+  ifB = jsIfB
+
+type instance BooleanOf (JSMVar o) = JSBool
+
+instance (SunroofArgument o) => JSTuple (JSMVar o) where
+  type instance Internals (JSMVar o) = 
+    ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
+    , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
+    )
+  match o = (o ! attr "written", o ! attr "waiting")
+  tuple (written,waiting) = do
+    o <- new "Object" ()
+    o # attr "written" := written
+    o # attr "waiting" := waiting
+    return (JSMVar o)
 
 -- | Reference equality, not value equality.
 instance (SunroofArgument o) => EqB (JSMVar o) where

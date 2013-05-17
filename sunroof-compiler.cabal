@@ -27,7 +27,6 @@ Library
                        Language.Sunroof.Concurrent
                        Language.Sunroof.Internal
                        Language.Sunroof.Selector
-                       Language.Sunroof.TH
                        Language.Sunroof.Utils
                        Language.Sunroof.JS.Ref
                        Language.Sunroof.JS.Args
@@ -52,7 +51,6 @@ Library
                        data-default     == 0.5.*,
                        vector-space     >= 0.8.6,
                        mtl              >= 2.0,
-                       template-haskell >= 2.8,
                        operational      >= 0.2.0.3 && < 0.3,
                        semigroups       >= 0.9,
                        transformers     == 0.3.*,

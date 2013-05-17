@@ -22,7 +22,6 @@ import Language.Sunroof.Classes
 import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
-import Language.Sunroof.TH
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Array
   ( JSArray
@@ -37,13 +36,29 @@ import Language.Sunroof.JS.Array
 --   the type of values held in the channel.
 newtype JSChan a = JSChan JSObject
 
-deriveJSTuple
-  [d| instance (SunroofArgument o) => JSTuple (JSChan o) where
-          type Internals (JSChan o) =
-                  ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
-                  , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
-                  )
-  |]
+instance (SunroofArgument o) => Show (JSChan o) where
+  show (JSChan o) = show o
+
+instance (SunroofArgument o) => Sunroof (JSChan o) where
+  unbox (JSChan o) = unbox o
+  box o = JSChan (box o)
+
+instance (SunroofArgument o) => IfB (JSChan o) where
+  ifB = jsIfB
+
+type instance BooleanOf (JSChan o) = JSBool
+
+instance (SunroofArgument o) => JSTuple (JSChan o) where
+  type instance Internals (JSChan o) = 
+    ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
+    , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
+    )
+  match o = (o ! attr "written", o ! attr "waiting")
+  tuple (written,waiting) = do
+    o <- new "Object" ()
+    o # attr "written" := written
+    o # attr "waiting" := waiting
+    return (JSChan o)
 
 -- | Reference equality, not value equality.
 instance (SunroofArgument o) => EqB (JSChan o) where
