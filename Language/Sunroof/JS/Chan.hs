@@ -16,12 +16,13 @@ module Language.Sunroof.JS.Chan
   , writeChan, readChan
   ) where
 
-import Data.Boolean ( IfB(..), EqB(..) )
+import Data.Boolean ( IfB(..), EqB(..), BooleanOf )
 
 import Language.Sunroof.Classes
 import Language.Sunroof.Types
 import Language.Sunroof.Concurrent ( forkJS )
 import Language.Sunroof.Selector ( (!) )
+import Language.Sunroof.JS.Bool
 import Language.Sunroof.JS.Object ( JSObject )
 import Language.Sunroof.JS.Array
   ( JSArray
@@ -49,7 +50,7 @@ instance (SunroofArgument o) => IfB (JSChan o) where
 type instance BooleanOf (JSChan o) = JSBool
 
 instance (SunroofArgument o) => JSTuple (JSChan o) where
-  type instance Internals (JSChan o) = 
+  type Internals (JSChan o) = 
     ( (JSArray (JSContinuation (JSContinuation o))) -- callbacks of written data
     , (JSArray (JSContinuation o))                 -- callbacks of waiting readers
     )
