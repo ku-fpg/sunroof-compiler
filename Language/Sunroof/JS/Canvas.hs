@@ -17,17 +17,11 @@ module Language.Sunroof.JS.Canvas
   , createImageData, createImageData'
   , drawImage, drawImage', drawImageClip
   , fill, fillRect
-  , setFillStyle
   , fillText, fillText'
-  , setFont
   , getImageData
-  , setGlobalAlpha
   , isPointInPath
-  , setLineCap, setLineJoin
   , lineTo
-  , setLineWidth
   , miterLimit
-  , setMiterLimit
   , measureText
   , moveTo
   , putImageData
@@ -36,11 +30,7 @@ module Language.Sunroof.JS.Canvas
   , rotate, scale
   , save
   , setTransform
-  , setShadowColor, setShadowBlur
-  , setShadowOffsetX, setShadowOffsetY
   , stroke, strokeRect, strokeText
-  , setStrokeStyle
-  , setTextAlign, setTextBaseline
   , transform, translate
   , quadraticCurveTo
   , width, height
@@ -52,6 +42,7 @@ module Language.Sunroof.JS.Canvas
   , textAlign, textBaseline
   , lineCap, lineJoin, lineWidth
   , font
+  , fillStyle
   ) where
 
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
@@ -202,12 +193,6 @@ fillRect :: (JSNumber,JSNumber) -- ^ The top left corner of the rectangle.
          -> JSCanvas -> JS t ()
 fillRect (x,y) (w,h) = invoke "fillRect" (x, y, w, h)
 
--- | Sets the fill style of the context. A color value of the form "#XXXXXX"
---   is expected.
-setFillStyle :: JSString -> JSCanvas -> JS t ()
--- TODO: Add support for gradients and patterns.
-setFillStyle fs = "fillStyle" := fs
-
 -- | Fills a text with the current fill style.
 fillText :: JSString            -- ^ The text to fill.
          -> (JSNumber,JSNumber) -- ^ The x and y position of the
@@ -223,10 +208,6 @@ fillText' :: JSString             -- ^ The text to fill.
           -> JSCanvas -> JS t ()
 fillText' s (x,y) maxW = invoke "fillText" (s, x, y, maxW)
 
--- | Sets the font used by the context.
-setFont :: JSString -> JSCanvas -> JS t ()
-setFont f = "font" := f
-
 -- | Get the image data of the specified rectanlge of the canvas.
 getImageData :: (JSNumber, JSNumber)     -- ^ The x and y coordinate of the top left
                                          --   corner of the rectangle to extract.
@@ -236,43 +217,19 @@ getImageData :: (JSNumber, JSNumber)     -- ^ The x and y coordinate of the top 
 getImageData (x,y) (w,h) =
   invoke "getImageData" (x, y, w , h)
 
--- | Sets the global alpha value.
-setGlobalAlpha :: JSNumber -> JSCanvas -> JS t ()
-setGlobalAlpha a = "globalAlpha" := a
-
 -- | Returns true if the given point is in the path and false otherwise.
 isPointInPath :: (JSNumber, JSNumber)   -- ^ The x and y coordinate of the point to check
               -> JSCanvas -> JS t JSBool
 isPointInPath (x,y) = invoke "isPointInPath" (x, y)
-
--- | Sets the line cap style to use.
---   Possible values are: "butt", "round", "square";
-setLineCap :: JSString -> JSCanvas -> JS t ()
-setLineCap lc = "lineCap" := lc
-
--- | Sets the line join style to use.
---   Possible values are: "bevel", "round", "meter";
-setLineJoin :: JSString -> JSCanvas -> JS t ()
-setLineJoin lj = "lineJoin" := lj
 
 -- | Create a straight line path from the current point to the given point.
 lineTo :: (JSNumber,JSNumber) -- ^ The x and y location the line is drawn to.
        -> JSCanvas -> JS t ()
 lineTo (x,y) = invoke "lineTo" (x, y)
 
--- | Sets the line width used when stroking.
-setLineWidth :: JSNumber           -- ^ The line new line width in pixels.
-          -> JSCanvas -> JS t ()
-setLineWidth lw = "lineWidth" := lw
-
 -- | Returns the miter limit used when drawing a miter line join.
 miterLimit :: JSSelector JSNumber
 miterLimit = label $ string "miterLimit"
-
--- | Sets the miter limit used when drawing a miter line join.
-setMiterLimit :: JSNumber           -- ^ The new miter limit.
-              -> JSCanvas -> JS t ()
-setMiterLimit ml = "miterLimit" := ml
 
 -- | Returns an object that contains the width of the specified text is pixels.
 --   See 'width' selector.
@@ -330,28 +287,6 @@ setTransform :: JSNumber -- ^ Scales the drawings horizontally.
 setTransform a b c d e f =
   invoke "setTransform" (a, b, c, d, e, f)
 
--- | Sets the shadow color property.
---   The given string has to be a valid CSS color value or a
---   color of the form '#XXXXXX'
-setShadowColor :: JSString           -- ^ The color to use as shadow color.
-            -> JSCanvas -> JS t ()
-setShadowColor c = "shadowColor" := c
-
--- | Sets the blur level for shadows.
-setShadowBlur :: JSNumber           -- ^ The blur level for the shadow in pixels.
-           -> JSCanvas -> JS t ()
-setShadowBlur b = "shadowBlur" := b
-
--- | Sets the x offset of a shadow from a shape.
-setShadowOffsetX :: JSNumber           -- ^ The x offset of the shadow in pixels.
-              -> JSCanvas -> JS t ()
-setShadowOffsetX x = "shadowOffsetX" := x
-
--- | Sets the y offset of a shadow from a shape.
-setShadowOffsetY :: JSNumber           -- ^ The y offset of the shadow in pixels.
-              -> JSCanvas -> JS t ()
-setShadowOffsetY y = "shadowOffsetY" := y
-
 -- | Draws the current path using the current stroke style.
 stroke :: JSCanvas -> JS t ()
 stroke = invoke "stroke" ()
@@ -373,16 +308,6 @@ strokeText s (x,y) = invoke "strokeText" (s, x, y)
 setStrokeStyle :: JSString -> JSCanvas -> JS t ()
 -- TODO: Add support for patterns and gradients.
 setStrokeStyle c = "strokeStyle" := c
-
--- | Sets the text alignment to be used when drawing text.
---   Possible values are: "center", "end", "left", "right", "start"
-setTextAlign :: JSString -> JSCanvas -> JS t ()
-setTextAlign ta = "textAlign" := ta
-
--- | Sets the baseline to use when drawing text.
---   Possible values are: "alphabetic", "top", "hanging", "middle", "ideographic", "bottom"
-setTextBaseline :: JSString -> JSCanvas -> JS t ()
-setTextBaseline tb = "textBaseline" := tb
 
 -- | Alters the current transformation matrix. The current one is
 --   multiplied with one of the form:
@@ -429,19 +354,21 @@ data' = attr "data"
 globalAlpha :: JSSelector JSNumber
 globalAlpha = attr "globalAlpha"
 
--- | Selects the shadow color attribute.
+-- | The shadow color property.
+--   The string has to be a valid CSS color value or a
+--   color of the form '#XXXXXX'
 shadowColor :: JSSelector JSString
 shadowColor = attr "shadowColor"
 
--- | Selects the blur level for shadows.
+-- | Selects the blur level for shadows in pixels.
 shadowBlur :: JSSelector JSNumber
 shadowBlur = attr "shadowBlur"
 
--- | Selects the x offset of a shadow from a shape.
+-- | Selects the x offset of a shadow from a shape in pixels.
 shadowOffsetX :: JSSelector JSNumber
 shadowOffsetX = attr "shadowOffsetX"
 
--- | Selects the y offset of a shadow from a shape.
+-- | Selects the y offset of a shadow from a shape in pixels.
 shadowOffsetY :: JSSelector JSNumber
 shadowOffsetY = attr "shadowOffsetY"
 
@@ -470,11 +397,18 @@ lineCap = attr "lineCap"
 lineJoin :: JSSelector JSString
 lineJoin = attr "lineJoin"
 
--- | Selects the line width used when stroking.
+-- | Selects the line width used when stroking in pixels.
 lineWidth :: JSSelector JSNumber
 lineWidth = attr "lineWidth"
 
 -- | Selects the font used by the context.
 font :: JSSelector JSString
 font = attr "font"
+
+-- | The fill style of the context. A color value of the form "#XXXXXX"
+--   is expected.
+fillStyle :: JSSelector JSString
+-- TODO: Add support for gradients and patterns.
+fillStyle = attr "fillStyle"
+
 
