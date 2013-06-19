@@ -38,6 +38,8 @@ module Language.Sunroof.Types
   , SunroofFunctor(..)
   ) where
 
+import Control.Applicative (Applicative(..))
+import Control.Monad (ap)
 import Control.Monad.Operational
 
 import Data.Monoid ( Monoid(..) )
@@ -120,8 +122,12 @@ unJS (JS m) k = m k
 unJS ((:=) sel a obj) k = singleton (JS_Assign sel a (cast obj)) >>= k
 
 instance Monad (JS t) where
-  return a = JS $ \ k -> return a >>= k
+  return a = JS $ \ k -> k a
   m >>= k = JS $ \ k0 -> unJS m (\ r -> unJS (k r) k0)
+
+instance Applicative (JS t) where
+  pure a = JS $ \k -> k a
+  (<*>) = ap
 
 instance Functor (JS t) where
   fmap f jsm = jsm >>= (return . f)
