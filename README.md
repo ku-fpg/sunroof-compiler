@@ -2,7 +2,7 @@ Sunroof
 =======
 
 Sunroof is a Haskell-hosted Domain Specific Language (DSL) for generating JavaScript.
-Sunroof is build on top of the `JS`-monad, which, like the Haskell `IO`-monad, allows 
+Sunroof is built on top of the `JS`-monad, which, like the Haskell `IO`-monad, allows 
 access to external resources, but specifically JavaScript
 resources. As such, Sunroof is primarily a feature-rich foreign
 function API to the browser's JavaScript engine, and all the browser-specific
@@ -42,5 +42,5 @@ Further information on Sunroof can be found in different places:
 
 
 [HackageKansasComet]: http://hackage.haskell.org/package/kansas-comet
-[HackageSunroofServer]: http://hackage.haskell.org/package/sunroor-server
+[HackageSunroofServer]: http://hackage.haskell.org/package/sunroof-server
 
