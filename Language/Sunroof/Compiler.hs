@@ -226,13 +226,13 @@ compileBinds a m2 = do
            | (Var v,e') <- jsArgs res `zip` es'
            ]
         ++ stmts1
-
+{-
 assignments :: (SunroofArgument args) => args -> args -> [Stmt]
 assignments res res' =
         [ mkVarStmt v e
         | (Var v, e) <- jsArgs res `zip` jsArgs res'
         ]
-
+-}
 compileBranch_A :: forall a bool t . (Sunroof bool, SunroofArgument a)
                 => bool -> JS t a -> JS t a ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileBranch_A b c1 c2 k = do

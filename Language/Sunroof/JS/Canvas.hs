@@ -303,12 +303,6 @@ strokeText :: JSString            -- ^ The text to stroke.
            -> JSCanvas -> JS t ()
 strokeText s (x,y) = invoke "strokeText" (s, x, y)
 
--- | Sets the stroke style of the context. A color value of the form "#XXXXXX"
---   is expected.
-setStrokeStyle :: JSString -> JSCanvas -> JS t ()
--- TODO: Add support for patterns and gradients.
-setStrokeStyle c = "strokeStyle" := c
-
 -- | Alters the current transformation matrix. The current one is
 --   multiplied with one of the form:
 -- @
