@@ -17,6 +17,7 @@ import Data.Boolean.Numbers
 import Data.AdditiveGroup ( AdditiveGroup(..) )
 import Data.VectorSpace ( VectorSpace(..) )
 import Data.Ratio ( Ratio )
+import Data.Scientific ( Scientific, toRealFloat )
 
 import Language.Sunroof.Internal ( litparen )
 import Language.Sunroof.JavaScript ( Expr, showExpr, uniOp, binOp, literal )
@@ -136,6 +137,10 @@ instance SunroofValue Int where
 instance SunroofValue Integer where
   type ValueOf Integer = JSNumber
   js = fromInteger . toInteger
+
+instance SunroofValue Scientific where
+  type ValueOf Scientific = JSNumber
+  js = box . literal . litparen . (show :: Double -> String) . toRealFloat
 
 instance (Integral a) => SunroofValue (Ratio a) where
   type ValueOf (Ratio a) = JSNumber
