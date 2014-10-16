@@ -53,10 +53,7 @@ Library
                        vector-space     >= 0.8.6,
                        mtl              >= 2.0,
                        operational      >= 0.2.0.3 && < 0.3,
-                       semigroups       >= 0.9,
-                       transformers     == 0.3.*,
-                       tagged           >= 0.4.4
-
+                       semigroups       >= 0.9
 
   GHC-options: -Wall -fno-warn-orphans
 

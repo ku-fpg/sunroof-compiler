@@ -28,7 +28,7 @@ module Language.Sunroof.JavaScript
 
 import Data.List ( intercalate )
 import Data.Reify ( MuRef(..) )
-import Control.Applicative ( Applicative, pure, (<$>), (<*>))
+import Control.Applicative ( pure, (<$>), (<*>))
 import Data.Traversable ( Traversable(..) )
 import Data.Foldable ( Foldable(..) )
 import Data.Monoid ( Monoid(..) )
