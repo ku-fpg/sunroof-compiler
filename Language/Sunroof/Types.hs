@@ -10,6 +10,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 -- | The basic types and combinators of Sunroof.
 module Language.Sunroof.Types
