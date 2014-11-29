@@ -1,5 +1,5 @@
 Name:                sunroof-compiler
-Version:             0.2.1
+Version:             0.2.2
 Synopsis:            Monadic Javascript Compiler
 Homepage:            https://github.com/ku-fpg/sunroof-compiler
 Bug-reports:         https://github.com/ku-fpg/sunroof-compiler
