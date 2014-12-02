@@ -10,11 +10,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverlappingInstances #-}
-{-# LANGUAGE CPP #-}
-
-#if __GLASGOW_HASKELL__ >= 60800
-  {-# LANGUAGE AllowAmbiguousTypes #-}
-#endif
 
 
 -- | The basic types and combinators of Sunroof.
