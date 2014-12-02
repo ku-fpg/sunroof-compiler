@@ -53,9 +53,11 @@ Library
                        vector-space     >= 0.8.6,
                        mtl              >= 2.0,
                        operational      >= 0.2.0.3 && < 0.3,
-                       semigroups       >= 0.9,
-                       tagged           >= 0.3
-
+                       semigroups       >= 0.9
+  
+  if impl(ghc < 7.7)
+    build-depends:     tagged           >= 0.3
+  
   GHC-options: -Wall -fno-warn-orphans
 
 source-repository head
