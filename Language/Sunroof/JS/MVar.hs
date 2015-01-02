@@ -91,7 +91,7 @@ newEmptyMVar = do
 -- TODO: Not quite right; pauses until someone bites
 -- | Put the value into the 'JSMVar'. If there already is a
 --   value inside, this will block until it is taken out.
-putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS B ()
+putMVar :: forall a . (SunroofArgument a) => a -> JSMVar a -> JS 'B ()
 putMVar a (match -> (written,waiting)) = do
   ifB ((waiting ! length') ==* 0)
       (-- no-one is waiting, so check for fullness
@@ -121,7 +121,7 @@ putMVar a (match -> (written,waiting)) = do
 
 -- | Take the value out of the 'JSMVar'. If there is no value
 --   inside, this will block until one is available.
-takeMVar :: forall a . (SunroofArgument a) => JSMVar a -> JS B a
+takeMVar :: forall a . (SunroofArgument a) => JSMVar a -> JS 'B a
 takeMVar (match -> (written,waiting)) = do
   ifB ((written ! length') ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.

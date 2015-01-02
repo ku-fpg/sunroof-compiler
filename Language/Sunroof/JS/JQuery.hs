@@ -128,7 +128,7 @@ removeAttr attrName = invoke "removeAttr" attrName
 -- -------------------------------------------------------------
 
 -- | See <http://api.jquery.com/on/>.
-on :: (SunroofArgument a) => JSString -> JSString -> (a -> JS B ()) -> JSObject -> JS t ()
+on :: (SunroofArgument a) => JSString -> JSString -> (a -> JS 'B ()) -> JSObject -> JS t ()
 on nm sel f o = do
      callback <- continuation f
      o # invoke "on" (nm,sel,callback)

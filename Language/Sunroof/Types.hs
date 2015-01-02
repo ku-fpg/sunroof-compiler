@@ -1,4 +1,5 @@
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -9,7 +10,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverlappingInstances #-}
 
 
 -- | The basic types and combinators of Sunroof.
@@ -39,11 +39,14 @@ module Language.Sunroof.Types
   , SunroofFunctor(..)
   ) where
 
-import Control.Applicative (Applicative(..))
+#if !(MIN_VERSION_base(4,8,0))
+import Control.Applicative ( Applicative(..) )
+import Data.Monoid (Monoid(..) )
+#endif
+
 import Control.Monad (ap)
 import Control.Monad.Operational
 
-import Data.Monoid ( Monoid(..) )
 --import Data.Semigroup ( Semigroup(..) )
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 import Data.Proxy ( Proxy(Proxy) )
@@ -81,13 +84,13 @@ class SunroofThread (t :: T) where
   --   object.
   evalStyle    :: ThreadProxy t -> T
   -- | Create a possibly blocking computation from the given one.
-  blockableJS :: (Sunroof a) => JS t a -> JS B a
+  blockableJS :: (Sunroof a) => JS t a -> JS 'B a
 
-instance SunroofThread A where
+instance SunroofThread 'A where
   evalStyle _ = A
   blockableJS = liftJS
 
-instance SunroofThread B where
+instance SunroofThread 'B where
   evalStyle _ = B
   blockableJS = id
 
@@ -106,10 +109,10 @@ data JS :: T -> * -> * where
   (:=) :: (Sunroof a, Sunroof o) => JSSelector a -> a -> o -> JS t ()
 
 -- | Short-hand type for atmoic Javascript computations.
-type JSA a = JS A a
+type JSA a = JS 'A a
 
 -- | Short-hand type for possibly blocking Javascript computations.
-type JSB a = JS B a
+type JSB a = JS 'B a
 
 -- | Lifts a single primitive Javascript instruction ('JSI') into the
 --   'JS' monad.
@@ -184,14 +187,14 @@ data JSI :: T -> * -> * where
   -- Perhaps take the overloaded vs [Expr] and use jsArgs in the compiler?
   JS_Invoke :: (SunroofArgument a, Sunroof r) => a -> JSFunction a r -> JSI t r
   JS_Eval   :: (SunroofArgument a) => a -> JSI t a
-  JS_Function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JSI t (JSFunction a b)
-  JS_Continuation :: (SunroofArgument a) => (a -> JS B ()) -> JSI t (JSContinuation a)
+  JS_Function :: (SunroofArgument a, Sunroof b) => (a -> JS 'A b) -> JSI t (JSFunction a b)
+  JS_Continuation :: (SunroofArgument a) => (a -> JS 'B ()) -> JSI t (JSContinuation a)
   -- Needs? Boolean bool, bool ~ BooleanOf (JS a)
   JS_Branch :: (SunroofThread t, SunroofArgument a, Sunroof bool) => bool -> JS t a -> JS t a  -> JSI t a
   JS_Return  :: (Sunroof a) => a -> JSI t ()
   JS_Assign_ :: (Sunroof a) => Id -> a -> JSI t ()
   JS_Comment :: String -> JSI t ()
-  JS_Fix     :: (SunroofArgument a) => (a -> JS A a) -> JSI t a
+  JS_Fix     :: (SunroofArgument a) => (a -> JS 'A a) -> JSI t a
   -- TODO: generalize Assign[_] to have a RHS
 
 -- -------------------------------------------------------------
@@ -199,7 +202,7 @@ data JSI :: T -> * -> * where
 -- -------------------------------------------------------------
 
 -- | Lift the atomic computation into another computation.
-liftJS :: (Sunroof a) => JS A a -> JS t a
+liftJS :: (Sunroof a) => JS 'A a -> JS t a
 liftJS m = do
         o <- function (\ () -> m)
         apply o ()
@@ -246,7 +249,7 @@ fun :: (SunroofArgument a, Sunroof r) => String -> JSFunction a r
 fun = JSFunction . literal
 
 -- | Create an 'A'tomic Javascript function from a Haskell function.
-function :: (SunroofArgument a, Sunroof b) => (a -> JS A b) -> JS t (JSFunction a b)
+function :: (SunroofArgument a, Sunroof b) => (a -> JS 'A b) -> JS t (JSFunction a b)
 function = single . JS_Function
 
 infixl 1 `apply`
@@ -302,7 +305,7 @@ instance (SunroofArgument a) => IfB (JSContinuation a) where
 -- | We can compile 'B'lockable functions that return @()@.
 --   Note that, with the 'B'-style threads, we return from a
 --   call when we first block, not at completion of the call.
-continuation :: (SunroofArgument a) => (a -> JS B ()) -> JS t (JSContinuation a)
+continuation :: (SunroofArgument a) => (a -> JS 'B ()) -> JS t (JSContinuation a)
 continuation = single . JS_Continuation
 
 -- | @kast@ is cast to continuation. @k@ is the letter often used to signify a continuation.
@@ -313,11 +316,11 @@ kast = cast
 --   http://stackoverflow.com/questions/9050725/call-cc-implementation
 --
 -- | Reify the current contination as a Javascript continuation
-callcc :: SunroofArgument a => (JSContinuation a -> JS B a) -> JS B a
+callcc :: SunroofArgument a => (JSContinuation a -> JS 'B a) -> JS 'B a
 callcc f = JS $ \ cc -> unJS (do o <- continuation (goto' cc)
                                  f o
                               ) cc
-   where goto' :: (x ~ ()) => (a -> Program (JSI B) ()) -> a -> JS B x
+   where goto' :: (x ~ ()) => (a -> Program (JSI 'B) ()) -> a -> JS 'B x
          goto' cont argument = JS $ \ _ -> cont argument
 
 
@@ -477,8 +480,8 @@ instance SunroofKey JSBool where
 -- -------------------------------------------------------------
 
 class SunroofFunctor m where
-  forEach :: (Sunroof a) => (a -> JS A ()) -> m a -> JS t ()
+  forEach :: (Sunroof a) => (a -> JS 'A ()) -> m a -> JS t ()
   -- | map provided in all modern versions of JavaScript.
-  jsMap :: (Sunroof a, Sunroof b) => (a -> JS A b) -> m a -> JS t (m b)
+  jsMap :: (Sunroof a, Sunroof b) => (a -> JS 'A b) -> m a -> JS t (m b)
 
 

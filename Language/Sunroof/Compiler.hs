@@ -99,17 +99,17 @@ instance Default CompilerOpts where
 --
 -- Now @main@ in JavaScript is bound to the square function.
 --
-sunroofCompileJSA :: (Sunroof a) => CompilerOpts -> String -> JS A a -> IO String
+sunroofCompileJSA :: (Sunroof a) => CompilerOpts -> String -> JS 'A a -> IO String
 sunroofCompileJSA opts fName f = do
   (stmts,_) <- compileJS opts 0 (single . JS_Return) f
   return $ showStmt $ mkVarStmt fName $ scopeForEffect stmts
 
 -- | Compiles code using the blocking threading model.
 --   Usage is the same as for 'sunroofCompileJSA'.
-sunroofCompileJSB :: CompilerOpts -> String -> JS B () -> IO String
+sunroofCompileJSB :: CompilerOpts -> String -> JS 'B () -> IO String
 sunroofCompileJSB opts fName f = sunroofCompileJSA opts fName $ do
   k <- continuation (\ () -> f)
-  goto k () :: JS A ()
+  goto k () :: JS 'A ()
 
 -- | Extracts the 'Control.Monad.Operational.Program' from the given
 --   Javascript computation using the given continuation closer.
@@ -269,7 +269,7 @@ compileBranch b c1 c2 k =
     B -> compileBranch_B b c1 c2 k
 
 compileFix :: forall a t . (SunroofArgument a)
-              => (a -> JS A a) ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
+              => (a -> JS 'A a) ->  (a -> Program (JSI t) ()) -> CompM [Stmt]
 compileFix h1 k = do
         -- invent the scoped named variables
         args :: a <- jsValue
@@ -311,7 +311,7 @@ extractProgramJS k m = unJS (m >>= k) return
 
 
 compileFunction :: forall a b . (SunroofArgument a, Sunroof b)
-                => (a -> JS A b)
+                => (a -> JS 'A b)
                 -> CompM Expr
 compileFunction m2 = do
   (arg :: a) <- jsValue
@@ -319,7 +319,7 @@ compileFunction m2 = do
   return $ Function (map varIdE $ jsArgs arg) fStmts
 
 compileContinuation :: forall a b . (SunroofArgument a, Sunroof b)
-                => (a -> JS B b)
+                => (a -> JS 'B b)
                 -> CompM Expr
 compileContinuation m2 = do
   (arg :: a) <- jsValue

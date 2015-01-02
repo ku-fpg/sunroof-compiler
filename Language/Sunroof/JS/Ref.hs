@@ -63,7 +63,7 @@ writeJSRef :: (Sunroof a) => a -> JSRef a ->  JS t ()
 writeJSRef a (JSRef obj) = obj # "val" := a
 
 -- | Non-blocking modification of a 'JSRef'.
-modifyJSRef :: (Sunroof a) => (a -> JS A a) -> JSRef a -> JS t ()
+modifyJSRef :: (Sunroof a) => (a -> JS 'A a) -> JSRef a -> JS t ()
 modifyJSRef f ref = do
   val <- readJSRef ref
   liftJS (f val) >>= \ v -> ref # writeJSRef v

@@ -1,4 +1,5 @@
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -26,12 +27,16 @@ module Language.Sunroof.JavaScript
   , scopeForEffect
   ) where
 
+#if !(MIN_VERSION_base(4,8,0))
+import Control.Applicative ( pure, (<*>) )
+import Data.Foldable ( (Foldable(..) )
+import Data.Monoid ( Monoid(..) )
+import Data.Traversable ( Traversable(..) )
+#endif
+
 import Data.List ( intercalate )
 import Data.Reify ( MuRef(..) )
-import Control.Applicative ( pure, (<$>), (<*>))
-import Data.Traversable ( Traversable(..) )
-import Data.Foldable ( Foldable(..) )
-import Data.Monoid ( Monoid(..) )
+import Control.Applicative ( (<$>) )
 import Data.Char ( isAlpha, isAlphaNum )
 
 -- -------------------------------------------------------------

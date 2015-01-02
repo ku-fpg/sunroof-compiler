@@ -1,10 +1,13 @@
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+#if !(MIN_VERSION_base(4,8,0))
+{-# LANGUAGE OverlappingInstances #-}
+#endif
 
 -- | Provides the central type classes used by Sunroof.
 module Language.Sunroof.Classes
@@ -99,13 +102,21 @@ class SunroofArgument args where
   typesOf  :: Proxy args -> [Type]
 
 -- | Every 'Sunroof' value can be an argument to a function.
+#if MIN_VERSION_base(4,8,0)
+instance {-# OVERLAPPABLE #-} Sunroof a => SunroofArgument a where
+#else
 instance Sunroof a => SunroofArgument a where
+#endif
   jsArgs a = [unbox a]
   jsValue = jsVar
   typesOf p = [typeOf p]
 
 -- | Unit is the empty argument list.
+#if MIN_VERSION_base(4,8,0)
+instance {-# OVERLAPPING #-} SunroofArgument () where
+#else
 instance SunroofArgument () where
+#endif
   jsArgs _ = []
   jsValue = return ()
   typesOf _ = []

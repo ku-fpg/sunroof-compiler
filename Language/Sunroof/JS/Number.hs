@@ -1,4 +1,5 @@
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Numbers in Javascript.
@@ -7,7 +8,13 @@ module Language.Sunroof.JS.Number
   , int
   ) where
 
-import Prelude hiding (div, mod, quot, rem, floor, ceiling, isNaN, isInfinite)
+import Prelude hiding
+  ( div, mod, quot, rem, floor
+  , ceiling, isNaN, isInfinite
+#if MIN_VERSION_base(4,8,0)
+  , (<*)
+#endif
+  )
 
 import Data.Boolean ( BooleanOf, Boolean(..), IfB(..), EqB(..), OrdB(..) )
 import Data.Boolean.Numbers 

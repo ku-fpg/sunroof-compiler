@@ -1,4 +1,5 @@
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
@@ -8,8 +9,10 @@ module Language.Sunroof.JS.String
   , string
   ) where
 
-import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
+#if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid ( Monoid(..) )
+#endif
+import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 import Data.Semigroup ( Semigroup(..) )
 import Data.Char ( isAscii, isControl, ord )
 import Data.String ( IsString(..) )

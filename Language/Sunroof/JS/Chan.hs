@@ -90,7 +90,7 @@ writeChan a (match -> (written,waiting)) = do
 
 -- | Take a value out of the channel. If there is no value
 --   inside, this will block until one is available.
-readChan :: forall a . (SunroofArgument a) => JSChan a -> JS B a
+readChan :: forall a . (SunroofArgument a) => JSChan a -> JS 'B a
 readChan (match -> (written,waiting)) = do
   ifB ((written ! length') ==* 0)
       (do -- Add yourself to the 'waiting for writer' Q.
