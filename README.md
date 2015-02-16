@@ -1,4 +1,4 @@
-Sunroof
+Sunroof [![Hackage version](https://img.shields.io/hackage/v/sunroof-compiler.svg?style=flat)](http://hackage.haskell.org/package/sunroof-compiler) [![Build Status](https://img.shields.io/travis/ku-fpg/sunroof-compiler.svg?style=flat)](https://travis-ci.org/ku-fpg/sunroof-compiler)
 =======
 
 Sunroof is a Haskell-hosted Domain Specific Language (DSL) for generating JavaScript.
