@@ -25,7 +25,7 @@ import Data.Graph
 import Data.Maybe
 import Data.Proxy ( Proxy(..) )
 import qualified Data.Map as Map
-import Data.Default
+import Data.Default.Class
 
 import Language.Sunroof.Types
   ( T(..)
@@ -71,7 +71,7 @@ instance Default CompilerOpts where
 -- @
 -- GHCi> import Language.Sunroof
 -- GHCi> import Language.Sunroof.JS.Browser
--- GHCi> import Data.Default
+-- GHCi> import Data.Default.Class
 -- GHCi> txt <- sunroofCompileJSA def \"main\" $ do alert(js \"Hello\");
 -- GHCi> putStrLn txt
 -- var main = (function() {
@@ -85,6 +85,7 @@ instance Default CompilerOpts where
 -- To generate a function, not just an effect, you can use the 'function' combinator.
 --
 -- @
+-- GHCi> :set -XScopedTypeVariables
 -- GHCi> txt <- sunroofCompileJSA def \"main\" $ do
 --            function $ \\ n -> do
 --                return (n * (n :: JSNumber))

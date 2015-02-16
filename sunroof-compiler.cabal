@@ -45,19 +45,19 @@ Library
                        Language.Sunroof.JS.Map
                        
   default-language:    Haskell2010
-  build-depends:       data-reify       >= 0.6,
-                       scientific       >= 0.3.2 && < 0.4,
-                       base             >= 4.3.1 && < 5,
-                       Boolean          >= 0.2,
-                       containers       >= 0.4,
-                       data-default     == 0.5.*,
-                       vector-space     >= 0.8.6,
-                       mtl              >= 2.0,
-                       operational      >= 0.2.0.3 && < 0.3,
-                       semigroups       >= 0.9
+  build-depends:       data-reify         >= 0.6,
+                       scientific         >= 0.3.2 && < 0.4,
+                       base               >= 4.3.1 && < 5,
+                       Boolean            >= 0.2,
+                       containers         >= 0.4,
+                       data-default-class == 0.0.*,
+                       vector-space       >= 0.8.6,
+                       mtl                >= 2.0,
+                       operational        >= 0.2.0.3 && < 0.3,
+                       semigroups         >= 0.9
   
   if impl(ghc < 7.7)
-    build-depends:     tagged           >= 0.3
+    build-depends:     tagged             >= 0.3
   
   GHC-options: -Wall -fno-warn-orphans
 
