@@ -30,13 +30,13 @@ module Language.Sunroof.JavaScript
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative ( pure, (<*>) )
 import Data.Foldable ( Foldable(..) )
+import Data.Functor ( (<$>) )
 import Data.Monoid ( Monoid(..) )
 import Data.Traversable ( Traversable(..) )
 #endif
 
 import Data.List ( intercalate )
 import Data.Reify ( MuRef(..) )
-import Control.Applicative ( (<$>) )
 import Data.Char ( isAlpha, isAlphaNum )
 
 -- -------------------------------------------------------------
