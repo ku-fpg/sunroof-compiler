@@ -5,7 +5,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
-#if !(MIN_VERSION_base(4,8,0))
+#if __GLASGOW_HASKELL__ < 710
 {-# LANGUAGE OverlappingInstances #-}
 #endif
 
@@ -102,7 +102,7 @@ class SunroofArgument args where
   typesOf  :: Proxy args -> [Type]
 
 -- | Every 'Sunroof' value can be an argument to a function.
-#if MIN_VERSION_base(4,8,0)
+#if __GLASGOW_HASKELL__ >= 710
 instance {-# OVERLAPPABLE #-} Sunroof a => SunroofArgument a where
 #else
 instance Sunroof a => SunroofArgument a where
@@ -112,7 +112,7 @@ instance Sunroof a => SunroofArgument a where
   typesOf p = [typeOf p]
 
 -- | Unit is the empty argument list.
-#if MIN_VERSION_base(4,8,0)
+#if __GLASGOW_HASKELL__ >= 710
 instance {-# OVERLAPPING #-} SunroofArgument () where
 #else
 instance SunroofArgument () where

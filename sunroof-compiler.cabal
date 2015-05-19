@@ -21,45 +21,44 @@ Extra-source-files:
 
 Library
   Exposed-modules:     Language.Sunroof
-                       Language.Sunroof.Types
                        Language.Sunroof.Classes
-                       Language.Sunroof.JavaScript
                        Language.Sunroof.Compiler
                        Language.Sunroof.Concurrent
                        Language.Sunroof.Internal
+                       Language.Sunroof.JavaScript
                        Language.Sunroof.Selector
+                       Language.Sunroof.Types
                        Language.Sunroof.Utils
-                       Language.Sunroof.JS.Ref
                        Language.Sunroof.JS.Args
-                       Language.Sunroof.JS.Bool
-                       Language.Sunroof.JS.Object
-                       Language.Sunroof.JS.String
-                       Language.Sunroof.JS.Number
                        Language.Sunroof.JS.Array
-                       Language.Sunroof.JS.Date
-                       Language.Sunroof.JS.Chan
-                       Language.Sunroof.JS.MVar
-                       Language.Sunroof.JS.Canvas
+                       Language.Sunroof.JS.Bool
                        Language.Sunroof.JS.Browser
+                       Language.Sunroof.JS.Canvas
+                       Language.Sunroof.JS.Chan
+                       Language.Sunroof.JS.Date
                        Language.Sunroof.JS.JQuery
                        Language.Sunroof.JS.Map
+                       Language.Sunroof.JS.MVar
+                       Language.Sunroof.JS.Number
+                       Language.Sunroof.JS.Object
+                       Language.Sunroof.JS.Ref
+                       Language.Sunroof.JS.String
                        
   default-language:    Haskell2010
-  build-depends:       data-reify         >= 0.6,
-                       scientific         >= 0.3.2 && < 0.4,
-                       base               >= 4.3.1 && < 5,
+  build-depends:       base               >= 4.3.1   && < 5,
+                       base-compat        >= 0.8.1   && < 1,
                        Boolean            >= 0.2,
                        containers         >= 0.4,
                        data-default-class == 0.0.*,
-                       vector-space       >= 0.8.6,
+                       data-reify         >= 0.6,
                        mtl                >= 2.0,
                        operational        >= 0.2.0.3 && < 0.3,
-                       semigroups         >= 0.9
+                       scientific         >= 0.3.2   && < 0.4,
+                       semigroups         >= 0.9,
+                       tagged             >= 0.3,
+                       vector-space       >= 0.8.6
   
-  if impl(ghc < 7.7)
-    build-depends:     tagged             >= 0.3
-  
-  GHC-options: -Wall -fno-warn-orphans
+  GHC-options: -Wall
 
 source-repository head
   type:     git

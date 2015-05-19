@@ -1,7 +1,7 @@
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Strings in Javascript.
 module Language.Sunroof.JS.String
@@ -9,15 +9,15 @@ module Language.Sunroof.JS.String
   , string
   ) where
 
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Monoid ( Monoid(..) )
-#endif
 import Data.Boolean ( BooleanOf, IfB(..), EqB(..) )
 import Data.Semigroup ( Semigroup(..) )
 import Data.Char ( isAscii, isControl, ord )
 import Data.String ( IsString(..) )
 
 import Numeric ( showHex )
+
+import Prelude ()
+import Prelude.Compat
 
 import Language.Sunroof.JavaScript ( Expr, showExpr, binOp, literal )
 import Language.Sunroof.Classes ( Sunroof(..), SunroofValue(..) )

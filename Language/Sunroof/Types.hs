@@ -1,5 +1,4 @@
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -39,11 +38,6 @@ module Language.Sunroof.Types
   , SunroofFunctor(..)
   ) where
 
-#if !(MIN_VERSION_base(4,8,0))
-import Control.Applicative ( Applicative(..) )
-import Data.Monoid (Monoid(..) )
-#endif
-
 import Control.Monad (ap)
 import Control.Monad.Operational
 
@@ -62,6 +56,9 @@ import Language.Sunroof.JS.Bool ( JSBool, jsIfB )
 import Language.Sunroof.JS.Object ( JSObject, object )
 import Language.Sunroof.JS.Number ( JSNumber )
 import Language.Sunroof.JS.String ( string, JSString )
+
+import Prelude ()
+import Prelude.Compat
 
 -- -------------------------------------------------------------
 -- Thread Model

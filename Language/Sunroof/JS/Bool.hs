@@ -1,5 +1,6 @@
 
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Booleans in Javascript.
 module Language.Sunroof.JS.Bool
