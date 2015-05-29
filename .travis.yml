@@ -26,6 +26,6 @@ install:
 script:
  - if [ -f configure.ac ]; then autoreconf -i; fi
  - cabal configure -v2
- - cabal build
+ - cabal build -j1
  - cabal check
  - cabal sdist
