@@ -43,13 +43,13 @@ Library
                        Language.Sunroof.JS.Object
                        Language.Sunroof.JS.Ref
                        Language.Sunroof.JS.String
-                       
+
   default-language:    Haskell2010
   build-depends:       base               >= 4.3.1   && < 5,
                        base-compat        >= 0.8.1   && < 1,
                        Boolean            >= 0.2,
                        containers         >= 0.4,
-                       data-default-class == 0.0.*,
+                       data-default-class >= 0.0.1   && < 0.2,
                        data-reify         >= 0.6,
                        mtl                >= 2.0,
                        operational        >= 0.2.0.3 && < 0.3,
@@ -57,7 +57,7 @@ Library
                        semigroups         >= 0.9,
                        tagged             >= 0.3,
                        vector-space       >= 0.8.6
-  
+
   GHC-options: -Wall
 
 source-repository head
